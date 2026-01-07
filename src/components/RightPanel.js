@@ -1,6 +1,6 @@
 export default function RightPanel() {
   return (
-    <aside className="w-72 fixed right-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto p-6 space-y-6">
+    <aside className="w-80 fixed right-4 top-80 h-[calc(100vh-20rem)] overflow-y-auto p-8 space-y-6">
       {/* Creator Profile Card */}
       <div className="bg-gradient-to-br from-pink-400 to-orange-400 rounded-xl p-6 text-white">
         <div className="flex flex-col items-center">
@@ -48,7 +48,9 @@ export default function RightPanel() {
           </div>
 
           <div className="border-b border-gray-100 pb-3">
-            <p className="text-orange-500 font-medium text-sm">#demonslayercosmode</p>
+            <p className="text-orange-500 font-medium text-sm">
+              #demonslayercosmode
+            </p>
             <p className="text-xs text-gray-500">737 Posts</p>
           </div>
 
@@ -64,13 +66,15 @@ export default function RightPanel() {
         <h3 className="font-bold text-gray-800 mb-4">Recommended users</h3>
         <div className="space-y-3">
           {/* User Item */}
-          {['testy', 'Luna Mai', 'Anime Power'].map((user, index) => (
+          {["testy", "Luna Mai", "Anime Power"].map((user, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
                 <div>
                   <p className="font-medium text-sm text-gray-800">{user}</p>
-                  <p className="text-xs text-gray-500">@{user.toLowerCase().replace(' ', '')}</p>
+                  <p className="text-xs text-gray-500">
+                    @{user.toLowerCase().replace(" ", "")}
+                  </p>
                 </div>
               </div>
               <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-full text-xs font-medium">
