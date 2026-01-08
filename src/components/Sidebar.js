@@ -3,14 +3,14 @@ export default function Sidebar({ isCollapsed }) {
     <div
       className={`${
         isCollapsed ? "w-20" : "w-64"
-      } bg-white h-screen fixed left-0 top-16 flex flex-col py-4 border-transparent transition-all duration-300`}
+      } bg-white h-screen fixed left-0 top-16 flex flex-col py-4 border-transparent transition-all duration-300 z-40`}
     >
       {/* Navigation Menu */}
       <nav className="flex flex-col gap-2 w-full px-2">
         {/* Home - Active */}
         <a
           href="#"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-500 text-white ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg bg-[#FF7927] text-white ${
             isCollapsed ? "justify-center" : ""
           }`}
         >

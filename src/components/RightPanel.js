@@ -77,7 +77,7 @@ export default function RightPanel() {
                   </p>
                 </div>
               </div>
-              <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-full text-xs font-medium">
+              <button className="bg-[#FF7927] hover:bg-[#E66B1F] text-white px-4 py-1 rounded-full text-xs font-medium">
                 Follow
               </button>
             </div>
@@ -91,15 +91,15 @@ export default function RightPanel() {
           <p>© 2025 AniCon. All rights reserved.</p>
         </div>
         <div className="flex justify-center gap-3 text-gray-400 text-xs">
-          <a href="#" className="hover:text-orange-500">
+          <a href="#" className="hover:text-[#FF7927]">
             Privacy
           </a>
           <span>•</span>
-          <a href="#" className="hover:text-orange-500">
+          <a href="#" className="hover:text-[#FF7927]">
             Terms
           </a>
           <span>•</span>
-          <a href="#" className="hover:text-orange-500">
+          <a href="#" className="hover:text-[#FF7927]">
             About
           </a>
         </div>
