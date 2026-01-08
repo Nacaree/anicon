@@ -1,6 +1,6 @@
 export default function RightPanel() {
   return (
-    <aside className="w-80 fixed right-4 top-80 h-[calc(100vh-20rem)] overflow-y-auto p-8 space-y-6">
+    <aside className="w-80 space-y-6 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Creator Profile Card */}
       <div className="bg-gradient-to-br from-pink-400 to-orange-400 rounded-xl p-6 text-white">
         <div className="flex flex-col items-center">
@@ -35,7 +35,7 @@ export default function RightPanel() {
       {/* Trending Now */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <h3 className="font-bold text-gray-800 mb-4">Trending now</h3>
-        <div className="space-y-3">
+        <div className="space-y-1">
           {/* Trending Item */}
           <div className="border-b border-gray-100 pb-3">
             <p className="text-orange-500 font-medium text-sm">#chainssawman</p>
@@ -82,6 +82,26 @@ export default function RightPanel() {
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Footer / Copyright */}
+      <div className="space-y-2 pb-8">
+        <div className="flex justify-center gap-4 text-gray-400 text-xs">
+          <p>© 2025 AniCon. All rights reserved.</p>
+        </div>
+        <div className="flex justify-center gap-3 text-gray-400 text-xs">
+          <a href="#" className="hover:text-orange-500">
+            Privacy
+          </a>
+          <span>•</span>
+          <a href="#" className="hover:text-orange-500">
+            Terms
+          </a>
+          <span>•</span>
+          <a href="#" className="hover:text-orange-500">
+            About
+          </a>
         </div>
       </div>
     </aside>

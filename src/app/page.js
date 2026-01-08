@@ -23,25 +23,43 @@ export default function Home() {
       {/* Header */}
       <Header toggleSidebar={toggleSidebar} />
 
-      {/* Main Content Area */}
-      <main
+      {/* Content Wrapper - respects sidebar offset */}
+      <div
         className={`${
-          isSidebarCollapsed ? "ml-28" : "ml-72"
-        } mr-8 pt-20 px-8 pb-8 transition-all duration-300`}
+          isSidebarCollapsed ? "ml-20" : "ml-64"
+        } pt-16 transition-all duration-300`}
       >
-        <FeaturedEvents />
-        <EventSections />
+        {/* Featured Events - Full Width Section */}
+        <section className="w-full px-8 pt-4 pb-8">
+          <FeaturedEvents />
+        </section>
 
-        {/* Social Feed */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Posts</h2>
-          <PostCard />
-          <PostCard />
+        {/* Main Content + Right Panel Row */}
+        <div className="flex gap-6 px-8 pb-8">
+          {/* Main Content Area */}
+          <main className="flex-1 min-w-0">
+            <EventSections />
+
+            {/* Social Feed */}
+            <div className="mt-8">
+              {/* <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Posts</h2> */}
+              <PostCard />
+              <PostCard />
+              <PostCard />
+              <PostCard />
+              <PostCard />
+              <PostCard />
+              <PostCard />
+              <PostCard />
+            </div>
+          </main>
+
+          {/* Right Panel */}
+          <aside className="w-80 flex-shrink-0">
+            <RightPanel />
+          </aside>
         </div>
-      </main>
-
-      {/* Right Panel */}
-      <RightPanel />
+      </div>
     </div>
   );
 }
