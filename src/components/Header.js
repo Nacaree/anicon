@@ -2,11 +2,11 @@ import Image from "next/image";
 
 export default function Header({ toggleSidebar }) {
   return (
-    <header className="h-16 bg-white border-b border-transparent fixed top-0 left-0 right-0 z-50 flex items-center px-6">
+    <header className="h-16 bg-white border-b border-transparent fixed top-0 left-0 right-0 z-50 flex items-center px-3 sm:px-4 md:px-6">
       {/* Hamburger Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="p-2 hover:bg-gray-100 rounded-full mr-5"
+        className="p-2 hover:bg-gray-100 rounded-full mr-2 sm:mr-3 md:mr-5"
       >
         <svg
           className="w-6 h-6 text-gray-600"
@@ -24,13 +24,21 @@ export default function Header({ toggleSidebar }) {
       </button>
 
       {/* Logo */}
-      <div className="mr-6">
+      <div className="mr-3 sm:mr-4 md:mr-6">
         <Image
           src="/logo.svg"
           alt="ANIKON Logo"
           width={80}
           height={40}
-          className="object-contain"
+          className="object-contain hidden sm:block"
+          priority
+        />
+        <Image
+          src="/logo.svg"
+          alt="ANIKON Logo"
+          width={50}
+          height={25}
+          className="object-contain sm:hidden"
           priority
         />
       </div>
@@ -41,10 +49,10 @@ export default function Header({ toggleSidebar }) {
           <input
             type="text"
             placeholder="Search"
-            className="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7927]"
+            className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF7927]"
           />
           <svg
-            className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
+            className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-2 sm:left-3 top-2.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -60,9 +68,9 @@ export default function Header({ toggleSidebar }) {
       </div>
 
       {/* Right Side Icons */}
-      <div className="flex items-center gap-4 ml-6">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 ml-2 sm:ml-4 md:ml-6">
         {/* Post Button */}
-        <button className="flex items-center gap-2 bg-[#FF7927] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#E66B1F]">
+        <button className="flex items-center gap-2 bg-[#FF7927] text-white px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-[#E66B1F]">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -70,19 +78,7 @@ export default function Header({ toggleSidebar }) {
               clipRule="evenodd"
             />
           </svg>
-          Post
-        </button>
-
-        {/* Mail Icon */}
-        <button className="p-2 hover:bg-gray-100 rounded-full">
-          <svg
-            className="w-5 h-5 text-gray-600"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-          </svg>
+          <span className="hidden sm:inline">Post</span>
         </button>
 
         {/* Notification Icon */}
@@ -97,8 +93,12 @@ export default function Header({ toggleSidebar }) {
         </button>
 
         {/* User Avatar */}
-        <button className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-sm font-medium">👤</span>
+        <button className="w-8 h-8 rounded-full overflow-hidden">
+          <img
+            src="https://media.istockphoto.com/id/1470987836/photo/portrait-of-a-beautiful-young-woman-game-cosplay-with-samurai-dress-costume-on-japanese-garden.jpg?s=612x612&w=0&k=20&c=NGfgu3Ti5DH1o7ZNLq1Jj069HyZ-hlprCbrbRP7JDNI="
+            alt="User Avatar"
+            className="w-full h-full object-cover"
+          />
         </button>
       </div>
     </header>
