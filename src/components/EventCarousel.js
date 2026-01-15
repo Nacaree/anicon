@@ -6,7 +6,8 @@ export default function EventCarousel({ children, hideGradients = false }) {
   const scrollContainerRef = useRef(null);
   const [showButtons, setShowButtons] = useState(false);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
-  const [showRightGradient, setShowRightGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   const checkScroll = () => {
     const container = scrollContainerRef.current;
@@ -30,6 +31,7 @@ export default function EventCarousel({ children, hideGradients = false }) {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -67,7 +69,7 @@ export default function EventCarousel({ children, hideGradients = false }) {
       onMouseLeave={() => setShowButtons(false)}
     >
       {/* 2. Wrap gradients in conditional check */}
-      {!hideGradients && (
+      {!hideGradients && isMounted && (
         <>
           {/* Mask gradient on left edge */}
           <div
@@ -106,50 +108,54 @@ export default function EventCarousel({ children, hideGradients = false }) {
       </div>
 
       {/* Left Navigation Button */}
-      <button
-        onClick={() => scroll("left")}
-        className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
-          showButtons ? "opacity-100" : "opacity-0"
-        }`}
-        aria-label="Scroll left"
-      >
-        <svg
-          className="w-5 h-5 text-orange-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {isMounted && (
+        <button
+          onClick={() => scroll("left")}
+          className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
+            showButtons ? "opacity-100" : "opacity-0"
+          }`}
+          aria-label="Scroll left"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
+          <svg
+            className="w-5 h-5 text-orange-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+      )}
 
       {/* Right Navigation Button */}
-      <button
-        onClick={() => scroll("right")}
-        className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
-          showButtons ? "opacity-100" : "opacity-0"
-        }`}
-        aria-label="Scroll right"
-      >
-        <svg
-          className="w-5 h-5 text-orange-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {isMounted && (
+        <button
+          onClick={() => scroll("right")}
+          className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
+            showButtons ? "opacity-100" : "opacity-0"
+          }`}
+          aria-label="Scroll right"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
+          <svg
+            className="w-5 h-5 text-orange-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
