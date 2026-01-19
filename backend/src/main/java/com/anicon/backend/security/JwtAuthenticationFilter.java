@@ -1,34 +1,33 @@
 package com.anicon.backend.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.UUID;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.UUID;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${supabase.jwt.secret}")
-    private String jwtSecret;
+    private final SupabaseJwtValidator jwtValidator;
+
+    public JwtAuthenticationFilter(SupabaseJwtValidator jwtValidator) {
+        this.jwtValidator = jwtValidator;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
@@ -36,27 +35,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
 
             try {
-                SecretKey key = new SecretKeySpec(
-                    jwtSecret.getBytes(StandardCharsets.UTF_8),
-                    "HmacSHA256"
-                );
+                // Use the validator to verify signature and extract claims
+                Claims claims = jwtValidator.validateToken(token);
+                String userId = claims.getSubject(); // "sub" claim
 
-                Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-                String userId = claims.getSubject();
-
-                if (userId != null) {
-                    // Create authentication token with user ID
-                    UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
+                if (userId != null && !userId.isEmpty()) {
+                    // Create authentication token with user ID as principal
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             UUID.fromString(userId),
                             null,
-                            Collections.emptyList()
-                        );
+                            Collections.emptyList());
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
@@ -64,7 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 logger.error("JWT validation failed", e);
             }
         }
-
+        // * This tells Spring: "I'm done with my check, now move on to the next filter
+        // or the actual API controller." Without this line, the request would hang and
+        // never finish
         filterChain.doFilter(request, response);
     }
 }
