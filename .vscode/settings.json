@@ -1,4 +1,5 @@
 {
   "java.configuration.updateBuildConfiguration": "interactive",
-  "cSpell.words": ["anicon", "hikari", "pooler", "Supabase"]
+  "cSpell.words": ["anicon", "hikari", "pooler", "Supabase"],
+  "java.compile.nullAnalysis.mode": "automatic"
 }
