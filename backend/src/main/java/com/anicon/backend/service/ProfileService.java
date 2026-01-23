@@ -60,6 +60,47 @@ public class ProfileService {
         return toProfileResponse(profile);
     }
 
+    /**
+     * Gets an existing profile or creates a minimal one if it doesn't exist.
+     * Used when a user logs in but doesn't have a profile (edge case).
+     */
+    @Transactional
+    public ProfileResponse getOrCreateProfile(UUID userId, String email) {
+        return profileRepository.findById(userId)
+            .map(this::toProfileResponse)
+            .orElseGet(() -> {
+                // Generate a unique username from the user ID
+                String generatedUsername = "user_" + userId.toString().substring(0, 8);
+
+                // Check if generated username is taken and make it unique if needed
+                String username = generatedUsername;
+                int counter = 1;
+                while (profileRepository.existsByUsername(username)) {
+                    username = generatedUsername + counter;
+                    counter++;
+                }
+
+                Profile profile = Profile.builder()
+                    .id(userId)
+                    .username(username)
+                    .displayName("New User")
+                    .roles(new String[]{"fan"})
+                    .build();
+
+                profile = profileRepository.save(profile);
+                return toProfileResponse(profile);
+            });
+    }
+
+    /**
+     * Deletes a profile by user ID.
+     * Used for cleanup when signup fails.
+     */
+    @Transactional
+    public void deleteProfile(UUID userId) {
+        profileRepository.deleteById(userId);
+    }
+
     private ProfileResponse toProfileResponse(Profile profile) {
         long followerCount = followRepository.countFollowers(profile.getId());
         long followingCount = followRepository.countFollowing(profile.getId());

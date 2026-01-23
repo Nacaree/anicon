@@ -38,11 +38,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Use the validator to verify signature and extract claims
                 Claims claims = jwtValidator.validateToken(token);
                 String userId = claims.getSubject(); // "sub" claim
+                String email = claims.get("email", String.class);
+                Boolean emailVerified = claims.get("email_verified", Boolean.class);
 
                 if (userId != null && !userId.isEmpty()) {
-                    // Create authentication token with user ID as principal
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    // Create a principal with user info from JWT claims
+                    SupabaseUserPrincipal principal = new SupabaseUserPrincipal(
                             UUID.fromString(userId),
+                            email,
+                            emailVerified != null && emailVerified);
+
+                    // Create authentication token with our custom principal
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            principal,
                             null,
                             Collections.emptyList());
 

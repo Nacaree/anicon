@@ -13,5 +13,7 @@ public class CreateProfileRequest {
     @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, and underscores")
     private String username;
 
+    @NotBlank(message = "Display name is required")
+    @Size(max = 50, message = "Display name must be at most 50 characters")
     private String displayName;
 }
