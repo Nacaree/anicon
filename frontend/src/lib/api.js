@@ -26,7 +26,11 @@ async function getAuthHeaders() {
   return headers;
 }
 
-async function request(endpoint, options = {}) {
+async function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function request(endpoint, options = {}, retries = 3) {
   const headers = await getAuthHeaders();
 
   const config = {
@@ -37,23 +41,38 @@ async function request(endpoint, options = {}) {
     },
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, config);
 
-  let data;
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    data = await response.json();
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    }
+
+    if (!response.ok) {
+      // Retry on server errors (5xx)
+      if (response.status >= 500 && retries > 0) {
+        await wait(500);
+        return request(endpoint, options, retries - 1);
+      }
+
+      throw new ApiError(
+        data?.message || data?.error || "An error occurred",
+        response.status,
+        data,
+      );
+    }
+
+    return data;
+  } catch (error) {
+    // Retry on network errors if we have retries left
+    if (retries > 0 && error.name !== "ApiError") {
+      await wait(500);
+      return request(endpoint, options, retries - 1);
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    throw new ApiError(
-      data?.message || data?.error || "An error occurred",
-      response.status,
-      data,
-    );
-  }
-
-  return data;
 }
 
 export const api = {

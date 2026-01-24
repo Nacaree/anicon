@@ -1,30 +1,30 @@
-import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 // Routes that don't require authentication
 const publicRoutes = [
-  '/login',
-  '/signup',
-  '/verify-email',
-  '/forgot-password',
-  '/reset-password',
-  '/callback',
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/callback",
 ];
 
 // Routes that are always accessible (even without auth)
 // These skip middleware entirely
 const alwaysAccessible = [
-  '/_next',
-  '/api',
-  '/favicon.ico',
-  '/callback',  // Auth callback must skip middleware to exchange code first
+  "/_next",
+  "/api",
+  "/favicon.ico",
+  "/callback", // Auth callback must skip middleware to exchange code first
 ];
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Skip middleware for static files and API routes
-  if (alwaysAccessible.some(route => pathname.startsWith(route))) {
+  if (alwaysAccessible.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
@@ -54,39 +54,56 @@ export async function proxy(request) {
         remove(name, options) {
           response.cookies.set({
             name,
-            value: '',
+            value: "",
             ...options,
           });
         },
       },
-    }
+    },
   );
 
-  // Get the current session
-  const { data: { session } } = await supabase.auth.getSession();
+  // Get the current user (securely)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
-  const isAuthenticated = !!session;
-  const isEmailVerified = session?.user?.email_confirmed_at != null;
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname.startsWith(route),
+  );
+  const isAuthenticated = !!user;
+  const isEmailVerified = user?.email_confirmed_at != null;
 
   // If user is authenticated and trying to access auth pages, redirect to home
-  if (isAuthenticated && isEmailVerified && isPublicRoute && pathname !== '/callback') {
-    return NextResponse.redirect(new URL('/', request.url));
+  if (
+    isAuthenticated &&
+    isEmailVerified &&
+    isPublicRoute &&
+    pathname !== "/callback"
+  ) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // If user is authenticated but email not verified, allow verify-email page
   if (isAuthenticated && !isEmailVerified) {
-    if (!pathname.startsWith('/verify-email') && !pathname.startsWith('/callback')) {
-      const email = session?.user?.email || '';
-      return NextResponse.redirect(new URL(`/verify-email?email=${encodeURIComponent(email)}`, request.url));
+    if (
+      !pathname.startsWith("/verify-email") &&
+      !pathname.startsWith("/callback")
+    ) {
+      const email = user?.email || "";
+      return NextResponse.redirect(
+        new URL(
+          `/verify-email?email=${encodeURIComponent(email)}`,
+          request.url,
+        ),
+      );
     }
     return response;
   }
 
   // If user is not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute) {
-    const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('redirect', pathname);
+    const redirectUrl = new URL("/login", request.url);
+    redirectUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -102,6 +119,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

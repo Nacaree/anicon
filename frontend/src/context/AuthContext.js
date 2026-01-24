@@ -41,15 +41,15 @@ export function AuthProvider({ children }) {
     const initAuth = async () => {
       try {
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (!isMounted) return;
 
-        if (session?.user) {
-          setUser(session.user);
+        if (user) {
+          setUser(user);
           // Only fetch profile if email is verified
-          if (session.user.email_confirmed_at) {
+          if (user.email_confirmed_at) {
             try {
               await fetchProfile();
             } catch (profileErr) {

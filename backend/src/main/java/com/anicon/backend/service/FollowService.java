@@ -1,5 +1,6 @@
 package com.anicon.backend.service;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ public class FollowService {
     private final ProfileRepository profileRepository;
 
     public FollowService(FollowRepository followRepository,
-                        ProfileRepository profileRepository) {
+            ProfileRepository profileRepository) {
         this.followRepository = followRepository;
         this.profileRepository = profileRepository;
     }
@@ -30,7 +31,7 @@ public class FollowService {
         }
 
         // Check if following user exists
-        if (!profileRepository.existsById(followingId)) {
+        if (!profileRepository.existsById(Objects.requireNonNull(followingId))) {
             throw new IllegalArgumentException("User to follow not found");
         }
 
@@ -40,11 +41,11 @@ public class FollowService {
         }
 
         Follow follow = Follow.builder()
-            .followerId(followerId)
-            .followingId(followingId)
-            .build();
+                .followerId(followerId)
+                .followingId(followingId)
+                .build();
 
-        followRepository.save(follow);
+        followRepository.save(Objects.requireNonNull(follow));
     }
 
     @Transactional

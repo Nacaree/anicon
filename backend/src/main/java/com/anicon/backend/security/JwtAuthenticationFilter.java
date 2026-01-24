@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -25,39 +26,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            try {
-                // Use the validator to verify signature and extract claims
-                Claims claims = jwtValidator.validateToken(token);
-                String userId = claims.getSubject(); // "sub" claim
-                String email = claims.get("email", String.class);
-                Boolean emailVerified = claims.get("email_verified", Boolean.class);
+            if (token != null && !token.isBlank()) {
+                try {
+                    // Use the validator to verify signature and extract claims
+                    Claims claims = jwtValidator.validateToken(token);
+                    String userId = claims.getSubject(); // "sub" claim
+                    String email = claims.get("email", String.class);
+                    Boolean emailVerified = claims.get("email_verified", Boolean.class);
 
-                if (userId != null && !userId.isEmpty()) {
-                    // Create a principal with user info from JWT claims
-                    SupabaseUserPrincipal principal = new SupabaseUserPrincipal(
-                            UUID.fromString(userId),
-                            email,
-                            emailVerified != null && emailVerified);
+                    // Ensure both userId and email are non-null for type safety
+                    if (userId != null && !userId.isEmpty() && email != null && !email.isEmpty()) {
+                        // Create a principal with user info from JWT claims
+                        SupabaseUserPrincipal principal = new SupabaseUserPrincipal(
+                                UUID.fromString(userId),
+                                email,
+                                emailVerified != null && emailVerified);
 
-                    // Create authentication token with our custom principal
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            principal,
-                            null,
-                            Collections.emptyList());
+                        // Create authentication token with our custom principal
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                principal,
+                                null,
+                                Collections.emptyList());
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                } catch (Exception e) {
+                    logger.error("JWT validation failed", e);
                 }
-            } catch (Exception e) {
-                logger.error("JWT validation failed", e);
             }
         }
         // * This tells Spring: "I'm done with my check, now move on to the next filter

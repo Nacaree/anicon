@@ -10,8 +10,10 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.EllipticCurve;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -53,7 +55,7 @@ public class SupabaseJwtValidator {
      * @return Claims object containing user ID, email, roles, etc.
      * @throws RuntimeException if token is invalid or signature verification fails
      */
-    public Claims validateToken(String token) {
+    public Claims validateToken(@NonNull String token) {
         return Jwts.parser()
                 .keyLocator(new LocatorAdapter<Key>() {
                     @Override
@@ -61,6 +63,9 @@ public class SupabaseJwtValidator {
                         // Extract the "kid" (key ID) from the JWT header
                         // This tells us which public key to use for verification
                         String kid = header.getKeyId();
+                        if (kid == null) {
+                            throw new IllegalArgumentException("JWT header is missing 'kid'");
+                        }
                         return getPublicKey(kid);
                     }
                 })
@@ -88,7 +93,8 @@ public class SupabaseJwtValidator {
      * @throws RuntimeException if key not found or decoding fails 
      */
     @SuppressWarnings("unchecked")
-    private PublicKey getPublicKey(String kid) {
+    @NonNull
+    private PublicKey getPublicKey(@NonNull String kid) {
         try {
             // Fetch JWKS from Supabase if not cached (only happens once per app lifetime)
             if (cachedJwks == null) {
@@ -96,8 +102,16 @@ public class SupabaseJwtValidator {
                 cachedJwks = restTemplate.getForObject(jwksUrl, Map.class);
             }
 
+            if (cachedJwks == null) {
+                throw new IllegalStateException("Failed to retrieve JWKS from Supabase");
+            }
+
             // Find the specific key with matching kid from the list of keys
             var keys = (java.util.List<Map<String, Object>>) cachedJwks.get("keys");
+            if (keys == null) {
+                throw new IllegalStateException("JWKS response is missing 'keys' field");
+            }
+
             Map<String, Object> jwk = null;
 
             for (Map<String, Object> key : keys) {
@@ -116,6 +130,10 @@ public class SupabaseJwtValidator {
             String xStr = (String) jwk.get("x");
             String yStr = (String) jwk.get("y");
             String crv = (String) jwk.get("crv");
+
+            if (xStr == null || yStr == null || crv == null) {
+                throw new IllegalArgumentException("JWK is missing required fields (x, y, or crv)");
+            }
 
             // Supabase uses P-256 (secp256r1) elliptic curve algorithm
             if (!"P-256".equals(crv)) {
@@ -155,6 +173,7 @@ public class SupabaseJwtValidator {
      * @return A PublicKey object ready for signature verification
      * @throws Exception if key generation fails
      */
+    @NonNull
     private PublicKey createECPublicKey(BigInteger x, BigInteger y) throws Exception {
         // P-256 curve parameters - these are standardized constants
         // p: The prime that defines the finite field
@@ -191,6 +210,6 @@ public class SupabaseJwtValidator {
 
         // Use Java's KeyFactory to generate the final PublicKey object
         KeyFactory keyFactory = KeyFactory.getInstance("EC");
-        return keyFactory.generatePublic(pubKeySpec);
+        return Objects.requireNonNull(keyFactory.generatePublic(pubKeySpec));
     }
 }

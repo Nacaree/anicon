@@ -1,22 +1,24 @@
 package com.anicon.backend.service;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.anicon.backend.dto.ProfileResponse;
 import com.anicon.backend.entity.Profile;
 import com.anicon.backend.repository.FollowRepository;
 import com.anicon.backend.repository.ProfileRepository;
 
-
 /**
  * Service layer for profile operations.
  *
  * Key Design Principle (from PLANNING2.md):
  * - Profiles are NEVER created by the backend manually
- * - Database trigger (on_auth_user_created → handle_new_user) automatically creates
- *   profiles when users sign up through Supabase Auth
+ * - Database trigger (on_auth_user_created → handle_new_user) automatically
+ * creates
+ * profiles when users sign up through Supabase Auth
  * - This service only FETCHES and UPDATES existing profiles
  *
  * Why this matters:
@@ -25,6 +27,7 @@ import com.anicon.backend.repository.ProfileRepository;
  * - Backend remains stateless and only handles business logic
  */
 @Service
+@Transactional(readOnly = true)
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
@@ -34,7 +37,8 @@ public class ProfileService {
      * Constructor injection for repositories.
      *
      * @param profileRepository JPA repository for profile CRUD operations
-     * @param followRepository JPA repository to calculate follower/following counts
+     * @param followRepository  JPA repository to calculate follower/following
+     *                          counts
      */
     public ProfileService(ProfileRepository profileRepository,
             FollowRepository followRepository) {
@@ -51,11 +55,12 @@ public class ProfileService {
      *
      * @param userId The Supabase auth.users ID (UUID)
      * @return ProfileResponse with profile data + follower/following counts
-     * @throws IllegalArgumentException if profile doesn't exist (indicates database issue)
+     * @throws IllegalArgumentException if profile doesn't exist (indicates database
+     *                                  issue)
      */
     public ProfileResponse getProfile(UUID userId) {
         // Fetch profile from database (must exist due to signup trigger)
-        Profile profile = profileRepository.findById(userId)
+        Profile profile = profileRepository.findById(Objects.requireNonNull(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
 
         // Convert entity to DTO and enrich with follower counts
@@ -90,8 +95,10 @@ public class ProfileService {
     /**
      * Converts a Profile entity to a ProfileResponse DTO.
      *
-     * This method enriches the profile data with calculated follower/following counts
-     * by querying the follows table. These counts are computed on-demand rather than
+     * This method enriches the profile data with calculated follower/following
+     * counts
+     * by querying the follows table. These counts are computed on-demand rather
+     * than
      * stored in the profiles table to ensure data consistency.
      *
      * Flow:

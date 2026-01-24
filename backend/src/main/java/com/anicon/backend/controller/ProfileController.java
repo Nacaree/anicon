@@ -1,19 +1,25 @@
 package com.anicon.backend.controller;
 
+import java.util.Objects;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.anicon.backend.dto.ProfileResponse;
 import com.anicon.backend.security.SupabaseUserPrincipal;
 import com.anicon.backend.service.ProfileService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 /**
  * REST controller for profile-related endpoints.
  *
  * Endpoint Structure:
- * - GET /api/profiles/me - Get current authenticated user's profile (requires auth)
+ * - GET /api/profiles/me - Get current authenticated user's profile (requires
+ * auth)
  * - GET /api/profiles/{username} - Get profile by username (public)
  * - GET /api/profiles/user/{userId} - Get profile by UUID (public)
  *
@@ -25,7 +31,8 @@ import java.util.UUID;
  * Frontend Usage:
  * - /me: Called by AuthContext after login to fetch user's profile
  * - /{username}: Used when navigating to @username profile pages
- * - /user/{userId}: Used when you have UUID but not username (e.g., from follows)
+ * - /user/{userId}: Used when you have UUID but not username (e.g., from
+ * follows)
  */
 @RestController
 @RequestMapping("/api/profiles")
@@ -63,7 +70,7 @@ public class ProfileController {
     public ResponseEntity<ProfileResponse> getCurrentProfile(
             @AuthenticationPrincipal SupabaseUserPrincipal principal) {
         // Fetch the authenticated user's profile
-        ProfileResponse profile = profileService.getProfile(principal.getUserId());
+        ProfileResponse profile = profileService.getProfile(Objects.requireNonNull(principal.getUserId()));
 
         return ResponseEntity.ok(profile);
     }
@@ -112,7 +119,7 @@ public class ProfileController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<ProfileResponse> getProfileById(@PathVariable UUID userId) {
         // Fetch profile by Supabase user ID
-        ProfileResponse profile = profileService.getProfile(userId);
+        ProfileResponse profile = profileService.getProfile(Objects.requireNonNull(userId));
         return ResponseEntity.ok(profile);
     }
 }
