@@ -20,7 +20,7 @@ const alwaysAccessible = [
   '/callback',  // Auth callback must skip middleware to exchange code first
 ];
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Skip middleware for static files and API routes
