@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { authApi } from '@/lib/api';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { supabase } from "@/lib/supabase";
+import { authApi } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -22,7 +28,7 @@ export function AuthProvider({ children }) {
       setProfile(response.profile);
       return response;
     } catch (err) {
-      console.error('Failed to fetch profile:', err);
+      console.error("Failed to fetch profile:", err);
       setProfile(null);
       throw err;
     }
@@ -34,7 +40,9 @@ export function AuthProvider({ children }) {
 
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
         if (!isMounted) return;
 
@@ -46,8 +54,8 @@ export function AuthProvider({ children }) {
               await fetchProfile();
             } catch (profileErr) {
               // Ignore abort errors during profile fetch
-              if (profileErr.name === 'AbortError') {
-                console.log('Profile fetch aborted (component unmounted)');
+              if (profileErr.name === "AbortError") {
+                console.log("Profile fetch aborted (component unmounted)");
                 return;
               }
               throw profileErr;
@@ -56,12 +64,12 @@ export function AuthProvider({ children }) {
         }
       } catch (err) {
         // Ignore abort errors - they happen during React StrictMode double-mounting
-        if (err.name === 'AbortError') {
-          console.log('Auth initialization aborted (component unmounted)');
+        if (err.name === "AbortError") {
+          console.log("Auth initialization aborted (component unmounted)");
           return;
         }
         if (isMounted) {
-          console.error('Auth initialization error:', err);
+          console.error("Auth initialization error:", err);
           setError(err.message);
         }
       } finally {
@@ -74,22 +82,25 @@ export function AuthProvider({ children }) {
     initAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
 
-        if (session?.user) {
-          setUser(session.user);
-          // Fetch profile on sign in or token refresh if email verified
-          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.user.email_confirmed_at) {
-            await fetchProfile();
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
+      if (session?.user) {
+        setUser(session.user);
+        // Fetch profile on sign in or token refresh if email verified
+        if (
+          (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+          session.user.email_confirmed_at
+        ) {
+          await fetchProfile();
         }
+      } else {
+        setUser(null);
+        setProfile(null);
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
@@ -99,16 +110,17 @@ export function AuthProvider({ children }) {
     setError(null);
 
     // Create Supabase auth user with profile data in metadata
-    // Profile will be created after email verification in the callback
+    // Database trigger automatically creates the profile immediately
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/callback`,
         data: {
-          username,
+          username: username,
           display_name: displayName,
         },
+        // Optional: Redirect for email verification
+        emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
 
@@ -124,10 +136,12 @@ export function AuthProvider({ children }) {
   const signIn = async ({ email, password }) => {
     setError(null);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword(
+      {
+        email,
+        password,
+      },
+    );
 
     if (signInError) {
       throw signInError;
@@ -143,13 +157,18 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Sign in with magic link
+  // Sign in with magic link (passwordless login)
+  // This sends an email with a one-time login link to the user.
+  // When clicked, the link redirects to /auth/callback where the session is established.
   const signInWithMagicLink = async (email) => {
     setError(null);
 
     const { error: magicLinkError } = await supabase.auth.signInWithOtp({
       email,
       options: {
+        // emailRedirectTo tells Supabase where to redirect after the magic link is clicked.
+        // This must match the callback page that handles session establishment.
+        // Without this, Supabase may redirect to an unexpected URL.
         emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
@@ -178,9 +197,10 @@ export function AuthProvider({ children }) {
 
   // Send password reset email
   const resetPassword = async (email) => {
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {},
+    );
 
     if (resetError) {
       throw resetError;
@@ -234,17 +254,13 @@ export function AuthProvider({ children }) {
     fetchProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

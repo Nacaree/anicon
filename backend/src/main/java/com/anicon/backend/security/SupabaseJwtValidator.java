@@ -23,9 +23,12 @@ import io.jsonwebtoken.ProtectedHeader;
 /**
  * Validates JWT tokens issued by Supabase Auth.
  *
- * This component verifies the cryptographic signature of JWT tokens using Supabase's
- * public keys (JWKS). It fetches the public keys from Supabase's JWKS endpoint and
- * uses them to verify that tokens were actually signed by Supabase and haven't been tampered with.
+ * This component verifies the cryptographic signature of JWT tokens using
+ * Supabase's
+ * public keys (JWKS). It fetches the public keys from Supabase's JWKS endpoint
+ * and
+ * uses them to verify that tokens were actually signed by Supabase and haven't
+ * been tampered with.
  */
 @Component
 public class SupabaseJwtValidator {
@@ -52,24 +55,26 @@ public class SupabaseJwtValidator {
      */
     public Claims validateToken(String token) {
         return Jwts.parser()
-            .keyLocator(new LocatorAdapter<Key>() {
-                @Override
-                protected Key locate(ProtectedHeader header) {
-                    // Extract the "kid" (key ID) from the JWT header
-                    // This tells us which public key to use for verification
-                    String kid = header.getKeyId();
-                    return getPublicKey(kid);
-                }
-            })
-            .build()
-            .parseSignedClaims(token)  // Parse and verify signature
-            .getPayload();              // Extract claims (user data)
+                .keyLocator(new LocatorAdapter<Key>() {
+                    @Override
+                    protected Key locate(ProtectedHeader header) {
+                        // Extract the "kid" (key ID) from the JWT header
+                        // This tells us which public key to use for verification
+                        String kid = header.getKeyId();
+                        return getPublicKey(kid);
+                    }
+                })
+                .build()
+                .parseSignedClaims(token) // Parse and verify signature
+                .getPayload(); // Extract claims (user data)
     }
 
     /**
-     * Fetches the public key from Supabase's JWKS endpoint that matches the given key ID.
+     * Fetches the public key from Supabase's JWKS endpoint that matches the given
+     * key ID.
      *
-     * JWKS (JSON Web Key Set) is a standard way for auth providers to publish their public keys.
+     * JWKS (JSON Web Key Set) is a standard way for auth providers to publish their
+     * public keys.
      * Each key has a "kid" (key ID) that JWT tokens reference in their header.
      *
      * This method:
@@ -87,7 +92,7 @@ public class SupabaseJwtValidator {
         try {
             // Fetch JWKS from Supabase if not cached (only happens once per app lifetime)
             if (cachedJwks == null) {
-                String jwksUrl = supabaseUrl + "/.well-known/jwks.json";
+                String jwksUrl = supabaseUrl + "/auth/v1/.well-known/jwks.json";
                 cachedJwks = restTemplate.getForObject(jwksUrl, Map.class);
             }
 
@@ -106,7 +111,8 @@ public class SupabaseJwtValidator {
                 throw new IllegalArgumentException("Key ID not found in JWKS: " + kid);
             }
 
-            // Extract x and y coordinates from the JWK (these define the public key point on the elliptic curve)
+            // Extract x and y coordinates from the JWK (these define the public key point
+            // on the elliptic curve)
             String xStr = (String) jwk.get("x");
             String yStr = (String) jwk.get("y");
             String crv = (String) jwk.get("crv");
@@ -134,11 +140,15 @@ public class SupabaseJwtValidator {
     /**
      * Constructs an Elliptic Curve (EC) public key from x and y coordinates.
      *
-     * This method builds a Java PublicKey object using the P-256 elliptic curve standard.
-     * P-256 is a NIST-standardized elliptic curve used for cryptographic signatures.
+     * This method builds a Java PublicKey object using the P-256 elliptic curve
+     * standard.
+     * P-256 is a NIST-standardized elliptic curve used for cryptographic
+     * signatures.
      *
-     * The hardcoded parameters below are the official P-256 curve constants defined by NIST.
-     * These never change - they're mathematical constants that define the curve's shape.
+     * The hardcoded parameters below are the official P-256 curve constants defined
+     * by NIST.
+     * These never change - they're mathematical constants that define the curve's
+     * shape.
      *
      * @param x The x-coordinate of the public key point on the elliptic curve
      * @param y The y-coordinate of the public key point on the elliptic curve
@@ -149,32 +159,33 @@ public class SupabaseJwtValidator {
         // P-256 curve parameters - these are standardized constants
         // p: The prime that defines the finite field
         BigInteger p = new BigInteger(
-            "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF", 16);
+                "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF", 16);
         // a: First coefficient in the curve equation y² = x³ + ax + b
         BigInteger a = new BigInteger(
-            "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC", 16);
+                "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC", 16);
         // b: Second coefficient in the curve equation
         BigInteger b = new BigInteger(
-            "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B", 16);
+                "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B", 16);
 
         // Create the elliptic curve with these parameters
         EllipticCurve curve = new EllipticCurve(
-            new java.security.spec.ECFieldFp(p), a, b);
+                new java.security.spec.ECFieldFp(p), a, b);
 
         // order: The number of points on the curve (used for key generation)
         BigInteger order = new BigInteger(
-            "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16);
+                "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16);
 
-        // generator: A standard point on the curve used as the starting point for key generation
+        // generator: A standard point on the curve used as the starting point for key
+        // generation
         ECPoint generator = new ECPoint(
-            new BigInteger("6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296", 16),
-            new BigInteger("4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5", 16)
-        );
+                new BigInteger("6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296", 16),
+                new BigInteger("4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5", 16));
 
         // Combine all parameters into an EC specification
         ECParameterSpec spec = new ECParameterSpec(curve, generator, order, 1);
 
-        // Create the actual public key point using the x,y coordinates from Supabase's JWKS
+        // Create the actual public key point using the x,y coordinates from Supabase's
+        // JWKS
         ECPoint point = new ECPoint(x, y);
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, spec);
 

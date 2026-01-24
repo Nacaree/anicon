@@ -20,9 +20,9 @@ export default function Home() {
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
 
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const toggleSidebar = () => {
@@ -105,7 +105,6 @@ export default function Home() {
                 imageUrl="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800"
                 avatarUrl="https://kotaku.com/app/uploads/2024/10/1df1fae5c38114dc21e6d062b62dd270.jpg"
               />
-
             </div>
           </main>
 

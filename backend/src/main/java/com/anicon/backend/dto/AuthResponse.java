@@ -1,11 +1,11 @@
 package com.anicon.backend.dto;
 
+import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @Builder
@@ -14,6 +14,5 @@ import java.util.UUID;
 public class AuthResponse {
     private UUID userId;
     private String email;
-    private boolean emailVerified;
     private ProfileResponse profile;
 }

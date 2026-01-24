@@ -1,12 +1,14 @@
 package com.anicon.backend.service;
 
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.anicon.backend.entity.Follow;
 import com.anicon.backend.repository.FollowRepository;
 import com.anicon.backend.repository.ProfileRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import jakarta.transaction.Transactional;
 
 @Service
 public class FollowService {
