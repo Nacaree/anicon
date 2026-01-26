@@ -12,6 +12,9 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -21,6 +24,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.LocatorAdapter;
 import io.jsonwebtoken.ProtectedHeader;
+import jakarta.annotation.PostConstruct;
 
 /**
  * Validates JWT tokens issued by Supabase Auth.
@@ -37,6 +41,8 @@ public class SupabaseJwtValidator {
 
     @Value("${supabase.url}")
     private String supabaseUrl;
+
+    private static final Logger logger = LoggerFactory.getLogger(SupabaseJwtValidator.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
     private Map<String, Object> cachedJwks = null; // Cached JWKS to avoid repeated HTTP calls
@@ -75,6 +81,33 @@ public class SupabaseJwtValidator {
     }
 
     /**
+     * Eagerly fetches and caches the JWKS from Supabase on application startup.
+     * This avoids the latency and potential failure of the first authenticated
+     * request
+     * by moving the network call to the application's initialization phase.
+     */
+    @PostConstruct
+    public void initialize() {
+        try {
+            fetchAndCacheJwks();
+            logger.info("Supabase JWKS successfully fetched and cached on startup.");
+        } catch (Exception e) {
+            logger.error(
+                    "CRITICAL: Failed to initialize Supabase JWKS on startup. Authentication may fail until this is resolved.",
+                    e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void fetchAndCacheJwks() {
+        String jwksUrl = supabaseUrl + "/auth/v1/.well-known/jwks.json";
+        cachedJwks = restTemplate.getForObject(jwksUrl, Map.class);
+        if (cachedJwks == null) {
+            throw new IllegalStateException("Failed to retrieve JWKS from Supabase. Response was null.");
+        }
+    }
+
+    /**
      * Fetches the public key from Supabase's JWKS endpoint that matches the given
      * key ID.
      *
@@ -96,14 +129,10 @@ public class SupabaseJwtValidator {
     @NonNull
     private PublicKey getPublicKey(@NonNull String kid) {
         try {
-            // Fetch JWKS from Supabase if not cached (only happens once per app lifetime)
+            // With @PostConstruct, this should already be cached. This block now acts as a
+            // fallback.
             if (cachedJwks == null) {
-                String jwksUrl = supabaseUrl + "/auth/v1/.well-known/jwks.json";
-                cachedJwks = restTemplate.getForObject(jwksUrl, Map.class);
-            }
-
-            if (cachedJwks == null) {
-                throw new IllegalStateException("Failed to retrieve JWKS from Supabase");
+                fetchAndCacheJwks();
             }
 
             // Find the specific key with matching kid from the list of keys

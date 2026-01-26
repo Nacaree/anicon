@@ -20,7 +20,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <jooq.version>3.18.7</jooq.version>
+        <jooq.version>3.20.10</jooq.version>
     </properties>
 
     <dependencies>
@@ -56,10 +56,10 @@
         </dependency>
 
         <!-- JOOQ for type-safe SQL queries -->
+        <!-- This starter ensures JOOQ integrates with Spring's data source and transactions -->
         <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
-            <!-- <version>3.18.7</version> -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jooq</artifactId>
         </dependency>
 
         <!-- JWT Library for Supabase token validation -->
@@ -114,6 +114,16 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <!-- transitive dependency JOOQ needs this to work -->
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+        </dependency>
+
 
     </dependencies>
 
@@ -150,6 +160,67 @@
                 <version>3.5.0</version>
                 <configuration>
                     <mainClass>com.anicon.backend.AniconBackendApplication</mainClass>
+                </configuration>
+            </plugin>
+            <!-- ======================================================================= -->
+            <!-- JOOQ CODE GENERATION PLUGIN                                             -->
+            <!-- ======================================================================= -->
+            <!-- This plugin connects to your database and generates type-safe Java      -->
+            <!-- classes from your schema. Run `mvn generate-sources` to trigger it.     -->
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+
+                <!-- The plugin needs the Postgres driver to connect to the DB -->
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.9</version>
+                    </dependency>
+                </dependencies>
+
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <!-- Database connection details -->
+                    <jdbc>
+                        <driver>org.postgresql.Driver</driver>
+                        <!-- Using the Pooler URL on Port 5432 (Session Mode). This is the most reliable way to connect from your network for code generation. -->
+                        <url>jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require</url>
+                        <!-- The Pooler requires the username format 'postgres.[project_ref]' -->
+                        <user>postgres.rsongscpipemetlknnkc</user>
+                        <password>YVu5Z*P84$Tcs.E</password>
+                    </jdbc>
+
+                    <generator>
+                        <database>
+                            <!-- Use the PostgreSQL meta-data provider -->
+                            <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                            <includes>.*</includes>
+                            <excludes></excludes>
+                            <!-- The database schema to generate code for -->
+                            <inputSchema>public</inputSchema>
+                        </database>
+                        <generate>
+                            <!-- We don't need POJOs, as we are using JPA entities -->
+                            <pojos>false</pojos>
+                            <!-- We don't need DAOs, as we use Spring Data repositories -->
+                            <daos>false</daos>
+                        </generate>
+                        <target>
+                            <!-- The package where JOOQ will place the generated classes -->
+                            <packageName>com.anicon.backend.gen.jooq</packageName>
+                            <directory>target/generated-sources/jooq</directory>
+                        </target>
+                    </generator>
                 </configuration>
             </plugin>
         </plugins>
