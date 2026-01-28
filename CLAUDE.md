@@ -9,14 +9,14 @@ AniCon is a platform for Cambodia's anime community - event ticketing, creator c
 ## Tech Stack
 
 - **Backend:** Spring Boot 3.2+ (Java 21)
-- **Frontend:** Next.js (separate repo)
+- **Frontend:** Next.js (In this REPOSITORY)
 - **Database:** Supabase (PostgreSQL)
 - **Auth:** Supabase Auth with JWT validation in Spring Boot
 - **ORM:** Hybrid - Hibernate (simple CRUD) + JOOQ (complex queries)
 
 ## Key Files
 
-- `PLANNING.md` - Full planning document with auth flows, role system, and entity designs
+- `PLANNING2.md` - Full planning document with auth flows, role system, and entity designs
 - `schema.sql` - Complete database schema ready to run in Supabase
 
 ## Current Phase
@@ -66,6 +66,6 @@ Valid combinations:
 ## Important Notes
 
 - Username: max 20 chars, alphanumeric + underscore only
-- Follower count is calculated from `follows` table, not stored
+- Follower/following counts are denormalized (stored on `profiles`, updated atomically on follow/unfollow)
 - Use `timestamptz` for all timestamps
 - All terminal commands should be zsh compatible (macOS)

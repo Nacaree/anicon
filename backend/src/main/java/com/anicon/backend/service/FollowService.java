@@ -48,7 +48,7 @@ public class FollowService {
         }
 
         // Check if already following
-        if (followRepository.isFollowing(followerId, followingId)) {
+        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
             throw new IllegalArgumentException("Already following this user");
         }
 
@@ -77,7 +77,7 @@ public class FollowService {
 
     @Transactional
     public void unfollowUser(UUID followerId, UUID followingId) {
-        if (!followRepository.isFollowing(followerId, followingId)) {
+        if (!followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
             throw new IllegalArgumentException("Not following this user");
         }
 
@@ -101,7 +101,7 @@ public class FollowService {
     }
 
     public boolean isFollowing(UUID followerId, UUID followingId) {
-        return followRepository.isFollowing(followerId, followingId);
+        return followRepository.existsByFollowerIdAndFollowingId(followerId, followingId);
     }
 
     private void evictProfileCache(UUID userId) {

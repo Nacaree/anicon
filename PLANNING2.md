@@ -135,6 +135,10 @@ create table profiles (
   -- Social links
   social_links jsonb default '{}',
 
+  -- Denormalized counts (updated by application on follow/unfollow)
+  follower_count bigint not null default 0,
+  following_count bigint not null default 0,
+
   -- Metadata
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -149,7 +153,7 @@ create table profiles (
 
 ### follows
 
-Internal follower system (calculated, not stored on profile).
+Internal follower system. Counts are denormalized on `profiles` table for performance.
 
 ```sql
 create table follows (
@@ -254,20 +258,11 @@ create trigger on_auth_user_created
 
 ## Common Queries
 
-### Get follower count
+### Get profile (counts are denormalized)
 
 ```sql
-select count(*) as follower_count
-from follows
-where following_id = :profile_id;
-```
-
-### Get following count
-
-```sql
-select count(*) as following_count
-from follows
-where follower_id = :profile_id;
+select * from profiles where id = :profile_id;
+-- follower_count and following_count are already on the row
 ```
 
 ### Check if user A follows user B
@@ -280,15 +275,21 @@ select exists(
 ) as is_following;
 ```
 
-### Get profile with counts
+### Update counts on follow (done by Spring Boot)
 
 ```sql
-select
-  p.*,
-  (select count(*) from follows where following_id = p.id) as follower_count,
-  (select count(*) from follows where follower_id = p.id) as following_count
-from profiles p
-where p.id = :profile_id;
+-- Increment follower's following_count
+update profiles set following_count = following_count + 1 where id = :follower_id;
+-- Increment followed user's follower_count
+update profiles set follower_count = follower_count + 1 where id = :following_id;
+```
+
+### Update counts on unfollow (done by Spring Boot)
+
+```sql
+-- Decrement with floor of 0 to prevent negatives
+update profiles set following_count = greatest(following_count - 1, 0) where id = :follower_id;
+update profiles set follower_count = greatest(follower_count - 1, 0) where id = :following_id;
 ```
 
 ---
@@ -324,5 +325,5 @@ where p.id = :profile_id;
 - Use Supabase Auth for password handling (don't roll your own)
 - Use JOOQ for type-safe complex queries
 - Use Hibernate/Spring Data JPA for simple CRUD
-- Follower count is calculated, not stored
+- Follower/following counts are denormalized on `profiles` for performance (updated by app on follow/unfollow)
 - All timestamps use `timestamptz` (timezone-aware)

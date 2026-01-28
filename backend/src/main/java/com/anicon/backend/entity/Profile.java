@@ -77,12 +77,9 @@ public class Profile {
     // In your Profile.java entity class
     @Column(name = "follower_count", nullable = false)
     private Long followerCount = 0L;
-    
+
     @Column(name = "following_count", nullable = false)
     private Long followingCount = 0L;
-    
-    // Plus getters and setters
-    
 
     // Metadata
     @Column(name = "created_at", nullable = false, updatable = false)
