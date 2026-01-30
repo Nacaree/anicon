@@ -193,11 +193,9 @@
                     <!-- Database connection details -->
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <!-- Using the Pooler URL on Port 5432 (Session Mode). This is the most reliable way to connect from your network for code generation. -->
-                        <url>jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require</url>
-                        <!-- The Pooler requires the username format 'postgres.[project_ref]' -->
-                        <user>postgres.rsongscpipemetlknnkc</user>
-                        <password>YVu5Z*P84$Tcs.E</password>
+                        <url>${env.SUPABASE_DB_URL_SESSION}</url>
+                        <user>${env.SUPABASE_DB_USERNAME}</user>
+                        <password>${env.SUPABASE_DB_PASSWORD}</password>
                     </jdbc>
 
                     <generator>

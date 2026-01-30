@@ -6,7 +6,6 @@ import org.jooq.DSLContext;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.anicon.backend.dto.ProfileResponse;
@@ -28,7 +27,6 @@ import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
  * - Backend remains stateless and only handles business logic
  */
 @Service
-@Transactional(readOnly = true)
 public class ProfileService {
 
     private final DSLContext dsl;

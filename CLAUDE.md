@@ -24,6 +24,7 @@ AniCon is a platform for Cambodia's anime community - event ticketing, creator c
 **Phase 1: Login/Register**
 
 Focus on:
+
 1. Spring Boot project setup
 2. Supabase connection
 3. Hibernate + JOOQ configuration
@@ -32,18 +33,19 @@ Focus on:
 
 ## Database Entities (Phase 1)
 
-| Table | Purpose |
-|-------|---------|
-| `auth.users` | Supabase-managed, handles email/password |
-| `profiles` | User data - username, roles, etc. |
-| `follows` | Who follows who (build later) |
-| `influencer_applications` | Role applications (build later) |
+| Table                     | Purpose                                  |
+| ------------------------- | ---------------------------------------- |
+| `auth.users`              | Supabase-managed, handles email/password |
+| `profiles`                | User data - username, roles, etc.        |
+| `follows`                 | Who follows who (build later)            |
+| `influencer_applications` | Role applications (build later)          |
 
 ## Role System
 
 Valid roles: `fan`, `influencer`, `creator`, `organizer`
 
 Valid combinations:
+
 - `[fan]` - default
 - `[influencer]` - approved fan
 - `[creator]` - admin-assigned
@@ -69,3 +71,5 @@ Valid combinations:
 - Follower/following counts are denormalized (stored on `profiles`, updated atomically on follow/unfollow)
 - Use `timestamptz` for all timestamps
 - All terminal commands should be zsh compatible (macOS)
+- Respect all .claudeignore entries without exception
+- NEVER read or process .env files
