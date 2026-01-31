@@ -124,10 +124,38 @@
             <artifactId>reactive-streams</artifactId>
         </dependency>
 
-
     </dependencies>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Tell STS/Eclipse to ignore the jOOQ plugin execution to prevent errors -->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.jooq</groupId>
+                                        <artifactId>jooq-codegen-maven</artifactId>
+                                        <versionRange>[1.0.0,)</versionRange>
+                                        <goals>
+                                            <goal>generate</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore/>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -164,6 +192,25 @@
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>${project.basedir}/.env</file>
+                            </files>
+                            <quiet>false</quiet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
                 <executions>
                     <execution>
@@ -180,12 +227,9 @@
                     </execution>
                 </executions>
             </plugin>
-
             <!-- ======================================================================= -->
             <!-- JOOQ CODE GENERATION PLUGIN                                             -->
             <!-- ======================================================================= -->
-            <!-- This plugin connects to your database and generates type-safe Java      -->
-            <!-- classes from your schema. Run `mvn generate-sources` to trigger it.     -->
             <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
@@ -212,9 +256,9 @@
                     <!-- Database connection details -->
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <url>${env.SUPABASE_DB_URL_SESSION}</url>
-                        <user>${env.SUPABASE_DB_USERNAME}</user>
-                        <password>${env.SUPABASE_DB_PASSWORD}</password>
+                        <url>${SUPABASE_DB_URL_SESSION}</url>
+                        <user>${SUPABASE_DB_USERNAME}</user>
+                        <password>${SUPABASE_DB_PASSWORD}</password>
                     </jdbc>
 
                     <generator>
@@ -242,4 +286,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
