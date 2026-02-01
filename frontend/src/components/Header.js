@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Header({ toggleSidebar }) {
   return (
@@ -24,7 +25,7 @@ export default function Header({ toggleSidebar }) {
       </button>
 
       {/* Logo */}
-      <div className="mr-3 sm:mr-4 md:mr-6">
+      <Link href="/" className="mr-3 sm:mr-4 md:mr-6">
         <Image
           src="/logo.svg"
           alt="ANIKON Logo"
@@ -41,7 +42,7 @@ export default function Header({ toggleSidebar }) {
           className="object-contain sm:hidden"
           priority
         />
-      </div>
+      </Link>
 
       {/* Search Bar */}
       <div className="flex-1 max-w-xl mr-auto">
