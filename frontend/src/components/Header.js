@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 export default function Header({ toggleSidebar }) {
   return (
@@ -93,14 +94,8 @@ export default function Header({ toggleSidebar }) {
           </svg>
         </button>
 
-        {/* User Avatar */}
-        <button className="w-8 h-8 rounded-full overflow-hidden">
-          <img
-            src="https://media.istockphoto.com/id/1470987836/photo/portrait-of-a-beautiful-young-woman-game-cosplay-with-samurai-dress-costume-on-japanese-garden.jpg?s=612x612&w=0&k=20&c=NGfgu3Ti5DH1o7ZNLq1Jj069HyZ-hlprCbrbRP7JDNI="
-            alt="User Avatar"
-            className="w-full h-full object-cover"
-          />
-        </button>
+        {/* User Avatar & Profile Dropdown */}
+        <ProfileDropdown />
       </div>
     </header>
   );
