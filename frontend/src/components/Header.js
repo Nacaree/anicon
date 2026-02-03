@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header({ toggleSidebar }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { requireAuth } = useAuthGate();
 
   return (
@@ -93,7 +94,11 @@ export default function Header({ toggleSidebar }) {
           <span className="hidden sm:inline">Post</span>
         </button>
 
-        {isAuthenticated ? (
+        {isLoading ? (
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="bg-gray-200 animate-pulse" />
+          </Avatar>
+        ) : isAuthenticated ? (
           <>
             {/* Notification Icon */}
             <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">

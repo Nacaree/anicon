@@ -27,8 +27,12 @@ export default function ProfileDropdown() {
     .slice(0, 2);
 
   const handleLogout = async () => {
-    await signOut();
-    router.push("/");
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+    window.location.href = "/";
   };
 
   return (
