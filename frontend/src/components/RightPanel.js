@@ -1,4 +1,10 @@
+"use client";
+
+import { useAuthGate } from "@/context/AuthGateContext";
+
 export default function RightPanel() {
+  const { requireAuth } = useAuthGate();
+
   return (
     <aside className="w-80 space-y-6 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Creator Profile Card */}
@@ -59,7 +65,7 @@ export default function RightPanel() {
           </div>
 
           {/* Follow button */}
-          <button className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white py-2 rounded-full font-medium">
+          <button onClick={() => requireAuth(() => {})} className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white py-2 rounded-full font-medium transition-colors">
             Follow +
           </button>
         </div>
@@ -137,7 +143,7 @@ export default function RightPanel() {
                 <p className="font-medium text-sm text-gray-800">{user.name}</p>
                 <p className="text-xs text-gray-500">@{user.username}</p>
               </div>
-              <button className="bg-[#FF7927] hover:bg-[#E66B1F] text-white px-4 py-1.5 rounded-full text-xs font-medium">
+              <button onClick={() => requireAuth(() => {})} className="bg-[#FF7927] hover:bg-[#E66B1F] text-white px-4 py-1.5 rounded-full text-xs font-medium transition-colors">
                 Follow
               </button>
             </div>
@@ -151,15 +157,15 @@ export default function RightPanel() {
           <p>© 2025 AniCon. All rights reserved.</p>
         </div>
         <div className="flex justify-center gap-3 text-gray-400 text-xs">
-          <a href="#" className="hover:text-[#FF7927]">
+          <a href="#" className="hover:text-[#FF7927] transition-colors">
             Privacy
           </a>
           <span>•</span>
-          <a href="#" className="hover:text-[#FF7927]">
+          <a href="#" className="hover:text-[#FF7927] transition-colors">
             Terms
           </a>
           <span>•</span>
-          <a href="#" className="hover:text-[#FF7927]">
+          <a href="#" className="hover:text-[#FF7927] transition-colors">
             About
           </a>
         </div>

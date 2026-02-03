@@ -1,4 +1,9 @@
+"use client";
+
+import { useAuthGate } from "@/context/AuthGateContext";
+
 export default function PostCard({ username, handle, text, imageUrl, avatarUrl }) {
+  const { requireAuth } = useAuthGate();
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 w-full max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto">
       {/* User Header */}
@@ -35,7 +40,7 @@ export default function PostCard({ username, handle, text, imageUrl, avatarUrl }
       {/* Action Buttons */}
       <div className="flex justify-between gap-3">
         {/* Like Button - Left Side */}
-        <button className="p-2 hover:bg-gray-100 rounded-lg">
+        <button onClick={() => requireAuth(() => {})} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
           <svg
             className="w-6 h-6 text-gray-600"
             viewBox="0 -960 960 960"
@@ -49,7 +54,7 @@ export default function PostCard({ username, handle, text, imageUrl, avatarUrl }
         {/* Right Side Buttons */}
         <div className="flex gap-3">
           {/* Send/Share Button */}
-          <button className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={() => requireAuth(() => {})} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <svg
               className="w-6 h-6 text-gray-600"
               viewBox="0 -960 960 960"
@@ -60,7 +65,7 @@ export default function PostCard({ username, handle, text, imageUrl, avatarUrl }
           </button>
 
           {/* Bookmark Button */}
-          <button className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={() => requireAuth(() => {})} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <svg
               className="w-6 h-6 text-gray-600"
               viewBox="0 -960 960 960"

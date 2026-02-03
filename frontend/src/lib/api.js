@@ -117,6 +117,8 @@ export const authApi = {
 export const profileApi = {
   getMyProfile: () => api.get("/api/profiles/me"),
   getProfileByUsername: (username) => api.get(`/api/profiles/${username}`),
+  // ! Depreciated 
+  // !might not get used 
   getProfileById: (userId) => api.get(`/api/profiles/user/${userId}`),
 };
 

@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
 
         <Link
           href="/login"
-          className="text-orange-500 hover:text-orange-600 font-medium"
+          className="text-orange-500 hover:text-orange-600 font-medium transition-colors"
         >
           Back to login
         </Link>
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/login" className="text-gray-600 hover:text-gray-800">
+        <Link href="/login" className="text-gray-600 hover:text-gray-800 transition-colors">
           Back to login
         </Link>
       </div>

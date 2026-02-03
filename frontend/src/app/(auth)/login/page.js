@@ -86,7 +86,7 @@ export default function LoginPage() {
 
         <button
           onClick={() => setMagicLinkSent(false)}
-          className="text-orange-500 hover:text-orange-600 font-medium"
+          className="text-orange-500 hover:text-orange-600 font-medium transition-colors"
         >
           Use a different email
         </button>
@@ -147,7 +147,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
               >
                 {showPassword ? (
                   <svg
@@ -189,7 +189,7 @@ export default function LoginPage() {
             <div className="mt-1 text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm text-orange-500 hover:text-orange-600"
+                className="text-sm text-orange-500 hover:text-orange-600 transition-colors"
               >
                 Forgot your password?
               </Link>
@@ -213,7 +213,7 @@ export default function LoginPage() {
       <div className="mt-4 text-center">
         <button
           onClick={() => setUseMagicLink(!useMagicLink)}
-          className="text-sm text-gray-600 hover:text-gray-800"
+          className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
         >
           {useMagicLink
             ? "Login with password instead"
@@ -226,7 +226,7 @@ export default function LoginPage() {
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="text-orange-500 hover:text-orange-600 font-medium"
+            className="text-orange-500 hover:text-orange-600 font-medium transition-colors"
           >
             Sign up
           </Link>

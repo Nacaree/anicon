@@ -35,7 +35,7 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
         {/* Events */}
         <a
           href="#"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden transition-colors"
         >
           <svg
             className="w-5 h-5 flex-shrink-0"
@@ -54,7 +54,7 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
         {/* Tickets */}
         <a
           href="#"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden transition-colors"
         >
           <svg
             className="w-5 h-5 flex-shrink-0"

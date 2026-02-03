@@ -15,9 +15,9 @@ export default function ProfileDropdown() {
   const { profile, signOut } = useAuth();
   const router = useRouter();
 
-  const displayName = profile?.display_name || profile?.username || "User";
-  const username = profile?.username || "user";
-  const avatarUrl = profile?.avatar_url;
+  const displayName = profile?.displayName || "Guest";
+  const username = profile?.username || "guest";
+  const avatarUrl = profile?.avatarUrl;
 
   const initials = displayName
     .split(" ")
@@ -28,13 +28,13 @@ export default function ProfileDropdown() {
 
   const handleLogout = async () => {
     await signOut();
-    router.push("/login");
+    router.push("/");
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="w-8 h-8 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#FF7927] focus:ring-offset-2">
+        <button className="w-8 h-8 rounded-full overflow-hidden focus:outline-none hover:opacity-80 transition-opacity">
           <Avatar className="w-8 h-8">
             <AvatarImage src={avatarUrl} alt={displayName} />
             <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
@@ -66,7 +66,7 @@ export default function ProfileDropdown() {
         {/* Profile Link */}
         <DropdownMenuItem
           className="gap-3 px-2 py-2.5 cursor-pointer rounded-lg"
-          onClick={() => router.push(`/profile/${username}`)}
+          onClick={() => router.push(`/profiles/${username}`)}
         >
           <svg
             className="w-5 h-5 text-gray-600"

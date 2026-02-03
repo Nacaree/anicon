@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const { resendVerification } = useAuth();
@@ -88,14 +88,14 @@ export default function VerifyEmailPage() {
 
         <Link
           href="/signup"
-          className="block w-full text-center text-gray-600 hover:text-gray-800 font-medium py-2"
+          className="block w-full text-center text-gray-600 hover:text-gray-800 font-medium py-2 transition-colors"
         >
           Use a different email
         </Link>
 
         <Link
           href="/login"
-          className="block w-full text-center text-orange-500 hover:text-orange-600 font-medium py-2"
+          className="block w-full text-center text-orange-500 hover:text-orange-600 font-medium py-2 transition-colors"
         >
           Back to login
         </Link>
@@ -112,5 +112,13 @@ export default function VerifyEmailPage() {
         </ul>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="text-center p-8">Loading verification details...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

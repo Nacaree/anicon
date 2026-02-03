@@ -3,12 +3,21 @@ import { createServerClient } from "@supabase/ssr";
 
 // Routes that don't require authentication
 const publicRoutes = [
+  "/",
   "/login",
   "/signup",
   "/verify-email",
   "/forgot-password",
   "/reset-password",
   "/callback",
+];
+
+// Auth pages that authenticated users should be redirected away from
+const authRoutes = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
 ];
 
 // Routes that are always accessible (even without auth)
@@ -68,18 +77,14 @@ export async function proxy(request) {
   } = await supabase.auth.getUser();
 
   const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route),
+    route === "/" ? pathname === "/" : pathname.startsWith(route),
   );
   const isAuthenticated = !!user;
   const isEmailVerified = user?.email_confirmed_at != null;
 
   // If user is authenticated and trying to access auth pages, redirect to home
-  if (
-    isAuthenticated &&
-    isEmailVerified &&
-    isPublicRoute &&
-    pathname !== "/callback"
-  ) {
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  if (isAuthenticated && isEmailVerified && isAuthRoute) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
