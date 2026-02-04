@@ -28,7 +28,6 @@ export function AuthProvider({ children }) {
       setProfile(response.profile);
       return response;
     } catch (err) {
-      console.error("Failed to fetch profile:", err);
       setProfile(null);
       throw err;
     }
@@ -41,39 +40,28 @@ export function AuthProvider({ children }) {
     const initAuth = async () => {
       try {
         const {
-          data: { user },
-        } = await supabase.auth.getUser();
+          data: { session },
+        } = await supabase.auth.getSession();
 
         if (!isMounted) return;
 
-        if (user) {
-          setUser(user);
-          // Only fetch profile if email is verified
-          if (user.email_confirmed_at) {
-            try {
-              await fetchProfile();
-            } catch (profileErr) {
-              // Ignore abort errors during profile fetch
-              if (profileErr.name === "AbortError") {
-                console.log("Profile fetch aborted (component unmounted)");
-                return;
-              }
-              throw profileErr;
+        const user = session?.user ?? null;
+        setUser(user);
+        setIsLoading(false);
+
+        if (user?.email_confirmed_at) {
+          try {
+            await fetchProfile();
+          } catch (profileErr) {
+            if (profileErr.name !== "AbortError" && isMounted) {
+              console.error("Failed to fetch profile:", profileErr);
             }
           }
         }
       } catch (err) {
-        // Ignore abort errors - they happen during React StrictMode double-mounting
-        if (err.name === "AbortError") {
-          console.log("Auth initialization aborted (component unmounted)");
-          return;
-        }
         if (isMounted) {
           console.error("Auth initialization error:", err);
           setError(err.message);
-        }
-      } finally {
-        if (isMounted) {
           setIsLoading(false);
         }
       }
@@ -81,20 +69,35 @@ export function AuthProvider({ children }) {
 
     initAuth();
 
+    // Re-run auth check when page is restored from bfcache
+    // This helps handle scenarios where a user logs out in another tab
+    // and then navigates back to this page from the back-forward cache.
+    const handlePageShow = (event) => {
+      // event.persisted is true if the page was restored from the bfcache
+      if (event.persisted) {
+        // Re-initialize authentication to ensure valid session state
+        initAuth();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
+      if (!isMounted) return;
 
       if (session?.user) {
         setUser(session.user);
-        // Fetch profile on sign in or token refresh if email verified
         if (
           (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
           session.user.email_confirmed_at
         ) {
-          await fetchProfile();
+          try {
+            await fetchProfile();
+          } catch (err) {
+            console.error("Failed to fetch profile on auth change:", err);
+          }
         }
       } else {
         setUser(null);
@@ -102,7 +105,11 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      window.removeEventListener("pageshow", handlePageShow);
+    };
   }, [fetchProfile]);
 
   // Sign up with email and password
