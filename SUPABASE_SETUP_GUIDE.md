@@ -5,6 +5,7 @@ Complete step-by-step guide to set up Supabase for the AniCon backend.
 ## 📋 Overview
 
 You'll be setting up:
+
 1. Supabase project
 2. PostgreSQL database with schema
 3. Authentication
@@ -85,6 +86,32 @@ You'll be setting up:
    - `follows`
    - `influencer_applications`
 
+### 2.5 Add Auth Trigger (Crucial for Signup)
+
+The signup flow relies on a database trigger to create the profile automatically. Run this SQL in the SQL Editor:
+
+```sql
+-- Function to handle new user creation
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, username, display_name, roles)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'username',
+    new.raw_user_meta_data->>'display_name',
+    '{fan}'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Trigger to call the function
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+```
+
 ---
 
 ## Step 3: Get Database Credentials
@@ -100,10 +127,12 @@ Scroll down to **"Connection string"** section:
 
 1. Click **"URI"** tab
 2. You'll see something like:
+
    ```
    postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres
    ```
-postgresql://postgres.rsongscpipemetlknnkc:[YOUR-PASSWORD]@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+
+   postgresql://postgres.rsongscpipemetlknnkc:[YOUR-PASSWORD]@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
 
 3. **Copy these values:**
    - **Host**: `aws-0-us-east-1.pooler.supabase.com` (or your region)
@@ -114,12 +143,14 @@ postgresql://postgres.rsongscpipemetlknnkc:[YOUR-PASSWORD]@aws-1-ap-south-1.pool
    - **Port**: `5432` (use Transaction mode port, NOT 6543)
 
 **For application.properties, use Transaction mode:**
+
 ```
 Host: db.xxxxxxxxxxxxx.supabase.co
 Port: 5432
 ```
 
 **Better yet:** Click the **"Transaction Pooler"** mode toggle, and you'll see:
+
 ```
 postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@db.xxxxxxxxxxxxx.supabase.co:5432/postgres
 ```
@@ -136,14 +167,17 @@ postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@db.xxxxxxxxxxxxx.supabase.co
 ### 4.2 Copy Project URL
 
 Under **"Project URL"**:
+
 ```
 https://xxxxxxxxxxxxx.supabase.co
 ```
+
 **Copy this!** You'll need it for `supabase.url`
 
 ### 4.3 Copy Anon Key
 
 Under **"Project API keys"**:
+
 - Find `anon` `public`
 - Click the **copy icon** 📋
 - It looks like: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
@@ -153,6 +187,7 @@ Under **"Project API keys"**:
 ### 4.4 Copy JWT Secret ⚠️ IMPORTANT
 
 Scroll down to **"JWT Settings"** section:
+
 - Find **"JWT Secret"**
 - Click **"Reveal"** button
 - Click the **copy icon** 📋
@@ -169,6 +204,7 @@ Scroll down to **"JWT Settings"** section:
 ### 5.1 Open Configuration File
 
 Open file:
+
 ```
 /Users/lamini/Development/anicon/backend/src/main/resources/application.properties
 ```
@@ -190,6 +226,7 @@ supabase.anon.key=YOUR_ANON_KEY_FROM_STEP_4.3
 ```
 
 **Example (with fake values):**
+
 ```properties
 # Database Configuration
 spring.datasource.url=jdbc:postgresql://db.abcdefghijklmnop.supabase.co:5432/postgres
@@ -226,9 +263,17 @@ Press `Cmd + S` to save
 
 4. Click **"Save"**
 
-### 6.3 Optional: Add Social Providers
+### 6.3 Configure Site URL (Crucial for Redirects)
+
+1. Go to **Authentication** -> **URL Configuration**
+2. Set **Site URL** to your frontend URL (e.g., `http://localhost:3000`)
+3. Add `http://localhost:3000/**` to **Redirect URLs**
+4. Click **"Save"**
+
+### 6.4 Optional: Add Social Providers
 
 You can also enable:
+
 - Google OAuth
 - GitHub OAuth
 - Discord OAuth
@@ -250,11 +295,13 @@ mvn spring-boot:run
 ### 7.2 Check Logs
 
 You should see:
+
 ```
 Started AniconBackendApplication in X seconds
 ```
 
 If you see errors like:
+
 - `Connection refused` → Check database credentials
 - `Authentication failed` → Check password
 - `Unknown database` → Make sure you used `postgres` as database name
@@ -262,13 +309,15 @@ If you see errors like:
 ### 7.3 Test Health Endpoint
 
 In a new terminal:
+
 ```bash
 curl http://localhost:8080/api/health
 ```
 
 **Expected response:**
+
 ```json
-{"status":"UP","service":"anicon-backend"}
+{ "status": "UP", "service": "anicon-backend" }
 ```
 
 ✅ **Success!** Your backend is connected to Supabase!
@@ -296,19 +345,20 @@ You can test profile creation once you have frontend working, or use:
 
 ## 🎯 Quick Reference: Where to Find Everything
 
-| What you need | Where to find it |
-|---------------|------------------|
-| **Database Host** | Settings → Database → Connection String (Transaction mode) |
-| **Database Password** | Password you created in Step 1.2 |
-| **Project URL** | Settings → API → Project URL |
-| **Anon Key** | Settings → API → Project API keys → anon |
-| **JWT Secret** | Settings → API → JWT Settings → JWT Secret |
+| What you need         | Where to find it                                           |
+| --------------------- | ---------------------------------------------------------- |
+| **Database Host**     | Settings → Database → Connection String (Transaction mode) |
+| **Database Password** | Password you created in Step 1.2                           |
+| **Project URL**       | Settings → API → Project URL                               |
+| **Anon Key**          | Settings → API → Project API keys → anon                   |
+| **JWT Secret**        | Settings → API → JWT Settings → JWT Secret                 |
 
 ---
 
 ## 🔒 Security Best Practices
 
 ### DO:
+
 ✅ Keep your database password secure
 ✅ Use the JWT secret for backend validation
 ✅ Use the anon key for frontend (it's public)
@@ -316,6 +366,7 @@ You can test profile creation once you have frontend working, or use:
 ✅ Use environment variables in production (not hardcoded)
 
 ### DON'T:
+
 ❌ Commit credentials to Git
 ❌ Share JWT secret publicly
 ❌ Use the anon key for JWT validation
@@ -330,6 +381,7 @@ You can test profile creation once you have frontend working, or use:
 **Problem**: Can't connect to database
 
 **Solutions**:
+
 1. Check if you're using the correct host (Transaction mode, not Session)
 2. Verify port is `5432` (not `6543`)
 3. Check Supabase project is active (not paused)
@@ -340,6 +392,7 @@ You can test profile creation once you have frontend working, or use:
 **Problem**: Wrong password
 
 **Solutions**:
+
 1. Double-check password (copy-paste to avoid typos)
 2. Reset database password in Supabase Settings → Database
 3. Make sure no special characters are breaking the connection string
@@ -349,6 +402,7 @@ You can test profile creation once you have frontend working, or use:
 **Problem**: Backend can't validate tokens
 
 **Solutions**:
+
 1. Verify you're using JWT Secret (not anon key)
 2. Check JWT secret is correctly copied (no extra spaces)
 3. Ensure frontend is sending token as: `Authorization: Bearer <token>`
@@ -358,6 +412,7 @@ You can test profile creation once you have frontend working, or use:
 **Problem**: Wrong database name
 
 **Solutions**:
+
 1. Always use `postgres` as database name
 2. Don't use your project name as database name
 
@@ -366,6 +421,7 @@ You can test profile creation once you have frontend working, or use:
 **Problem**: Schema not run or RLS blocking queries
 
 **Solutions**:
+
 1. Re-run schema.sql in SQL Editor
 2. Check Table Editor to verify tables exist
 3. Check if Row Level Security is enabled (should be)

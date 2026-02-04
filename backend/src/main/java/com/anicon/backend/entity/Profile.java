@@ -1,16 +1,23 @@
 package com.anicon.backend.entity;
 
-import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
-import java.time.OffsetDateTime;
-import java.util.Map;
-import java.util.UUID;
 
 @Entity
 @Table(name = "profiles")
@@ -66,6 +73,13 @@ public class Profile {
     @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default
     private Map<String, String> socialLinks = Map.of();
+
+    // In your Profile.java entity class
+    @Column(name = "follower_count", nullable = false)
+    private Long followerCount = 0L;
+    
+    @Column(name = "following_count", nullable = false)
+    private Long followingCount = 0L;
 
     // Metadata
     @Column(name = "created_at", nullable = false, updatable = false)

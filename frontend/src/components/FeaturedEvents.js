@@ -56,7 +56,7 @@ export default function FeaturedEvents() {
       {/* Section Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-800">Featured Events</h2>
-        <button className="text-sm text-gray-500 hover:text-[#FF7927]">
+        <button className="text-sm text-gray-500 hover:text-[#FF7927] transition-colors">
           Show all →
         </button>
       </div>

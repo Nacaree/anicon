@@ -1,84 +1,85 @@
 package com.anicon.backend.service;
 
-import com.anicon.backend.dto.CreateProfileRequest;
-import com.anicon.backend.dto.ProfileResponse;
-import com.anicon.backend.entity.Profile;
-import com.anicon.backend.repository.FollowRepository;
-import com.anicon.backend.repository.ProfileRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
-
 import java.util.UUID;
 
+import org.jooq.DSLContext;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.anicon.backend.dto.ProfileResponse;
+import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
+
+/**
+ * Service layer for profile operations.
+ *
+ * Key Design Principle (from PLANNING2.md):
+ * - Profiles are NEVER created by the backend manually
+ * - Database trigger (on_auth_user_created → handle_new_user) automatically
+ * creates
+ * profiles when users sign up through Supabase Auth
+ * - This service only FETCHES and UPDATES existing profiles
+ *
+ * Why this matters:
+ * - Ensures atomic profile creation (no race conditions)
+ * - Centralizes profile creation logic in the database
+ * - Backend remains stateless and only handles business logic
+ */
 @Service
 public class ProfileService {
 
-    private final ProfileRepository profileRepository;
-    private final FollowRepository followRepository;
+    private final DSLContext dsl;
 
-    public ProfileService(ProfileRepository profileRepository,
-                         FollowRepository followRepository) {
-        this.profileRepository = profileRepository;
-        this.followRepository = followRepository;
+    /**
+     * Constructor injection for DSLContext.
+     *
+     * @param dsl jOOQ DSLContext for type-safe SQL queries
+     */
+    public ProfileService(DSLContext dsl) {
+        this.dsl = dsl;
     }
 
-    @Transactional
-    public ProfileResponse createProfile(UUID userId, CreateProfileRequest request) {
-        // Check if username already exists
-        if (profileRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username already taken");
-        }
-
-        // Check if profile already exists for this user
-        if (profileRepository.existsById(userId)) {
-            throw new IllegalArgumentException("Profile already exists for this user");
-        }
-
-        Profile profile = Profile.builder()
-            .id(userId)
-            .username(request.getUsername())
-            .displayName(request.getDisplayName())
-            .roles(new String[]{"fan"})
-            .build();
-
-        profile = profileRepository.save(profile);
-
-        return toProfileResponse(profile);
-    }
-
+    /**
+     * Fetches a user's profile by their Supabase user ID.
+     *
+     * Used by:
+     * - AuthController.getCurrentUser() - When user requests their own profile
+     * - ProfileController.getProfileById() - When viewing another user's profile
+     *
+     * @param userId The Supabase auth.users ID (UUID)
+     * @return ProfileResponse with profile data + follower/following counts
+     * @throws IllegalArgumentException if profile doesn't exist (indicates database
+     *                                  issue)
+     */
+    @Cacheable(value = "profiles", key = "#userId")
     public ProfileResponse getProfile(UUID userId) {
-        Profile profile = profileRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
-
-        return toProfileResponse(profile);
+        return dsl.selectFrom(PROFILES)
+                .where(PROFILES.ID.eq(userId))
+                .fetchOptionalInto(ProfileResponse.class)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
     }
 
+    /**
+     * Fetches a user's profile by their unique username.
+     *
+     * Used by:
+     * - ProfileController.getProfileByUsername() - Public profile viewing
+     * - Frontend when navigating to /@username routes
+     *
+     * Username constraints (enforced by database):
+     * - Max 20 characters
+     * - Alphanumeric + underscore only (regex: ^[a-zA-Z0-9_]{1,20}$)
+     * - Unique across all users
+     *
+     * @param username The user's unique username (case-sensitive)
+     * @return ProfileResponse with profile data + follower/following counts
+     * @throws IllegalArgumentException if username doesn't exist
+     */
     public ProfileResponse getProfileByUsername(String username) {
-        Profile profile = profileRepository.findByUsername(username)
-            .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
-
-        return toProfileResponse(profile);
-    }
-
-    private ProfileResponse toProfileResponse(Profile profile) {
-        long followerCount = followRepository.countFollowers(profile.getId());
-        long followingCount = followRepository.countFollowing(profile.getId());
-
-        return ProfileResponse.builder()
-            .id(profile.getId())
-            .username(profile.getUsername())
-            .displayName(profile.getDisplayName())
-            .avatarUrl(profile.getAvatarUrl())
-            .bio(profile.getBio())
-            .roles(profile.getRoles())
-            .giftLink(profile.getGiftLink())
-            .organizationName(profile.getOrganizationName())
-            .isVerifiedOrganizer(profile.getIsVerifiedOrganizer())
-            .socialLinks(profile.getSocialLinks())
-            .followerCount(followerCount)
-            .followingCount(followingCount)
-            .createdAt(profile.getCreatedAt())
-            .updatedAt(profile.getUpdatedAt())
-            .build();
+        return dsl.selectFrom(PROFILES)
+                .where(PROFILES.USERNAME.eq(username))
+                .fetchOptionalInto(ProfileResponse.class)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
     }
 }

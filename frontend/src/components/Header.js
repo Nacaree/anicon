@@ -1,12 +1,22 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { useAuthGate } from "@/context/AuthGateContext";
+import ProfileDropdown from "@/components/ProfileDropdown";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header({ toggleSidebar }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { requireAuth } = useAuthGate();
+
   return (
     <header className="h-16 bg-white border-b border-transparent fixed top-0 left-0 right-0 z-50 flex items-center px-3 sm:px-4 md:px-6">
       {/* Hamburger Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="p-2 hover:bg-gray-100 rounded-full mr-2 sm:mr-3 md:mr-5"
+        className="p-2 hover:bg-gray-100 rounded-full mr-2 sm:mr-3 md:mr-5 transition-colors"
       >
         <svg
           className="w-6 h-6 text-gray-600"
@@ -24,7 +34,7 @@ export default function Header({ toggleSidebar }) {
       </button>
 
       {/* Logo */}
-      <div className="mr-3 sm:mr-4 md:mr-6">
+      <Link href="/" className="mr-3 sm:mr-4 md:mr-6">
         <Image
           src="/logo.svg"
           alt="ANIKON Logo"
@@ -41,7 +51,7 @@ export default function Header({ toggleSidebar }) {
           className="object-contain sm:hidden"
           priority
         />
-      </div>
+      </Link>
 
       {/* Search Bar */}
       <div className="flex-1 max-w-xl mr-auto">
@@ -70,7 +80,10 @@ export default function Header({ toggleSidebar }) {
       {/* Right Side Icons */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 ml-2 sm:ml-4 md:ml-6">
         {/* Post Button */}
-        <button className="flex items-center gap-2 bg-[#FF7927] text-white px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-[#E66B1F]">
+        <button
+          onClick={() => requireAuth(() => {})}
+          className="flex items-center gap-2 bg-[#FF7927] text-white px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-[#E66B1F] transition-colors"
+        >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -81,25 +94,42 @@ export default function Header({ toggleSidebar }) {
           <span className="hidden sm:inline">Post</span>
         </button>
 
-        {/* Notification Icon */}
-        <button className="p-2 hover:bg-gray-100 rounded-full">
-          <svg
-            className="w-5 h-5 text-gray-600"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-          </svg>
-        </button>
+        {isLoading ? (
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="bg-gray-200 animate-pulse" />
+          </Avatar>
+        ) : isAuthenticated ? (
+          <>
+            {/* Notification Icon */}
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <svg
+                className="w-5 h-5 text-gray-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+              </svg>
+            </button>
 
-        {/* User Avatar */}
-        <button className="w-8 h-8 rounded-full overflow-hidden">
-          <img
-            src="https://media.istockphoto.com/id/1470987836/photo/portrait-of-a-beautiful-young-woman-game-cosplay-with-samurai-dress-costume-on-japanese-garden.jpg?s=612x612&w=0&k=20&c=NGfgu3Ti5DH1o7ZNLq1Jj069HyZ-hlprCbrbRP7JDNI="
-            alt="User Avatar"
-            className="w-full h-full object-cover"
-          />
-        </button>
+            {/* User Avatar & Profile Dropdown */}
+            <ProfileDropdown />
+          </>
+        ) : (
+          <>
+            <Link
+              href="/login"
+              className="text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="text-sm bg-[#FF7927] text-white px-4 py-2 rounded-full font-medium hover:bg-[#E66B1F] transition-colors"
+            >
+              Sign up
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );

@@ -12,17 +12,15 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
       <div
         className={`${
           isCollapsed ? "w-64 md:w-20" : "w-64"
-        } bg-white h-screen fixed left-0 top-16 flex-col py-4 border-transparent transition-all duration-300 z-50 flex
+        } bg-white h-screen fixed left-0 top-16 flex-col py-4 border-transparent transition-all duration-300 z-50 flex overflow-hidden
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         {/* Navigation Menu */}
-        <nav className="flex flex-col gap-2 w-full px-2">
+        <nav className={`flex flex-col gap-2 w-full px-2 transition-all duration-300 ${isCollapsed ? "md:px-[14px]" : ""}`}>
         {/* Home - Active */}
         <a
           href="#"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg bg-[#FF7927] text-white ${
-            isCollapsed ? "md:justify-center" : ""
-          }`}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#FF7927] text-white overflow-hidden"
         >
           <svg
             className="w-5 h-5 flex-shrink-0"
@@ -31,15 +29,13 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
           >
             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
           </svg>
-          <span className={`text-sm font-medium ${isCollapsed ? "md:hidden" : ""}`}>Home</span>
+          <span className={`text-sm font-medium whitespace-nowrap transition-opacity duration-300 ${isCollapsed ? "md:opacity-0" : ""}`}>Home</span>
         </a>
 
         {/* Events */}
         <a
           href="#"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 ${
-            isCollapsed ? "md:justify-center" : ""
-          }`}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden transition-colors"
         >
           <svg
             className="w-5 h-5 flex-shrink-0"
@@ -52,15 +48,13 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
               clipRule="evenodd"
             />
           </svg>
-          <span className={`text-sm font-medium ${isCollapsed ? "md:hidden" : ""}`}>Events</span>
+          <span className={`text-sm font-medium whitespace-nowrap transition-opacity duration-300 ${isCollapsed ? "md:opacity-0" : ""}`}>Events</span>
         </a>
 
         {/* Tickets */}
         <a
           href="#"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 ${
-            isCollapsed ? "md:justify-center" : ""
-          }`}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 overflow-hidden transition-colors"
         >
           <svg
             className="w-5 h-5 flex-shrink-0"
@@ -69,7 +63,7 @@ export default function Sidebar({ isCollapsed, isMobileMenuOpen, closeMobileMenu
           >
             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
           </svg>
-          <span className={`text-sm font-medium ${isCollapsed ? "md:hidden" : ""}`}>Tickets</span>
+          <span className={`text-sm font-medium whitespace-nowrap transition-opacity duration-300 ${isCollapsed ? "md:opacity-0" : ""}`}>Tickets</span>
         </a>
       </nav>
     </div>
