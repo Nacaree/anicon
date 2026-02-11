@@ -1,54 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import FeaturedEvents from "@/components/FeaturedEvents";
 import EventSections from "@/components/EventSections";
 import RightPanel from "@/components/RightPanel";
 import PostCard from "@/components/PostCard";
+import { useSidebar } from "@/context/SidebarContext";
 
 export default function Home() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if mobile on mount and window resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  const toggleSidebar = () => {
-    // On mobile, toggle mobile menu. On desktop, toggle collapsed state
-    if (isMobile) {
-      setIsMobileMenuOpen(!isMobileMenuOpen);
-    } else {
-      setIsSidebarCollapsed(!isSidebarCollapsed);
-    }
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
+  const { isSidebarCollapsed } = useSidebar();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        isMobileMenuOpen={isMobileMenuOpen}
-        closeMobileMenu={closeMobileMenu}
-      />
-
-      {/* Header */}
-      <Header toggleSidebar={toggleSidebar} />
+      <Sidebar />
+      <Header />
 
       {/* Content Wrapper - respects sidebar offset */}
       <div

@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 export default function FeaturedEventCard({
+  id,
   tagline,
   title,
   subtitle,
@@ -7,7 +10,7 @@ export default function FeaturedEventCard({
   imageUrl,
   ctaButton,
 }) {
-  return (
+  const card = (
     <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0">
       {/* Background Image */}
       <img
@@ -39,4 +42,10 @@ export default function FeaturedEventCard({
       </div>
     </div>
   );
+
+  if (id) {
+    return <Link href={`/events/${id}`}>{card}</Link>;
+  }
+
+  return card;
 }

@@ -6,7 +6,7 @@ import FeaturedEventCard from "./FeaturedEventCard";
 export default function FeaturedEvents() {
   const featuredEvents = [
     {
-      id: 1,
+      id: "tr1",
       tagline: "I'M READY FOR",
       title: "JKTANIME",
       subtitle: "2025",
@@ -17,7 +17,7 @@ export default function FeaturedEvents() {
       ctaButton: null,
     },
     {
-      id: 2,
+      id: "tr2",
       tagline: "⚡ JAPAN JAM",
       title: "ANIMECON",
       subtitle: "ANIME FESTIVAL",
@@ -28,7 +28,7 @@ export default function FeaturedEvents() {
       ctaButton: { text: "Get Ticket", show: true },
     },
     {
-      id: 3,
+      id: "tr3",
       tagline: "✨ SPRING EDITION",
       title: "COSPLAY",
       subtitle: "EXPO",
@@ -39,7 +39,7 @@ export default function FeaturedEvents() {
       ctaButton: null,
     },
     {
-      id: 4,
+      id: "tr4",
       tagline: "🎌 SUMMER FEST",
       title: "TOKYO",
       subtitle: "GAME SHOW",
