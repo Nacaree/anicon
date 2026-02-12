@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import EventImageCarousel from "@/components/events/EventImageCarousel";
 import EventDetailInfo from "@/components/events/EventDetailInfo";
 import EventOrganizer from "@/components/events/EventOrganizer";
+import EventTicketCard from "@/components/events/EventTicketCard";
 import EventsCategorySection from "@/components/events/EventsCategorySection";
 import { useSidebar } from "@/context/SidebarContext";
 import { getEventById, getRelatedEvents } from "@/data/mockEvents";
@@ -58,7 +59,7 @@ export default function EventDetailPage({ params }) {
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
         } pt-16 transition-all duration-300`}
       >
-        <div className="px-4 sm:px-6 md:px-8 py-6 max-w-3xl mx-auto">
+        <div className="px-4 sm:px-6 md:px-8 py-6 max-w-5xl mx-auto">
           {/* Back Button */}
           <button
             onClick={() => router.back()}
@@ -80,21 +81,29 @@ export default function EventDetailPage({ params }) {
             Back
           </button>
 
-          {/* Image Carousel */}
-          <div className="mb-5">
-            <EventImageCarousel
-              images={event.images}
-              thumbnails={event.thumbnails}
-            />
+          {/* Image Carousel + Ticket Card row */}
+          <div className="flex flex-col lg:flex-row gap-5 mb-5">
+            <div className="flex-1 min-w-0">
+              <EventImageCarousel
+                images={event.images}
+                thumbnails={event.thumbnails}
+              />
+            </div>
+
+            <div className="w-full lg:w-72 lg:flex-shrink-0">
+              <div className="lg:sticky lg:top-20">
+                <EventTicketCard event={event} />
+              </div>
+            </div>
           </div>
 
           {/* Event Info */}
-          <div className="mb-10">
+          <div className="mb-10 max-w-3xl">
             <EventDetailInfo event={event} />
           </div>
 
           {/* Event Organizer */}
-          <div className="mb-10">
+          <div className="mb-10 max-w-3xl">
             <EventOrganizer organizer={event.organizer} />
           </div>
 
