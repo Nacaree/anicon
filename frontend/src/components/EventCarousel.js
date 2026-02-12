@@ -1,30 +1,36 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  Children,
+  cloneElement,
+  isValidElement,
+} from "react";
 
-export default function EventCarousel({ children, hideGradients = false }) {
+export default function EventCarousel({
+  children,
+  hideGradients = false,
+  enableEnlarge = false,
+}) {
   const scrollContainerRef = useRef(null);
   const [showButtons, setShowButtons] = useState(false);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
+
+  const itemRefs = useRef([]);
+  const visibleIndicesRef = useRef(new Set());
+
+  const childCount = Children.count(children);
 
   const checkScroll = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = container;
-
-    // const scrollLeft = container.scrollLeft;
-    // const scrollWidth = container.scrollWidth;
-    // const clientWidth = container.clientWidth;
-    // const maxScroll = scrollWidth - clientWidth;
-
-    // Show left gradient if scrolled more than halfway through the first card (160px = half of 320px card width)
-    // setShowLeftGradient(scrollLeft > 160);
-
-    // // Show right gradient if not scrolled to the end (with 160px threshold)
-    // setShowRightGradient(scrollLeft < maxScroll - 160);
 
     setShowLeftGradient(scrollLeft > 5);
     setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 5);
@@ -35,10 +41,8 @@ export default function EventCarousel({ children, hideGradients = false }) {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    // Check initial state
     checkScroll();
 
-    // Add scroll listener
     container.addEventListener("scroll", checkScroll);
 
     return () => {
@@ -46,11 +50,64 @@ export default function EventCarousel({ children, hideGradients = false }) {
     };
   }, []);
 
+  // IntersectionObserver for tracking first visible card
+  useEffect(() => {
+    if (!enableEnlarge) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const index = Number(entry.target.dataset.carouselIndex);
+          if (entry.isIntersecting) {
+            visibleIndicesRef.current.add(index);
+          } else {
+            visibleIndicesRef.current.delete(index);
+          }
+        });
+
+        if (visibleIndicesRef.current.size > 0) {
+          const minIndex = Math.min(...visibleIndicesRef.current);
+          setFirstVisibleIndex((prev) =>
+            prev === minIndex ? prev : minIndex
+          );
+        }
+      },
+      {
+        root: container,
+        threshold: 0.5,
+      }
+    );
+
+    itemRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      observer.disconnect();
+      visibleIndicesRef.current.clear();
+    };
+  }, [enableEnlarge, childCount]);
+
+  // Reset when children change (e.g. EventTimeline filtering)
+  const prevChildCount = useRef(childCount);
+  useEffect(() => {
+    if (prevChildCount.current !== childCount) {
+      setFirstVisibleIndex(0);
+      visibleIndicesRef.current.clear();
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ left: 0 });
+      }
+      prevChildCount.current = childCount;
+    }
+  }, [childCount]);
+
   const scroll = (direction) => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
+    const scrollAmount = container.offsetWidth * 0.8;
     const newScrollPosition =
       direction === "left"
         ? container.scrollLeft - scrollAmount
@@ -62,13 +119,32 @@ export default function EventCarousel({ children, hideGradients = false }) {
     });
   };
 
+  const renderChildren = () => {
+    if (!enableEnlarge) return children;
+
+    return Children.map(children, (child, index) => (
+      <div
+        key={index}
+        ref={(el) => (itemRefs.current[index] = el)}
+        data-carousel-index={index}
+        className="shrink-0"
+      >
+        {isValidElement(child)
+          ? cloneElement(child, {
+              isEnlarged: index === firstVisibleIndex,
+              isHoverEnlargeable: index !== firstVisibleIndex,
+            })
+          : child}
+      </div>
+    ));
+  };
+
   return (
     <div
       className="relative"
       onMouseEnter={() => setShowButtons(true)}
       onMouseLeave={() => setShowButtons(false)}
     >
-      {/* 2. Wrap gradients in conditional check */}
       {!hideGradients && isMounted && (
         <>
           {/* Mask gradient on left edge */}
@@ -98,13 +174,15 @@ export default function EventCarousel({ children, hideGradients = false }) {
       {/* Carousel Container */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth rounded-xl p-4 z-0"
+        className={`flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth rounded-xl z-0 ${
+          enableEnlarge ? "items-center p-4 pt-6" : "p-4"
+        }`}
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         }}
       >
-        {children}
+        {renderChildren()}
       </div>
 
       {/* Left Navigation Button */}

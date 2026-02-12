@@ -1,6 +1,6 @@
 "use client";
 
-const recommendedEvent = {
+const trendingEvent = {
   id: "rec1",
   title: "Event Name Event Name 2026",
   description:
@@ -10,11 +10,11 @@ const recommendedEvent = {
   thumbnails: [null, null, null],
 };
 
-export default function RecommendedEvent() {
+export default function TrendingEvent() {
   const handleShare = async () => {
     const shareData = {
-      title: recommendedEvent.title,
-      text: `Check out ${recommendedEvent.title} on AniCon!`,
+      title: trendingEvent.title,
+      text: `Check out ${trendingEvent.title} on AniCon!`,
       url: window.location.href,
     };
 
@@ -31,15 +31,15 @@ export default function RecommendedEvent() {
 
   return (
     <section>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Recommended</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Trending Event</h2>
 
       <div className="bg-gray-100 rounded-2xl overflow-hidden flex flex-col md:flex-row">
         {/* Left Image */}
         <div className="relative w-full md:w-1/2 h-48 md:h-auto min-h-[200px]">
-          {recommendedEvent.imageUrl ? (
+          {trendingEvent.imageUrl ? (
             <img
-              src={recommendedEvent.imageUrl}
-              alt={recommendedEvent.title}
+              src={trendingEvent.imageUrl}
+              alt={trendingEvent.title}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -51,16 +51,16 @@ export default function RecommendedEvent() {
         <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2">
-              {recommendedEvent.title}
+              {trendingEvent.title}
             </h3>
             <p className="text-sm text-gray-500 mb-4">
-              {recommendedEvent.description}
+              {trendingEvent.description}
             </p>
 
             {/* Tags */}
             <div className="flex items-center gap-1.5 flex-wrap mb-4">
               <span className="text-xs text-gray-400">Tags For this Event:</span>
-              {recommendedEvent.tags.map((tag) => (
+              {trendingEvent.tags.map((tag) => (
                 <span
                   key={tag}
                   className="text-xs bg-white border border-gray-200 px-2.5 py-1 rounded-full text-gray-600"
@@ -99,7 +99,7 @@ export default function RecommendedEvent() {
 
           {/* Thumbnail Images */}
           <div className="flex gap-3">
-            {recommendedEvent.thumbnails.map((thumb, i) => (
+            {trendingEvent.thumbnails.map((thumb, i) => (
               <div
                 key={i}
                 className="w-24 h-16 sm:w-28 sm:h-20 rounded-lg overflow-hidden flex-shrink-0"

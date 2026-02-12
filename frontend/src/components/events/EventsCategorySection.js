@@ -11,7 +11,7 @@ export default function EventsCategorySection({ title, emoji, events }) {
         </h2>
       </div>
 
-      <EventCarousel>
+      <EventCarousel enableEnlarge>
         {events.map((event) => (
           <EventsPageCard key={event.id} event={event} />
         ))}

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import EventsPageCard from "./EventsPageCard";
 import EventCarousel from "@/components/EventCarousel";
 
-const categories = ["All", "Cosplays", "Cultural", "Hang out"];
+const categories = ["All", "Cosplays", "Cultural", "Meetups"];
 
 const months = [
   { key: "jan", label: "JAN", color: "bg-[#FF7927]" },
@@ -179,7 +179,7 @@ export default function EventTimeline() {
 
       {/* Events Carousel */}
       {filteredEvents.length > 0 ? (
-        <EventCarousel>
+        <EventCarousel enableEnlarge>
           {filteredEvents.map((event) => (
             <EventsPageCard key={event.id} event={event} />
           ))}

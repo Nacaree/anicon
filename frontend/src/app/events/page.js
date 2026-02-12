@@ -5,9 +5,9 @@ import Header from "@/components/Header";
 import PromotedEvents from "@/components/events/PromotedEvents";
 import EventTimeline from "@/components/events/EventTimeline";
 import EventsCategorySection from "@/components/events/EventsCategorySection";
-import RecommendedEvent from "@/components/events/RecommendedEvent";
+import TrendingEvent from "@/components/events/TrendingEvent";
 import { useSidebar } from "@/context/SidebarContext";
-import { trendingEvents, cosplayEvents, culturalEvents } from "@/data/mockEvents";
+import { cosplayEvents, culturalEvents } from "@/data/mockEvents";
 
 export default function EventsPage() {
   const { isSidebarCollapsed } = useSidebar();
@@ -23,22 +23,15 @@ export default function EventsPage() {
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
         } pt-16 transition-all duration-300`}
       >
-        <div className="px-4 sm:px-6 md:px-8 py-6 space-y-10 max-w-7xl">
+        <div className="px-4 sm:px-6 md:px-8 py-6 space-y-10 max-w-7xl mx-auto">
           {/* Promoted Events */}
           <PromotedEvents />
 
           {/* Event Timeline */}
           <EventTimeline />
 
-          {/* Trending Events */}
-          <EventsCategorySection
-            title="Trending Events"
-            emoji="🔥"
-            events={trendingEvents}
-          />
-
-          {/* Recommended */}
-          <RecommendedEvent />
+          {/* Trending Event */}
+          <TrendingEvent />
 
           {/* Cosplay Events */}
           <EventsCategorySection

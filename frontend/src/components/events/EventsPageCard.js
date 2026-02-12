@@ -4,7 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuthGate } from "@/context/AuthGateContext";
 
-export default function EventsPageCard({ event }) {
+export default function EventsPageCard({
+  event,
+  isEnlarged = false,
+  isHoverEnlargeable = false,
+}) {
   const { requireAuth } = useAuthGate();
   const [wantToGo, setWantToGo] = useState(false);
   const [goingCount, setGoingCount] = useState(event.wantToGoCount || 0);
@@ -40,11 +44,21 @@ export default function EventsPageCard({ event }) {
   };
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden flex-shrink-0 w-56 sm:w-60 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+    <div
+      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out ${
+        isEnlarged
+          ? "w-72 sm:w-80 shadow-md"
+          : "w-56 sm:w-60 hover:shadow-md"
+      } ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
+    >
       {/* Clickable area — image + info */}
       <Link href={`/events/${event.id}`}>
         {/* Image */}
-        <div className="relative h-32 sm:h-36 bg-gray-200 overflow-hidden">
+        <div
+          className={`relative bg-gray-200 overflow-hidden transition-all duration-500 ease-in-out ${
+            isEnlarged ? "h-44 sm:h-48" : "h-32 sm:h-36"
+          }`}
+        >
           {event.imageUrl ? (
             <img
               src={event.imageUrl}

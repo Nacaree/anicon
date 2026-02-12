@@ -29,7 +29,7 @@ export default function EventDetailPage({ params }) {
             isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
           } pt-16 transition-all duration-300`}
         >
-          <div className="px-4 sm:px-6 md:px-8 py-12 text-center">
+          <div className="px-4 sm:px-6 md:px-8 py-12 text-center max-w-3xl mx-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Event not found
             </h1>
@@ -58,7 +58,7 @@ export default function EventDetailPage({ params }) {
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
         } pt-16 transition-all duration-300`}
       >
-        <div className="px-4 sm:px-6 md:px-8 py-6 max-w-3xl">
+        <div className="px-4 sm:px-6 md:px-8 py-6 max-w-3xl mx-auto">
           {/* Back Button */}
           <button
             onClick={() => router.back()}
