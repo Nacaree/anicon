@@ -175,7 +175,7 @@ export default function EventCarousel({
       <div
         ref={scrollContainerRef}
         className={`flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth rounded-xl z-0 ${
-          enableEnlarge ? "items-center p-4 pt-6" : "p-4"
+          enableEnlarge ? "items-end px-4 pb-4 pt-6 h-[24rem]" : "p-4"
         }`}
         style={{
           scrollbarWidth: "none",

@@ -1,23 +1,57 @@
 "use client";
 
-export default function EventDetailInfo({ event }) {
-  const handleShare = async () => {
-    const shareData = {
-      title: event.title,
-      text: `Check out ${event.title} on AniCon!`,
-      url: window.location.href,
-    };
+import { useState, useEffect, useRef } from "react";
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        // cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
-    }
-  };
+export default function EventDetailInfo({ event, loading = false }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const detailsRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (detailsRef.current) observer.observe(detailsRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="animate-pulse">
+        {/* Date + Title */}
+        <div className="mb-3">
+          <div className="h-4 w-28 bg-gray-200 rounded mb-2" />
+          <div className="h-7 w-64 bg-gray-200 rounded" />
+        </div>
+        {/* Location */}
+        <div className="h-4 w-44 bg-gray-200 rounded mb-3" />
+        {/* Tags */}
+        <div className="flex gap-1.5 mb-4">
+          <div className="h-6 w-16 bg-gray-200 rounded-full" />
+          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+          <div className="h-6 w-18 bg-gray-200 rounded-full" />
+        </div>
+        {/* Description */}
+        <div className="space-y-2 mb-6">
+          <div className="h-4 w-full bg-gray-200 rounded" />
+          <div className="h-4 w-3/4 bg-gray-200 rounded" />
+        </div>
+        {/* Details Card */}
+        <div className="h-5 w-20 bg-gray-200 rounded mb-3" />
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-4 bg-gray-200 rounded" style={{ width: `${65 + i * 5}%` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -27,50 +61,9 @@ export default function EventDetailInfo({ event }) {
           {event.date}, {event.time}
         </p>
 
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            {event.title}
-          </h1>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Bookmark */}
-            <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                />
-              </svg>
-            </button>
-
-            {/* Share */}
-            <button
-              onClick={handleShare}
-              className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+          {event.title}
+        </h1>
       </div>
 
       {/* Location */}
@@ -103,16 +96,21 @@ export default function EventDetailInfo({ event }) {
       </div>
 
       {/* Description */}
-      <div className="bg-gray-50 rounded-xl p-4 mb-6">
-        <p className="text-sm text-gray-600 leading-relaxed">
-          {event.description}
-        </p>
-      </div>
+      <p className="text-sm text-gray-600 leading-relaxed mb-6">
+        {event.description}
+      </p>
 
       {/* Details Card */}
-      <div>
+      <div
+        ref={detailsRef}
+        className={`transition-all duration-700 ease-out ${
+          isVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-6"
+        }`}
+      >
         <h2 className="text-lg font-bold text-gray-900 mb-3">Details</h2>
-        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
           {/* Status */}
           <div className="text-sm text-gray-600">
             Event Status:{" "}

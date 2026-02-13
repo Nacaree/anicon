@@ -47,7 +47,7 @@ export default function EventsPageCard({
     <div
       className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out ${
         isEnlarged
-          ? "w-72 sm:w-80 shadow-md"
+          ? "w-72 sm:w-85 shadow-md"
           : "w-56 sm:w-60 hover:shadow-md"
       } ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
     >
@@ -56,7 +56,7 @@ export default function EventsPageCard({
         {/* Image */}
         <div
           className={`relative bg-gray-200 overflow-hidden transition-all duration-500 ease-in-out ${
-            isEnlarged ? "h-44 sm:h-48" : "h-32 sm:h-36"
+            isEnlarged ? "h-44 sm:h-45" : "h-32 sm:h-36"
           }`}
         >
           {event.imageUrl ? (
@@ -66,7 +66,11 @@ export default function EventsPageCard({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gray-200" />
+            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
           )}
         </div>
 

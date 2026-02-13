@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthGate } from "@/context/AuthGateContext";
 
-export default function EventTicketCard({ event }) {
+export default function EventTicketCard({ event, loading = false }) {
   const { requireAuth } = useAuthGate();
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -23,6 +23,22 @@ export default function EventTicketCard({ event }) {
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
+
+  if (loading) {
+    return (
+      <div>
+        <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-3" />
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm animate-pulse">
+          <div className="h-7 w-24 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-32 bg-gray-200 rounded mb-4" />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-12 bg-gray-200 rounded-full" />
+            <div className="w-12 h-12 bg-gray-200 rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleCopyLink = async () => {
     try {

@@ -1,16 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function EventImageCarousel({ images = [], thumbnails = [] }) {
+export default function EventImageCarousel({ images = [], thumbnails = [], loading = false }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const slides = images.length > 0 ? images : [null, null, null];
   const thumbs = thumbnails.length > 0 ? thumbnails : [null, null, null, null];
 
+  if (loading) {
+    return (
+      <div>
+        <Skeleton className="rounded-xl aspect-[16/9] mb-3" />
+        <div className="flex gap-2">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Main Image */}
-      <div className="relative rounded-xl overflow-hidden h-56 sm:h-72 md:h-80 bg-gray-200 mb-3">
+      <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-gray-200 mb-3">
         {slides[activeIndex] ? (
           <img
             src={slides[activeIndex]}
@@ -18,7 +32,11 @@ export default function EventImageCarousel({ images = [], thumbnails = [] }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gray-200" />
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
         )}
 
         {/* Dots */}
@@ -53,7 +71,11 @@ export default function EventImageCarousel({ images = [], thumbnails = [] }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200" />
+              <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
             )}
           </button>
         ))}
