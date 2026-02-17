@@ -176,7 +176,17 @@ export default function EventDetailPage({ params }) {
         <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
           {/* Back Button */}
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              if (
+                typeof window !== "undefined" &&
+                window.history.length > 1 &&
+                document.referrer.includes(window.location.origin)
+              ) {
+                router.back();
+              } else {
+                router.push("/events");
+              }
+            }}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors bg-white border border-gray-200 rounded-lg px-3 py-1.5"
           >
             <svg

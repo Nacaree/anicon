@@ -49,6 +49,94 @@ export default function FeaturedEvents() {
         "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=256&fit=crop",
       ctaButton: null,
     },
+    {
+      id: "tr5",
+      tagline: "🎧 MUSIC LIVE",
+      title: "ANISONG",
+      subtitle: "CONCERT",
+      date: "05-07",
+      month: "AUG 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&h=256&fit=crop",
+      ctaButton: { text: "Book Now", show: true },
+    },
+    {
+      id: "tr6",
+      tagline: "🎮 ESPORTS",
+      title: "GAMING",
+      subtitle: "TOURNAMENT",
+      date: "20-22",
+      month: "SEP 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr7",
+      tagline: "🎎 TRADITION",
+      title: "KYOTO",
+      subtitle: "CULTURE FEST",
+      date: "10-12",
+      month: "OCT 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1528360983277-13d9b152c58b?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr8",
+      tagline: "🎃 HALLOWEEN",
+      title: "SPOOKY",
+      subtitle: "COSPLAY NIGHT",
+      date: "31",
+      month: "OCT 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=600&h=256&fit=crop",
+      ctaButton: { text: "Join Party", show: true },
+    },
+    {
+      id: "tr9",
+      tagline: "❄️ WINTER",
+      title: "SNOW",
+      subtitle: "FESTIVAL",
+      date: "15-20",
+      month: "DEC 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1482686119632-c6041ef687e3?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr10",
+      tagline: "🎆 NEW YEAR",
+      title: "COUNTDOWN",
+      subtitle: "PARTY",
+      date: "31",
+      month: "DEC 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr11",
+      tagline: "🌸 SPRING",
+      title: "SAKURA",
+      subtitle: "PICNIC",
+      date: "01-05",
+      month: "APR 2026",
+      imageUrl:
+        "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&h=256&fit=crop",
+      ctaButton: { text: "RSVP", show: true },
+    },
+    {
+      id: "tr12",
+      tagline: "🏖️ SUMMER",
+      title: "BEACH",
+      subtitle: "BASH",
+      date: "15-17",
+      month: "JUN 2026",
+      imageUrl:
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
   ];
 
   return (

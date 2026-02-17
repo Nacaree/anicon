@@ -22,11 +22,12 @@ export default function EventCarousel({
   const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
 
   const itemRefs = useRef([]);
-  const visibleIndicesRef = useRef(new Set());
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
   const childCount = Children.count(children);
 
-  const checkScroll = () => {
+  const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -34,6 +35,37 @@ export default function EventCarousel({
 
     setShowLeftGradient(scrollLeft > 5);
     setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 5);
+
+    // Debounce enlargement updates
+    isScrollingRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+
+      if (!enableEnlarge) return;
+
+      // Calculate the closest item to the left edge ("snap point")
+      const containerRect = container.getBoundingClientRect();
+      const snapPoint = containerRect.left + 24; // bias towards the start of the visible area (padding)
+
+      let minDiff = Infinity;
+      let closestIndex = 0;
+
+      itemRefs.current.forEach((el, index) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        // We want the item whose left edge is closest to our snap point
+        const diff = Math.abs(rect.left - snapPoint);
+
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = index;
+        }
+      });
+
+      setFirstVisibleIndex(closestIndex);
+    }, 150);
   };
 
   useEffect(() => {
@@ -41,61 +73,21 @@ export default function EventCarousel({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    checkScroll();
+    handleScroll();
 
-    container.addEventListener("scroll", checkScroll);
+    container.addEventListener("scroll", handleScroll);
 
     return () => {
-      container.removeEventListener("scroll", checkScroll);
+      container.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
-
-  // IntersectionObserver for tracking first visible card
-  useEffect(() => {
-    if (!enableEnlarge) return;
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const index = Number(entry.target.dataset.carouselIndex);
-          if (entry.isIntersecting) {
-            visibleIndicesRef.current.add(index);
-          } else {
-            visibleIndicesRef.current.delete(index);
-          }
-        });
-
-        if (visibleIndicesRef.current.size > 0) {
-          const minIndex = Math.min(...visibleIndicesRef.current);
-          setFirstVisibleIndex((prev) =>
-            prev === minIndex ? prev : minIndex
-          );
-        }
-      },
-      {
-        root: container,
-        threshold: 0.5,
-      }
-    );
-
-    itemRefs.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
-    return () => {
-      observer.disconnect();
-      visibleIndicesRef.current.clear();
-    };
-  }, [enableEnlarge, childCount]);
 
   // Reset when children change (e.g. EventTimeline filtering)
   const prevChildCount = useRef(childCount);
   useEffect(() => {
     if (prevChildCount.current !== childCount) {
       setFirstVisibleIndex(0);
-      visibleIndicesRef.current.clear();
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTo({ left: 0 });
       }
@@ -107,7 +99,28 @@ export default function EventCarousel({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const scrollAmount = container.offsetWidth * 0.8;
+    // Estimate item width + gap (20px from gap-5)
+    // Prefer the second item for "standard" width if enlarged, as first might be enlarged
+    const sampleItem = itemRefs.current[1] || itemRefs.current[0];
+    
+    let scrollAmount;
+    
+    if (sampleItem) {
+      const itemWidth = sampleItem.offsetWidth;
+      const gap = 20; // Tailwind gap-5
+      const stride = itemWidth + gap;
+      
+      // Calculate how many items fit fully in the viewport
+      const visibleItems = Math.floor(container.clientWidth / stride);
+      // Ensure we scroll at least 1 item
+      const itemsToScroll = Math.max(1, visibleItems);
+      
+      scrollAmount = itemsToScroll * stride;
+    } else {
+      // Fallback if no items found
+      scrollAmount = container.offsetWidth * 0.8;
+    }
+
     const newScrollPosition =
       direction === "left"
         ? container.scrollLeft - scrollAmount
