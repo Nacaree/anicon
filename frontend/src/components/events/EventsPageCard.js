@@ -47,7 +47,7 @@ export default function EventsPageCard({
     <div
       className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out ${
         isEnlarged
-          ? "w-72 sm:w-85 shadow-md"
+          ? "w-72 sm:w-85 shadow-md hover:shadow-lg"
           : "w-56 sm:w-60 hover:shadow-md"
       } ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
     >

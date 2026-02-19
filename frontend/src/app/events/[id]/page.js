@@ -187,7 +187,11 @@ export default function EventDetailPage({ params }) {
                 router.push("/events");
               }
             }}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors bg-white border border-gray-200 rounded-lg px-3 py-1.5"
+            className="flex items-center gap-1.4 text-sm font-medium text-gray-600 mb-4
+              bg-white border border-gray-200 rounded-full px-4 py-1.5
+              transition-all duration-300
+              hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 hover:scale-[1.03]
+              active:scale-[0.97]"
           >
             <svg
               className="w-4 h-4"
