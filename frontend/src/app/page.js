@@ -1,12 +1,153 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import FeaturedEvents from "@/components/FeaturedEvents";
-import EventSections from "@/components/EventSections";
-import RightPanel from "@/components/RightPanel";
-import PostCard from "@/components/PostCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
+
+const FeaturedEvents = dynamic(
+  () => import("@/components/FeaturedEvents"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-8 animate-pulse">
+        {/* Section Header */}
+        <div className="flex items-baseline justify-between mb-4">
+          <Skeleton className="h-6 w-40 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+        </div>
+        {/* Carousel Container */}
+        <div className="relative rounded-xl overflow-hidden p-6 bg-gray-200 h-48 sm:h-56 md:h-72">
+          <div className="flex gap-4 overflow-hidden">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-100 md:w-125 lg:w-150 bg-gray-300/50 shrink-0" />
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const EventSections = dynamic(
+  () => import("@/components/EventSections"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-8 animate-pulse">
+        {/* Two carousel sections */}
+        {[...Array(2)].map((_, s) => (
+          <section key={s}>
+            <Skeleton className="h-6 w-44 rounded mb-4" />
+            <div className="flex gap-4 overflow-hidden">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-xl h-50 w-64 sm:w-72 lg:w-80 bg-gray-200 shrink-0" />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    ),
+  }
+);
+
+const PostCard = dynamic(
+  () => import("@/components/PostCard"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 w-full max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto animate-pulse">
+        {/* User Header */}
+        <div className="flex items-center gap-3 mb-2">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div>
+            <Skeleton className="h-4 w-24 rounded mb-1" />
+            <Skeleton className="h-3 w-20 rounded" />
+          </div>
+        </div>
+        {/* Text */}
+        <div className="p-1 mb-2 space-y-2">
+          <Skeleton className="h-4 w-full rounded" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+        </div>
+        {/* Image */}
+        <Skeleton className="rounded-lg mb-3 h-80 sm:h-96 lg:h-128" />
+        {/* Action Buttons */}
+        <div className="flex justify-between gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg" />
+          <div className="flex gap-3">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <Skeleton className="w-10 h-10 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const RightPanel = dynamic(
+  () => import("@/components/RightPanel"),
+  {
+    ssr: false,
+    loading: () => (
+      <aside className="w-80 space-y-6 sticky top-20 self-start animate-pulse">
+        {/* Creator Profile Card */}
+        <div className="bg-white rounded-xl px-6 pt-0 pb-6 border border-gray-200">
+          {/* Banner */}
+          <Skeleton className="rounded-t-xl h-25 -mx-6 mb-3" />
+          {/* Profile pic placeholder */}
+          <div className="relative">
+            <Skeleton className="w-24 h-24 rounded-full absolute -top-14 left-0 border-4 border-white" />
+          </div>
+          <div className="pt-10 space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-28 rounded" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-24 rounded" />
+            <Skeleton className="h-4 w-40 rounded" />
+            <div className="flex items-center gap-2 pt-1">
+              <Skeleton className="w-4 h-4 rounded-full" />
+              <Skeleton className="h-4 w-24 rounded" />
+            </div>
+            <Skeleton className="h-10 w-full rounded-full mt-2" />
+          </div>
+        </div>
+
+        {/* Trending Now */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <Skeleton className="h-5 w-28 rounded mb-4" />
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="pb-3 border-b border-gray-100 last:border-0">
+                <Skeleton className="h-4 w-32 rounded mb-1" />
+                <Skeleton className="h-3 w-16 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recommended Users */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <Skeleton className="h-5 w-36 rounded mb-4" />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="w-12 h-12 rounded-full" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-20 rounded mb-1" />
+                  <Skeleton className="h-3 w-24 rounded" />
+                </div>
+                <Skeleton className="h-8 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+    ),
+  }
+);
 
 export default function Home() {
   const { isSidebarCollapsed } = useSidebar();

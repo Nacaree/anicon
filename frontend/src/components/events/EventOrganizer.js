@@ -26,19 +26,29 @@ export default function EventOrganizer({ organizer, loading = false }) {
       <div>
         <div className="h-5 w-36 bg-gray-200 rounded animate-pulse mb-3" />
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm animate-pulse">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gray-200" />
             <div className="flex-1">
-              <div className="h-4 w-24 bg-gray-200 rounded mb-1" />
-              <div className="h-3 w-20 bg-gray-200 rounded" />
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-5 w-28 bg-gray-200 rounded" />
+                <div className="h-5 w-16 bg-gray-200 rounded-full" />
+              </div>
+              <div className="h-4 w-24 bg-gray-200 rounded" />
             </div>
           </div>
-          <div className="h-3 w-40 bg-gray-200 rounded mb-2" />
-          <div className="h-5 w-24 bg-gray-200 rounded-full mb-2" />
-          <div className="h-3 w-full bg-gray-200 rounded mb-1" />
-          <div className="h-3 w-3/4 bg-gray-200 rounded mb-3" />
-          <div className="border-t border-gray-100 pt-3 flex justify-center">
-            <div className="h-4 w-20 bg-gray-200 rounded" />
+          <div className="flex items-center gap-4 mt-4 px-1">
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <div className="h-5 w-10 bg-gray-200 rounded" />
+              <div className="h-3 w-16 bg-gray-200 rounded" />
+            </div>
+            <div className="w-px h-7 bg-gray-200" />
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <div className="h-5 w-10 bg-gray-200 rounded" />
+              <div className="h-3 w-16 bg-gray-200 rounded" />
+            </div>
+          </div>
+          <div className="border-t border-gray-100 pt-3 mt-4 flex justify-center">
+            <div className="h-4 w-24 bg-gray-200 rounded" />
           </div>
         </div>
       </div>
@@ -57,10 +67,9 @@ export default function EventOrganizer({ organizer, loading = false }) {
       <h2 className="text-lg font-bold text-gray-900 mb-3">Event Organizer</h2>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        {/* Top Row: Avatar + Name */}
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3">
           {/* Avatar */}
-          <div className="w-12 h-12 rounded-full bg-orange-300 flex-shrink-0 overflow-hidden">
+          <div className="w-12 h-12 rounded-full bg-orange-300 shrink-0 overflow-hidden ring-2 ring-orange-100">
             {organizer.avatarUrl ? (
               <img
                 src={organizer.avatarUrl}
@@ -72,39 +81,35 @@ export default function EventOrganizer({ organizer, loading = false }) {
             )}
           </div>
 
-          {/* Name + Handle */}
+          {/* Name + Role */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm text-gray-900">
-              {organizer.username}
-            </h3>
-            <p className="text-xs text-gray-500">@{organizer.username}</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-[16px] text-gray-900 truncate">
+                {organizer.username}
+              </h3>
+              <span className="text-xs bg-[#8B5CF6]/20 text-[#8B5CF6] px-2 py-0.5 rounded-full font-medium shrink-0">
+                {organizer.role}
+              </span>
+            </div>
+            <p className="text-sm text-gray-400">@{organizer.username}</p>
           </div>
         </div>
 
-        {/* Followers / Following */}
-        <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
-          <span>
-            <span className="font-semibold text-gray-900">{organizer.followers}</span> followers
-          </span>
-          <span>
-            <span className="font-semibold text-gray-900">{organizer.following || 0}</span> following
-          </span>
+        {/* Follower Stats */}
+        <div className="flex items-center gap-4 mt-4 px-1">
+          <div className="text-center flex-1">
+            <span className="text-base font-bold text-gray-900 block">{organizer.followers}</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider">Followers</span>
+          </div>
+          <div className="w-px h-7 bg-gray-200" />
+          <div className="text-center flex-1">
+            <span className="text-base font-bold text-gray-900 block">{organizer.following || 0}</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider">Following</span>
+          </div>
         </div>
-
-        {/* Badge / Rank */}
-        <div className="mb-2">
-          <span className="text-[10px] bg-[#FF7927] text-white px-2.5 py-0.5 rounded-full font-medium">
-            {organizer.role}
-          </span>
-        </div>
-
-        {/* Bio */}
-        <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-          {organizer.bio}
-        </p>
 
         {/* Visit Profile Link */}
-        <div className="text-center pt-3 border-t border-gray-100">
+        <div className="text-center pt-3 mt-4 border-t border-gray-100">
           <button className="group text-sm text-[#FF7927] font-medium transition-all duration-300 hover:tracking-wider">
             Visit Profile
             <span className="block h-0.5 bg-[#FF7927] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center mt-0.5" />

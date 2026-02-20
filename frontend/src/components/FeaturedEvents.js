@@ -1,9 +1,27 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import EventCarousel from "./EventCarousel";
 import FeaturedEventCard from "./FeaturedEventCard";
 
 export default function FeaturedEvents() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
   const featuredEvents = [
     {
       id: "tr1",
@@ -140,7 +158,12 @@ export default function FeaturedEvents() {
   ];
 
   return (
-    <div className="mb-8">
+    <div
+      ref={sectionRef}
+      className={`mb-8 transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      }`}
+    >
       {/* Section Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-800">Featured Events</h2>
