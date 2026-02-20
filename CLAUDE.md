@@ -1,75 +1,103 @@
 # CLAUDE.md
 
-This file provides context for Claude Code when working on the AniCon backend.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Summary
 
-AniCon is a platform for Cambodia's anime community - event ticketing, creator content, and community features.
+AniCon is a platform for Cambodia's anime community — event ticketing, creator content, and community features. It is a full-stack monorepo: a **Next.js 16** frontend and a **Spring Boot 3.4 / Java 21** backend, backed by **Supabase (PostgreSQL)**.
 
-## Tech Stack
-
-- **Backend:** Spring Boot 3.2+ (Java 21)
-- **Frontend:** Next.js (In this REPOSITORY)
-- **Database:** Supabase (PostgreSQL)
-- **Auth:** Supabase Auth with JWT validation in Spring Boot
-- **ORM:** Hybrid - Hibernate (simple CRUD) + JOOQ (complex queries)
-
-## Key Files
-
-- `PLANNING2.md` - Full planning document with auth flows, role system, and entity designs
-- `schema.sql` - Complete database schema ready to run in Supabase
-
-## Current Phase
-
-**Phase 1: Login/Register**
-
-Focus on:
-
-1. Spring Boot project setup
-2. Supabase connection
-3. Hibernate + JOOQ configuration
-4. JWT validation filter
-5. Profile creation on signup
-
-## Database Entities (Phase 1)
-
-| Table                     | Purpose                                  |
-| ------------------------- | ---------------------------------------- |
-| `auth.users`              | Supabase-managed, handles email/password |
-| `profiles`                | User data - username, roles, etc.        |
-| `follows`                 | Who follows who (build later)            |
-| `influencer_applications` | Role applications (build later)          |
-
-## Role System
-
-Valid roles: `fan`, `influencer`, `creator`, `organizer`
-
-Valid combinations:
-
-- `[fan]` - default
-- `[influencer]` - approved fan
-- `[creator]` - admin-assigned
-- `[organizer]` - admin-assigned
-- `[creator, organizer]` - only combo allowed
+Key reference docs:
+- `docs/PLANNING2.md` — Auth flows, role system, entity designs, query patterns
+- `schema.sql` — Full profiles/follows schema (run in Supabase SQL editor)
+- `docs/ANICONNECT_TICKETING_SCHEMA_V2.sql` — Ticketing schema (Feature 1)
+- `docs/ticketing_schema_design_guide.md` — Ticketing design rationale and payment flow
+- `backend/README.md` — Backend API documentation and setup
 
 ## Commands
 
+### Frontend (`/frontend`)
+
 ```zsh
-# Generate JOOQ types after schema changes
-./mvnw jooq-codegen:generate
-
-# Run the app
-./mvnw spring-boot:run
-
-# Run tests
-./mvnw test
+npm run dev       # Start dev server (localhost:3000)
+npm run build     # Production build
+npm run lint      # ESLint check
 ```
 
-## Important Notes
+### Backend (`/backend`)
+
+```zsh
+./mvnw spring-boot:run          # Run the app (localhost:8080)
+./mvnw test                     # Run all tests
+./mvnw test -Dtest=ClassName    # Run a single test class
+./mvnw jooq-codegen:generate    # Regenerate JOOQ types after schema changes
+```
+
+## Architecture
+
+### How the Stack Connects
+
+```
+Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreSQL)
+                    ↕
+              Supabase Auth (JWT)
+```
+
+- **Auth:** Supabase Auth issues JWTs. The frontend attaches them as `Authorization: Bearer <token>` headers. The backend's `JwtAuthenticationFilter` validates tokens using the Supabase JWT secret and sets a `SupabaseUserPrincipal` in the Spring Security context.
+- **Direct DB access:** The frontend uses `@supabase/supabase-js` for auth state only. All other data goes through the Spring Boot API.
+- **Profile creation:** A Supabase database trigger (`handle_new_user`) auto-creates a `profiles` row on signup — the backend does not create it manually.
+
+### Frontend Architecture
+
+- **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route.
+- **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle).
+- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically and wraps errors in an `ApiError` class.
+- **UI components:** Shadcn/ui (New York style) with Radix UI primitives, Lucide icons, and Tailwind CSS 4. Custom components live in `src/components/`; shadcn-managed primitives live in `src/components/ui/`.
+- **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties defined in `globals.css` using OKLch color space. Dark mode uses the `.dark` class.
+- **Performance:** `next/dynamic` with skeleton loaders for heavy components (carousels, event detail sections).
+- **Mock data:** `src/data/mockEvents.js` provides event data while the backend events API is unbuilt.
+
+### Backend Architecture
+
+- **ORM strategy:** JPA/Hibernate for simple CRUD; JOOQ for complex queries. JOOQ types are generated into `backend/src/main/java/...` via `./mvnw jooq-codegen:generate`.
+- **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine.
+- **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSL context.
+
+## Database
+
+### Key Tables
+
+| Table | Purpose |
+|---|---|
+| `auth.users` | Supabase-managed auth |
+| `profiles` | User data; created by DB trigger on signup |
+| `follows` | Follower graph |
+| `influencer_applications` | Role upgrade requests |
+
+### Role System
+
+Valid roles: `fan`, `influencer`, `creator`, `organizer`
+
+Valid combinations only:
+- `[fan]` — default
+- `[influencer]` — approved fan
+- `[creator]` — admin-assigned
+- `[organizer]` — admin-assigned
+- `[creator, organizer]` — the only multi-role combo
+
+### Constraints & Conventions
 
 - Username: max 20 chars, alphanumeric + underscore only
-- Follower/following counts are denormalized (stored on `profiles`, updated atomically on follow/unfollow)
-- Use `timestamptz` for all timestamps
-- All terminal commands should be zsh compatible (macOS)
-- Respect all .claudeignore entries without exception
-- NEVER read or process .env files
+- `follower_count` / `following_count` are denormalized on `profiles` and updated atomically on follow/unfollow — do not recount from the `follows` table
+- All timestamps use `timestamptz`
+
+## Important Rules
+
+- All terminal commands must be **zsh compatible** (macOS)
+- **Never read or process `.env` files**
+- Respect all `.claudeignore` entries without exception
+
+
+## Reference Docs
+<!-- * this is for feature 1: Event Ticketing -->
+- Database design: @docs/ticketing_schema_design_guide.md
+- SQL schema: @docs/ANICONNECT_TICKETING_SCHEMA_V2.sql
