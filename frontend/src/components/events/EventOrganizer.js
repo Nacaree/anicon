@@ -85,7 +85,7 @@ export default function EventOrganizer({ organizer, loading = false }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-[16px] text-gray-900 truncate">
-                {organizer.username}
+                {organizer.displayName}
               </h3>
               <span className="text-xs bg-[#8B5CF6]/20 text-[#8B5CF6] px-2 py-0.5 rounded-full font-medium shrink-0">
                 {organizer.role}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import PromotedEvents from "@/components/events/PromotedEvents";
@@ -7,10 +8,31 @@ import EventTimeline from "@/components/events/EventTimeline";
 import EventsCategorySection from "@/components/events/EventsCategorySection";
 import TrendingEvent from "@/components/events/TrendingEvent";
 import { useSidebar } from "@/context/SidebarContext";
-import { cosplayEvents, culturalEvents } from "@/data/mockEvents";
+import { eventApi, normalizeEvent } from "@/lib/api";
 
 export default function EventsPage() {
   const { isSidebarCollapsed } = useSidebar();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    eventApi
+      .listEvents()
+      .then((data) => setEvents(data.map(normalizeEvent)))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const cosplayEvents = events.filter((e) =>
+    e.tags?.some((t) => t.toLowerCase().includes("cosplay"))
+  );
+
+  const culturalEvents = events.filter(
+    (e) =>
+      e.category === "workshop" ||
+      e.category === "meetup" ||
+      e.tags?.some((t) => t.toLowerCase().includes("cultural"))
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,12 +59,14 @@ export default function EventsPage() {
           <EventsCategorySection
             title="Cosplay events"
             events={cosplayEvents}
+            loading={loading}
           />
 
           {/* Cultural Events */}
           <EventsCategorySection
             title="Cultural events"
             events={culturalEvents}
+            loading={loading}
           />
         </div>
       </div>

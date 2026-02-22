@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import EventCard from "./EventCard";
 import EventCarousel from "./EventCarousel";
-import { trendingEvents, cosplayEvents } from "@/data/mockEvents";
+import { eventApi, normalizeEvent } from "@/lib/api";
 
 function AnimatedSection({ children }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -37,41 +37,79 @@ function AnimatedSection({ children }) {
 }
 
 export default function EventSections() {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    eventApi
+      .listEvents()
+      .then((data) => setEvents(data.map(normalizeEvent)))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const trendingEvents = events.slice(0, 10);
+  const cosplayEvents = events.filter((e) =>
+    e.tags?.some((t) => t.toLowerCase().includes("cosplay"))
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        {[0, 1].map((i) => (
+          <section key={i}>
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4" />
+            <div className="flex gap-4 overflow-hidden">
+              {[...Array(4)].map((_, j) => (
+                <div
+                  key={j}
+                  className="w-64 h-50 bg-gray-200 rounded-xl flex-shrink-0 animate-pulse"
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      {/* Trending Events */}
-      <AnimatedSection>
-        <h2 className="text-xl font-bold text-gray-800">Trending Events</h2>
-        <EventCarousel>
-          {trendingEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              id={event.id}
-              title={event.title}
-              date={`${event.date}, ${event.time}`}
-              location={event.location}
-              imageUrl={event.imageUrl}
-            />
-          ))}
-        </EventCarousel>
-      </AnimatedSection>
+      {trendingEvents.length > 0 && (
+        <AnimatedSection>
+          <h2 className="text-xl font-bold text-gray-800">Trending Events</h2>
+          <EventCarousel>
+            {trendingEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                id={event.id}
+                title={event.title}
+                date={`${event.date}, ${event.time}`}
+                location={event.location}
+                imageUrl={event.imageUrl}
+              />
+            ))}
+          </EventCarousel>
+        </AnimatedSection>
+      )}
 
-      {/* Cosplay Events */}
-      <AnimatedSection>
-        <h2 className="text-xl font-bold text-gray-800">Cosplay Events</h2>
-        <EventCarousel>
-          {cosplayEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              id={event.id}
-              title={event.title}
-              date={`${event.date}, ${event.time}`}
-              location={event.location}
-              imageUrl={event.imageUrl}
-            />
-          ))}
-        </EventCarousel>
-      </AnimatedSection>
+      {cosplayEvents.length > 0 && (
+        <AnimatedSection>
+          <h2 className="text-xl font-bold text-gray-800">Cosplay Events</h2>
+          <EventCarousel>
+            {cosplayEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                id={event.id}
+                title={event.title}
+                date={`${event.date}, ${event.time}`}
+                location={event.location}
+                imageUrl={event.imageUrl}
+              />
+            ))}
+          </EventCarousel>
+        </AnimatedSection>
+      )}
     </div>
   );
 }

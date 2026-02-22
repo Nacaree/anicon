@@ -49,12 +49,14 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 ### Frontend Architecture
 
 - **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route.
+- **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`).
 - **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle).
-- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically and wraps errors in an `ApiError` class.
+- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically and wraps errors in an `ApiError` class. Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`.
 - **UI components:** Shadcn/ui (New York style) with Radix UI primitives, Lucide icons, and Tailwind CSS 4. Custom components live in `src/components/`; shadcn-managed primitives live in `src/components/ui/`.
-- **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties defined in `globals.css` using OKLch color space. Dark mode uses the `.dark` class.
-- **Performance:** `next/dynamic` with skeleton loaders for heavy components (carousels, event detail sections).
-- **Mock data:** `src/data/mockEvents.js` provides event data while the backend events API is unbuilt.
+- **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties in `globals.css` using OKLch color space. Dark mode uses the `.dark` class. Primary brand color is `#FF7927` (orange).
+- **Performance:** React Compiler is enabled (`reactCompiler: true` in `next.config.mjs`). Heavy components use `next/dynamic` with skeleton loaders.
+- **Mock data:** `src/data/mockEvents.js` provides all event data while the backend events API is not yet built.
+- **Testing:** No test framework is configured in the frontend.
 
 ### Backend Architecture
 
