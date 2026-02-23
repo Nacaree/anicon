@@ -115,7 +115,7 @@ public class TicketService {
         TransactionsRecord transaction = dsl.insertInto(TRANSACTIONS)
                 .set(TRANSACTIONS.EVENT_ID, eventId)
                 .set(TRANSACTIONS.USER_ID, callerId)
-                .set(TRANSACTIONS.PAYWAY_TRAN_ID, payWayResult.paywayTranId())
+                .set(TRANSACTIONS.PAYWAY_TRAN_ID, payWayResult.tranId())
                 .set(TRANSACTIONS.AMOUNT, amountInCents)
                 .set(TRANSACTIONS.PAYMENT_METHOD, method)
                 .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.pending)
@@ -166,8 +166,8 @@ public class TicketService {
         }
 
         // Ask PayWay to confirm the payment actually went through
-        boolean paymentConfirmed = payWayService.verifyPayment(paywayTranId);
-        if (!paymentConfirmed) {
+        PayWayService.VerifyResult verifyResult = payWayService.verifyPayment(paywayTranId);
+        if (!verifyResult.approved()) {
             // Update transaction to FAILED so it's not retried indefinitely
             dsl.update(TRANSACTIONS)
                     .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.failed)
@@ -204,8 +204,8 @@ public class TicketService {
                     .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.paid)
                     .set(TRANSACTIONS.PAID_AT, OffsetDateTime.now())
                     .set(TRANSACTIONS.UPDATED_AT, OffsetDateTime.now())
-                    // Store the full PayWay response for audit trail (stub: empty for now)
-                    .set(TRANSACTIONS.PAYWAY_RESPONSE, JSONB.valueOf("{}"))
+                    .set(TRANSACTIONS.PAYWAY_APPROVAL_CODE, verifyResult.approvalCode())
+                    .set(TRANSACTIONS.PAYWAY_RESPONSE, JSONB.valueOf(verifyResult.rawResponse()))
                     .where(TRANSACTIONS.ID.eq(transaction.getId()))
                     .execute();
 
@@ -282,7 +282,11 @@ public class TicketService {
                     .set(EVENT_RSVPS.USER_ID, callerId)
                     .set(EVENT_RSVPS.EVENT_ID, eventId)
                     .returning()
-                    .fetchOne();
+                    .fetchOneInto(com.anicon.backend.gen.jooq.tables.records.EventRsvpsRecord.class);
+
+            if (rsvp == null) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create RSVP");
+            }
 
             return RsvpResponse.builder()
                     .id(rsvp.getId())

@@ -18,12 +18,15 @@ const EventImageCarousel = dynamic(
         <Skeleton className="rounded-xl aspect-[16/9] mb-3" />
         <div className="flex gap-2">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0" />
+            <Skeleton
+              key={i}
+              className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0"
+            />
           ))}
         </div>
       </div>
     ),
-  }
+  },
 );
 
 const EventDetailInfo = dynamic(
@@ -49,12 +52,16 @@ const EventDetailInfo = dynamic(
         <div className="h-5 w-20 bg-gray-200 rounded mb-3" />
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-4 bg-gray-200 rounded" style={{ width: `${65 + i * 5}%` }} />
+            <div
+              key={i}
+              className="h-4 bg-gray-200 rounded"
+              style={{ width: `${65 + i * 5}%` }}
+            />
           ))}
         </div>
       </div>
     ),
-  }
+  },
 );
 
 const EventOrganizer = dynamic(
@@ -92,7 +99,7 @@ const EventOrganizer = dynamic(
         </div>
       </div>
     ),
-  }
+  },
 );
 
 const EventTicketCard = dynamic(
@@ -112,7 +119,7 @@ const EventTicketCard = dynamic(
         </div>
       </div>
     ),
-  }
+  },
 );
 
 const EventsCategorySection = dynamic(
@@ -133,7 +140,7 @@ const EventsCategorySection = dynamic(
         </div>
       </section>
     ),
-  }
+  },
 );
 
 export default function EventDetailPage({ params }) {
@@ -162,14 +169,17 @@ export default function EventDetailPage({ params }) {
           allEvents
             .filter((e) => e.id !== id)
             .slice(0, 10)
-            .map(normalizeEvent)
+            .map(normalizeEvent),
         );
 
         if (eventData.organizerId) {
           try {
-            const profile = await profileApi.getProfileById(eventData.organizerId);
+            const profile = await profileApi.getProfileById(
+              eventData.organizerId,
+            );
             setOrganizer({
               avatarUrl: profile.avatarUrl,
+              displayName: profile.displayName,
               username: profile.username,
               role: profile.roles?.[0] || "organizer",
               followers: profile.followerCount || 0,
@@ -213,7 +223,10 @@ export default function EventDetailPage({ params }) {
               <Skeleton className="rounded-xl aspect-[16/9] mb-3" />
               <div className="flex gap-2">
                 {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0" />
+                  <Skeleton
+                    key={i}
+                    className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0"
+                  />
                 ))}
               </div>
             </div>
@@ -238,7 +251,7 @@ export default function EventDetailPage({ params }) {
             </div>
           </div>
         </div>
-      </div>
+      </div>,
     );
   }
 
@@ -257,7 +270,7 @@ export default function EventDetailPage({ params }) {
         >
           Back to Events
         </button>
-      </div>
+      </div>,
     );
   }
 
@@ -273,7 +286,7 @@ export default function EventDetailPage({ params }) {
           ) {
             router.back();
           } else {
-            router.push("/events");
+            router.push("/");
           }
         }}
         className="flex items-center gap-1.4 text-sm font-medium text-gray-600 mb-4
@@ -331,6 +344,6 @@ export default function EventDetailPage({ params }) {
           events={relatedEvents}
         />
       </div>
-    </div>
+    </div>,
   );
 }

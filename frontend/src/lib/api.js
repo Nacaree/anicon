@@ -128,6 +128,19 @@ export const eventApi = {
   getEvent: (id) => api.get(`/api/events/${id}`),
 };
 
+// Ticket API calls
+export const ticketApi = {
+  // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
+  purchase: (eventId, paymentMethod = "cards") =>
+    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod }),
+  // Paid event: verifies PayWay payment and issues ticket
+  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
+  // Free event: RSVPs the user
+  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`),
+  // Returns all non-cancelled tickets for the current user
+  myTickets: () => api.get("/api/tickets/my"),
+};
+
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.
 // The API returns eventDate/eventTime/coverImageUrl; components expect date/time/imageUrl etc.
 function formatEventDate(isoDate) {

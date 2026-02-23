@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuthGate } from "@/context/AuthGateContext";
+import { ticketApi, ApiError } from "@/lib/api";
 
 export default function EventTicketCard({ event, loading = false }) {
   const { requireAuth } = useAuthGate();
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [rsvpDone, setRsvpDone] = useState(false);
+  const [actionError, setActionError] = useState(null);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -40,6 +44,30 @@ export default function EventTicketCard({ event, loading = false }) {
     );
   }
 
+  const handleAction = () => {
+    requireAuth(async () => {
+      setActionError(null);
+      setPurchasing(true);
+      try {
+        if (event.isFree) {
+          await ticketApi.rsvp(event.id);
+          setRsvpDone(true);
+        } else {
+          const result = await ticketApi.purchase(event.id);
+          window.location.href = result.checkoutUrl;
+        }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) {
+          setActionError(event.isFree ? "You're already going!" : "This event is sold out.");
+        } else {
+          setActionError("Something went wrong. Please try again.");
+        }
+      } finally {
+        setPurchasing(false);
+      }
+    });
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -66,7 +94,7 @@ export default function EventTicketCard({ event, loading = false }) {
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
         {/* Price */}
         <p className="text-2xl font-bold text-gray-900 mb-1">
-          $ {event.ticketPrice?.toFixed(2)}
+          {event.isFree ? "Free" : `$${Number(event.ticketPrice).toFixed(2)}`}
         </p>
 
         {/* Date Range */}
@@ -74,17 +102,28 @@ export default function EventTicketCard({ event, loading = false }) {
           {event.dateRange}
         </p>
 
+        {/* Error */}
+        {actionError && (
+          <p className="text-sm text-red-500 mb-3">{actionError}</p>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => requireAuth(() => {
-              // TODO: handle ticket purchase
-            })}
+            onClick={handleAction}
+            disabled={purchasing || rsvpDone}
             className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
               transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
-              active:scale-[0.98]"
+              active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100
+              disabled:hover:shadow-none"
           >
-            Get Tickets
+            {purchasing
+              ? "Processing..."
+              : rsvpDone
+              ? "You're Going! 🎉"
+              : event.isFree
+              ? "RSVP"
+              : "Get Tickets"}
           </button>
 
           <button

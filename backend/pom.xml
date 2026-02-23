@@ -109,6 +109,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Unirest HTTP client for PayWay API calls -->
+        <dependency>
+            <groupId>com.konghq</groupId>
+            <artifactId>unirest-java-core</artifactId>
+            <version>4.4.5</version>
+        </dependency>
+
         <!-- Caffeine for something lol  -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>

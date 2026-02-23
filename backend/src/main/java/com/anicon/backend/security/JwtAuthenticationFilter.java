@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-            // Delegate validation to SupabaseJwtValidator (handles ES256 via JWKS)
+        // Delegate validation to SupabaseJwtValidator (handles ES256 via JWKS)
             Claims claims = supabaseJwtValidator.validateToken(token);
 
             String userIdStr = claims.getSubject(); // Supabase User ID (UUID)
