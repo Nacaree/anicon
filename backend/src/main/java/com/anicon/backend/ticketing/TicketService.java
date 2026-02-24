@@ -127,6 +127,9 @@ public class TicketService {
                 .paywayTranId(transaction.getPaywayTranId())
                 .amountInCents(transaction.getAmount())
                 .checkoutUrl(payWayResult.checkoutUrl())
+                .qrImage(payWayResult.qrImage())
+                .qrString(payWayResult.qrString())
+                .abapayDeeplink(payWayResult.abapayDeeplink())
                 .build();
     }
 
@@ -308,12 +311,82 @@ public class TicketService {
      * @param userId UUID of the authenticated user
      */
     public List<TicketResponse> getMyTickets(UUID userId) {
-        return dsl.selectFrom(TICKETS)
+        return dsl.select(
+                        TICKETS.ID,
+                        TICKETS.EVENT_ID,
+                        TICKETS.USER_ID,
+                        TICKETS.TRANSACTION_ID,
+                        TICKETS.TICKET_CODE,
+                        TICKETS.STATUS,
+                        TICKETS.CHECKED_IN_AT,
+                        TICKETS.CREATED_AT,
+                        EVENTS.TITLE,
+                        EVENTS.EVENT_DATE,
+                        EVENTS.EVENT_TIME,
+                        EVENTS.LOCATION,
+                        EVENTS.COVER_IMAGE_URL,
+                        EVENTS.IS_FREE,
+                        EVENTS.TICKET_PRICE
+                )
+                .from(TICKETS)
+                .join(EVENTS).on(TICKETS.EVENT_ID.eq(EVENTS.ID))
                 .where(TICKETS.USER_ID.eq(userId))
                 .and(TICKETS.STATUS.ne(TicketStatus.cancelled))
                 .orderBy(TICKETS.CREATED_AT.desc())
                 .fetch()
-                .map(this::toTicketResponse);
+                .map(r -> TicketResponse.builder()
+                        .id(r.get(TICKETS.ID))
+                        .eventId(r.get(TICKETS.EVENT_ID))
+                        .userId(r.get(TICKETS.USER_ID))
+                        .transactionId(r.get(TICKETS.TRANSACTION_ID))
+                        .ticketCode(r.get(TICKETS.TICKET_CODE))
+                        .status(r.get(TICKETS.STATUS).getLiteral())
+                        .checkedInAt(r.get(TICKETS.CHECKED_IN_AT))
+                        .createdAt(r.get(TICKETS.CREATED_AT))
+                        .eventTitle(r.get(EVENTS.TITLE))
+                        .eventDate(r.get(EVENTS.EVENT_DATE))
+                        .eventTime(r.get(EVENTS.EVENT_TIME))
+                        .eventLocation(r.get(EVENTS.LOCATION))
+                        .eventCoverImageUrl(r.get(EVENTS.COVER_IMAGE_URL))
+                        .isFree(r.get(EVENTS.IS_FREE))
+                        .ticketPrice(r.get(EVENTS.TICKET_PRICE))
+                        .build());
+    }
+
+    /**
+     * Returns all upcoming RSVPs for the authenticated user (free events only).
+     * Used alongside getMyTickets() to power the "My Tickets" page.
+     *
+     * @param userId UUID of the authenticated user
+     */
+    public List<RsvpResponse> getMyRsvps(UUID userId) {
+        return dsl.select(
+                        EVENT_RSVPS.ID,
+                        EVENT_RSVPS.EVENT_ID,
+                        EVENT_RSVPS.USER_ID,
+                        EVENT_RSVPS.CREATED_AT,
+                        EVENTS.TITLE,
+                        EVENTS.EVENT_DATE,
+                        EVENTS.EVENT_TIME,
+                        EVENTS.LOCATION,
+                        EVENTS.COVER_IMAGE_URL
+                )
+                .from(EVENT_RSVPS)
+                .join(EVENTS).on(EVENT_RSVPS.EVENT_ID.eq(EVENTS.ID))
+                .where(EVENT_RSVPS.USER_ID.eq(userId))
+                .orderBy(EVENTS.EVENT_DATE.asc())
+                .fetch()
+                .map(r -> RsvpResponse.builder()
+                        .id(r.get(EVENT_RSVPS.ID))
+                        .eventId(r.get(EVENT_RSVPS.EVENT_ID))
+                        .userId(r.get(EVENT_RSVPS.USER_ID))
+                        .createdAt(r.get(EVENT_RSVPS.CREATED_AT))
+                        .eventTitle(r.get(EVENTS.TITLE))
+                        .eventDate(r.get(EVENTS.EVENT_DATE))
+                        .eventTime(r.get(EVENTS.EVENT_TIME))
+                        .eventLocation(r.get(EVENTS.LOCATION))
+                        .eventCoverImageUrl(r.get(EVENTS.COVER_IMAGE_URL))
+                        .build());
     }
 
     // -------------------------------------------------------------------------

@@ -130,4 +130,18 @@ public class TicketController {
         UUID callerId = Objects.requireNonNull(principal.getUserId());
         return ResponseEntity.ok(ticketService.getMyTickets(callerId));
     }
+
+    /**
+     * Returns all RSVPs for the authenticated user (free events only).
+     * Used alongside GET /my to power the "My Tickets" page.
+     *
+     * @param principal The authenticated user
+     */
+    @GetMapping("/my-rsvps")
+    public ResponseEntity<List<RsvpResponse>> myRsvps(
+            @AuthenticationPrincipal SupabaseUserPrincipal principal) {
+
+        UUID callerId = Objects.requireNonNull(principal.getUserId());
+        return ResponseEntity.ok(ticketService.getMyRsvps(callerId));
+    }
 }

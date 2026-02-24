@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { ticketApi, ApiError } from "@/lib/api";
 
 export default function EventTicketCard({ event, loading = false }) {
   const { requireAuth } = useAuthGate();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
@@ -54,7 +56,19 @@ export default function EventTicketCard({ event, loading = false }) {
           setRsvpDone(true);
         } else {
           const result = await ticketApi.purchase(event.id);
-          window.location.href = result.checkoutUrl;
+          if (result.checkoutUrl) {
+            window.location.href = result.checkoutUrl;
+          } else {
+            // QR payment flow (ABA Pay / KHQR) — store data and go to checkout page
+            sessionStorage.setItem("payway_checkout", JSON.stringify({
+              paywayTranId: result.paywayTranId,
+              qrImage: result.qrImage,
+              qrString: result.qrString,
+              abapayDeeplink: result.abapayDeeplink,
+              amountInCents: result.amountInCents,
+            }));
+            router.push("/payment/checkout");
+          }
         }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {

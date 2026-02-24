@@ -10,10 +10,11 @@ import java.util.UUID;
 /**
  * Returned when a user initiates a ticket purchase for a paid event.
  *
- * The frontend should:
- *   1. Store the transactionId (to poll status if needed)
- *   2. Redirect the user to checkoutUrl to complete payment on PayWay
- *   3. After PayWay redirects back, call POST /api/tickets/verify/{paywayTranId}
+ * PayWay may return either:
+ *   A) A hosted checkout URL (checkoutUrl) — redirect the user there.
+ *   B) QR data (qrImage / qrString) — display the QR code inline for ABA Pay / KHQR.
+ *
+ * After payment, call POST /api/tickets/verify/{paywayTranId} to issue the ticket.
  */
 @Data
 @Builder
@@ -29,6 +30,15 @@ public class PurchaseResponse {
     /** Amount charged in cents (e.g. 500 = $5.00). Divide by 100 to display. */
     private Long amountInCents;
 
-    /** Redirect the user here to complete payment on PayWay's checkout page */
+    /** Hosted checkout page URL — redirect the user here if present */
     private String checkoutUrl;
+
+    /** Base64 PNG data URL — render as <img src={qrImage} /> for ABA Pay / KHQR */
+    private String qrImage;
+
+    /** Raw KHQR string — use to render QR client-side if preferred over qrImage */
+    private String qrString;
+
+    /** Deep link that opens ABA mobile banking directly on mobile */
+    private String abapayDeeplink;
 }

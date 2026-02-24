@@ -131,7 +131,7 @@ export const eventApi = {
 // Ticket API calls
 export const ticketApi = {
   // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
-  purchase: (eventId, paymentMethod = "cards") =>
+  purchase: (eventId, paymentMethod = "aba_pay") =>
     api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod }),
   // Paid event: verifies PayWay payment and issues ticket
   verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
@@ -139,6 +139,8 @@ export const ticketApi = {
   rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`),
   // Returns all non-cancelled tickets for the current user
   myTickets: () => api.get("/api/tickets/my"),
+  // Returns all RSVPs for the current user (free events)
+  myRsvps: () => api.get("/api/tickets/my-rsvps"),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

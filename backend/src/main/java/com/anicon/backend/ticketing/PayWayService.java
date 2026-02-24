@@ -15,6 +15,8 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,8 @@ import kong.unirest.core.Unirest;
 @Service
 public class PayWayService {
 
+    private static final Logger log = LoggerFactory.getLogger(PayWayService.class);
+
     // Switch to the production URL before going live
     private static final String PURCHASE_URL =
             "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase";
@@ -54,15 +58,17 @@ public class PayWayService {
 
     private final ObjectMapper objectMapper;
 
-    // TODO: Add PAYWAY_MERCHANT_ID=<your sandbox merchant ID> to your .env file
-    //       Get it from the ABA PayWay sandbox merchant dashboard
     @Value("${payway.merchant-id}")
     private String merchantId;
 
-    // TODO: Add PAYWAY_API_KEY=<your sandbox API key> to your .env file
-    //       This is the API key (not the merchant password) from the PayWay dashboard
+    // API key from the ABA PayWay sandbox merchant dashboard.
+    // This is the HMAC secret — do not confuse with the RSA keys or merchant password.
     @Value("${payway.api-key}")
     private String apiKey;
+
+    /** Set payway.mock-approved=true in .env to skip real PayWay verification (testing only). */
+    @Value("${payway.mock-approved:false}")
+    private boolean mockApproved;
 
     public PayWayService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -71,22 +77,26 @@ public class PayWayService {
     /**
      * Holds the result of a successful PayWay purchase initiation.
      *
-     * @param tranId      The tran_id we generated and sent to PayWay.
-     *                    Stored in transactions.payway_tran_id — used for verification later.
-     *                    Note: PayWay echoes this back in status.tran_id but we already have it.
-     * @param checkoutUrl The checkout_qr_url from PayWay.
-     *                    Frontend redirects the user here to complete payment.
+     * @param tranId         The tran_id we generated and sent to PayWay.
+     *                       Stored in transactions.payway_tran_id — used for verification later.
+     * @param checkoutUrl    checkout_qr_url if PayWay returned a hosted checkout page (may be null).
+     * @param qrImage        Base64 PNG data URL for the KHQR/ABA Pay QR code (may be null).
+     * @param qrString       Raw KHQR string for rendering the QR code client-side (may be null).
+     * @param abapayDeeplink Deep link URL to open ABA mobile banking app directly (may be null).
      */
-    public record PurchaseResult(String tranId, String checkoutUrl) {}
+    public record PurchaseResult(
+            String tranId,
+            String checkoutUrl,
+            String qrImage,
+            String qrString,
+            String abapayDeeplink) {}
 
     /**
      * Holds the result of a PayWay payment verification.
      *
      * @param approved     true if payment_status_code == 0 (APPROVED or PRE-AUTH)
      * @param approvalCode The APV code returned by PayWay on approval.
-     *                     Stored in transactions.payway_approval_code.
      * @param rawResponse  Full PayWay JSON response string for audit trail.
-     *                     Stored in transactions.payway_response (JSONB).
      */
     public record VerifyResult(boolean approved, String approvalCode, String rawResponse) {}
 
@@ -122,11 +132,6 @@ public class PayWayService {
         // PayWay expects dollars with 2 decimal places (e.g. "5.00"), not cents.
         String amount = centsToAmount(amountInCents);
 
-        // Hash input for Purchase API: req_time + merchant_id + tran_id + amount
-        // Concatenated with no separator. If PayWay returns hash error (code "1"),
-        // verify the field order matches what's configured in the PayWay dashboard.
-        String hash = generateHash(reqTime + merchantId + tranId + amount);
-
         // PayWay payment_option naming differs from our internal enum values:
         //   "card"          → "cards"
         //   "aba_pay"       → "abapay_khqr"
@@ -135,19 +140,37 @@ public class PayWayService {
         //   "alipay"        → "alipay"
         String paymentOption = mapPaymentOption(paymentMethod);
 
-        // PayWay requires return_url to be Base64-encoded
+        // PayWay requires return_url to be Base64-encoded in the form field,
+        // but the hash must use the original (non-encoded) URL.
         String encodedReturnUrl = Base64.getEncoder()
                 .encodeToString(returnUrl.getBytes(StandardCharsets.UTF_8));
+
+        // AniCon only supports USD — required by PayWay as a form field and in the hash.
+        String currency = "USD";
+
+        // Hash input: req_time + merchant_id + tran_id + amount + payment_option + return_url_base64 + currency
+        // Null/unused optional fields (firstname, lastname, email, phone, etc.) are omitted entirely.
+        // return_url must be base64-encoded in the hash — same value sent in the form field.
+        // Source: payway-js (seanghay/payway-js) — confirmed field order and return_url encoding.
+        String hashInput = reqTime + merchantId + tranId + amount + paymentOption + encodedReturnUrl + currency;
+        String hash = generateHash(hashInput);
+
+        log.debug("[PayWay] req_time={} tran_id={} amount={} payment_option={} currency={}", reqTime, tranId, amount, paymentOption, currency);
+        log.debug("[PayWay] merchantId length={} apiKey length={}", merchantId.length(), apiKey.length());
+        log.debug("[PayWay] hashInput={}", hashInput);
 
         HttpResponse<String> response = Unirest.post(PURCHASE_URL)
                 .field("req_time", reqTime)
                 .field("merchant_id", merchantId)
                 .field("tran_id", tranId)
                 .field("amount", amount)
+                .field("currency", currency)
                 .field("payment_option", paymentOption)
                 .field("return_url", encodedReturnUrl)
                 .field("hash", hash)
                 .asString();
+
+        log.debug("[PayWay] raw response: {}", response.getBody());
 
         Map<String, Object> body = parseJson(response.getBody());
 
@@ -159,13 +182,19 @@ public class PayWayService {
                     "PayWay purchase failed: " + message);
         }
 
+        // PayWay may return either a hosted checkout page URL (checkout_qr_url)
+        // or raw QR data (qrImage / qrString) for ABA Pay / KHQR flow.
         String checkoutUrl = (String) body.get("checkout_qr_url");
-        if (checkoutUrl == null) {
+        String qrImage = (String) body.get("qrImage");
+        String qrString = (String) body.get("qrString");
+        String abapayDeeplink = (String) body.get("abapay_deeplink");
+
+        if (checkoutUrl == null && qrImage == null && qrString == null) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "PayWay returned no checkout URL");
+                    "PayWay returned no checkout data");
         }
 
-        return new PurchaseResult(tranId, checkoutUrl);
+        return new PurchaseResult(tranId, checkoutUrl, qrImage, qrString, abapayDeeplink);
     }
 
     /**
@@ -185,6 +214,11 @@ public class PayWayService {
      * @return VerifyResult with approval status, APV code, and full raw response for audit trail
      */
     public VerifyResult verifyPayment(String tranId) {
+        if (mockApproved) {
+            log.warn("[PayWay] mock-approved=true — skipping real verification for tran_id={}", tranId);
+            return new VerifyResult(true, "MOCK-APV", "{\"mock\":true}");
+        }
+
         String reqTime = currentReqTime();
 
         // Hash input for Check Transaction API: req_time + merchant_id + tran_id
@@ -250,7 +284,7 @@ public class PayWayService {
         try {
             Mac mac = Mac.getInstance("HmacSHA512");
             SecretKeySpec keySpec = new SecretKeySpec(
-                    apiKey.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+                    apiKey.strip().getBytes(StandardCharsets.UTF_8), "HmacSHA512");
             mac.init(keySpec);
             byte[] rawHash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(rawHash);

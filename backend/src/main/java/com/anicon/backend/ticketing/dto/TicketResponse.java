@@ -1,5 +1,8 @@
 package com.anicon.backend.ticketing.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -29,4 +32,13 @@ public class TicketResponse {
 
     private OffsetDateTime checkedInAt;
     private OffsetDateTime createdAt;
+
+    // Event details — populated by getMyTickets() via JOIN; null in other contexts
+    private String eventTitle;
+    private LocalDate eventDate;
+    private LocalTime eventTime;
+    private String eventLocation;
+    private String eventCoverImageUrl;
+    private Boolean isFree;
+    private BigDecimal ticketPrice;
 }
