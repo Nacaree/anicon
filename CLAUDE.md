@@ -54,9 +54,9 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 ### Frontend Architecture
 
 - **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route. `callback/route.js` handles the Supabase OAuth callback.
-- **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`). Public routes: `/`, `/events`, auth pages, `/_next`, `/callback`.
+- **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`). Public routes: `/`, `/events`, `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/callback`, `/_next`.
 - **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle).
-- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations (e.g. `eventDate`→`date`, `coverImageUrl`→`imageUrl`).
+- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`, `currentAttendance`→`wantToGoCount`.
 - **UI components:** Shadcn/ui (New York style) with Radix UI primitives, Lucide icons, and Tailwind CSS 4. Custom components live in `src/components/`; shadcn-managed primitives live in `src/components/ui/`.
 - **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties in `globals.css` using OKLch color space. Dark mode uses the `.dark` class. Primary brand color is `#FF7927` (orange).
 - **Performance:** React Compiler is enabled (`reactCompiler: true` in `next.config.mjs`). Heavy components use `next/dynamic` with skeleton loaders.
@@ -68,7 +68,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **ORM strategy:** JPA/Hibernate for simple CRUD (profiles, follows, influencer_applications); JOOQ for complex queries (all ticketing tables). JOOQ types are generated into `com.anicon.backend.gen.jooq` via `./mvnw jooq-codegen:generate`.
 - **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine. CORS is hardcoded to `http://localhost:3000` in `SecurityConfig` — update this for production.
 - **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSLContext.
-- **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
+- **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, `StripeService`, `StripeWebhookController`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
 
 ### Key API Endpoints
 
@@ -88,6 +88,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `POST` | `/api/tickets/verify/{paywayTranId}` | Required | Verify payment → issue ticket |
 | `POST` | `/api/tickets/rsvp/{eventId}` | Required | RSVP for free event |
 | `GET` | `/api/tickets/my` | Required | User's non-cancelled tickets |
+| `GET` | `/api/tickets/my-rsvps` | Required | User's free event RSVPs |
 
 ### Key Design Patterns
 
@@ -142,11 +143,11 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 - Auth (Supabase JWT + Spring Security), Profiles, Follows
 - Events (list, get, create with role-gating)
 - RSVP for free events (unique constraint handles duplicates)
-- Paid ticket purchase flow (PayWay integration via Unirest — real HTTP calls with HMAC-SHA512 signing)
+- Paid ticket purchase flow: PayWay (Unirest, HMAC-SHA512 signing) + Stripe (`StripeService`, `StripeWebhookController`)
+- Payment UI pages: `app/payment/checkout/`, `app/payment/verify/`, `app/payment/success/`
 
 **TODO:**
 - Frontend — replace `mockEvents.js` with real `eventApi` calls
-- Frontend — build PayWay checkout redirect flow (`/payment/verify` page)
 - `GlobalExceptionHandler` — map duplicate RSVP DB constraint violation to 409 CONFLICT response
 - Deferred (Month 2-3): Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
