@@ -1,6 +1,7 @@
 package com.anicon.backend.ticketing;
 
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
@@ -70,13 +71,21 @@ public class StripeWebhookController {
 
         if ("payment_intent.succeeded".equals(event.getType())) {
             Optional<StripeObject> objectOpt = event.getDataObjectDeserializer().getObject();
-            if (objectOpt.isEmpty()) {
-                // Couldn't deserialize — return 200 to avoid Stripe retrying, but log it
-                log.error("[Stripe] Could not deserialize PaymentIntent from webhook event id={}", event.getId());
-                return ResponseEntity.ok().build();
+
+            PaymentIntent intent;
+            if (objectOpt.isPresent()) {
+                intent = (PaymentIntent) objectOpt.get();
+            } else {
+                // getObject() returns empty when the webhook API version doesn't exactly match
+                // the SDK's built-in version. deserializeUnsafe() skips the version check.
+                try {
+                    intent = (PaymentIntent) event.getDataObjectDeserializer().deserializeUnsafe();
+                } catch (StripeException e) {
+                    log.error("[Stripe] Could not deserialize PaymentIntent from webhook event id={}: {}", event.getId(), e.getMessage());
+                    return ResponseEntity.ok().build();
+                }
             }
 
-            PaymentIntent intent = (PaymentIntent) objectOpt.get();
             ticketService.handleStripePaymentSucceeded(intent, payload);
         }
         // Other event types are acknowledged but not acted on
