@@ -9,8 +9,11 @@ import com.anicon.backend.ticketing.dto.PurchaseResponse;
 import com.anicon.backend.ticketing.dto.RsvpResponse;
 import com.anicon.backend.ticketing.dto.TicketResponse;
 
+import com.stripe.model.PaymentIntent;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,12 +31,18 @@ import static com.anicon.backend.gen.jooq.tables.Transactions.TRANSACTIONS;
 /**
  * Service layer for ticket purchasing, RSVPs, and ticket retrieval.
  *
- * Covers two flows from the schema design guide:
+ * Covers three flows:
  *
- * PAID EVENT — 3-step PayWay flow:
- *   1. initiatePurchase()    → create PENDING transaction, call PayWay, return checkout URL
- *   2. (user pays on PayWay)
+ * PAID EVENT — PayWay QR flow (aba_pay, khqr, wechat, alipay):
+ *   1. initiatePurchase() → resolves to PayWay branch → creates PENDING transaction, calls PayWay
+ *   2. (user scans QR or redirects to PayWay hosted page)
  *   3. verifyAndIssueTicket() → confirm with PayWay, mark PAID, issue ticket, increment attendance
+ *
+ * PAID EVENT — Stripe card flow (card):
+ *   1. initiatePurchase() → resolves to Stripe branch → creates PENDING transaction, creates PaymentIntent
+ *   2. (frontend renders Stripe Elements modal, user submits card — no redirect)
+ *   3. handleStripePaymentSucceeded() → called by StripeWebhookController on payment_intent.succeeded
+ *      → marks PAID, issues ticket, increments attendance
  *
  * FREE EVENT — RSVP flow:
  *   1. rsvpFreeEvent() → insert event_rsvp, increment attendance atomically
@@ -41,40 +50,39 @@ import static com.anicon.backend.gen.jooq.tables.Transactions.TRANSACTIONS;
 @Service
 public class TicketService {
 
+    private static final Logger log = LoggerFactory.getLogger(TicketService.class);
+
     private final DSLContext dsl;
     private final PayWayService payWayService;
+    private final StripeService stripeService;
 
-    public TicketService(DSLContext dsl, PayWayService payWayService) {
+    public TicketService(DSLContext dsl, PayWayService payWayService, StripeService stripeService) {
         this.dsl = dsl;
         this.payWayService = payWayService;
+        this.stripeService = stripeService;
     }
 
     // -------------------------------------------------------------------------
-    // Paid event flow
+    // Paid event flow — provider routing
     // -------------------------------------------------------------------------
 
     /**
-     * Step 1 of the paid event flow: initiate a PayWay payment.
+     * Step 1 of the paid event flow: initiate payment via the appropriate provider.
      *
-     * What this does:
-     * - Verifies the event exists and is a paid event
-     * - Checks that the event is not sold out
-     * - Converts ticket_price (stored as dollars) to cents for PayWay
-     * - Calls PayWay Purchase API to get a checkout URL
-     * - Creates a PENDING transaction record in the DB
+     * Routes to:
+     *   - Stripe  if paymentMethod == "card"
+     *   - PayWay  for all other methods (aba_pay, khqr, wechat, alipay)
      *
      * Note: current_attendance is NOT incremented here. It is only incremented
-     * in verifyAndIssueTicket() after PayWay confirms the payment succeeded.
+     * after payment is confirmed (verifyAndIssueTicket for PayWay, webhook for Stripe).
      * This prevents phantom capacity locks from abandoned checkouts.
      *
      * @param callerId      UUID of the authenticated buyer (from JWT)
      * @param eventId       The event being purchased
-     * @param paymentMethod e.g. "card", "aba_pay", "khqr", "wechat", "alipay"
-     * @param returnUrl     Frontend URL that PayWay redirects to after checkout
-     * @return PurchaseResponse with the paywayTranId and checkoutUrl for the frontend
+     * @param paymentMethod "card" → Stripe, others → PayWay
+     * @param returnUrl     PayWay return URL (unused for Stripe)
      */
     public PurchaseResponse initiatePurchase(UUID callerId, UUID eventId, String paymentMethod, String returnUrl) {
-        // Fetch the event — we need is_free, ticket_price, and capacity info
         var event = dsl.selectFrom(EVENTS)
                 .where(EVENTS.ID.eq(eventId))
                 .fetchOne();
@@ -83,39 +91,162 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
         if (event.getIsFree()) {
-            // Free events use the RSVP flow, not the purchase flow
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "This event is free. Use the RSVP endpoint instead.");
         }
 
-        // Check capacity before initiating payment (quick early rejection)
+        // Quick capacity check before hitting the payment gateway
         if (event.getMaxCapacity() != null
                 && event.getCurrentAttendance() >= event.getMaxCapacity()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Event is sold out");
         }
 
-        // ticket_price is stored as dollars (e.g. 5.00). PayWay and the transactions
-        // table both use cents (e.g. 500). Multiply by 100 and take the long value.
+        // ticket_price is stored as dollars (e.g. 5.00); payment providers use cents (e.g. 500)
         long amountInCents = event.getTicketPrice()
                 .multiply(BigDecimal.valueOf(100))
                 .longValue();
 
-        // Parse payment method string into the JOOQ enum
+        // Validate method against the JOOQ enum (covers all valid values: card, aba_pay, khqr, wechat, alipay)
         PaymentMethod method = PaymentMethod.lookupLiteral(paymentMethod);
         if (method == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid payment_method. Must be one of: card, aba_pay, khqr, wechat, alipay");
         }
 
-        // Call PayWay to create the payment session and get the checkout URL
+        if ("card".equals(paymentMethod)) {
+            return initiateStripePayment(callerId, eventId, amountInCents, method);
+        } else {
+            return initiatePayWayPayment(callerId, eventId, amountInCents, method, paymentMethod, returnUrl);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Stripe payment flow
+    // -------------------------------------------------------------------------
+
+    private PurchaseResponse initiateStripePayment(
+            UUID callerId, UUID eventId, long amountInCents, PaymentMethod method) {
+
+        StripeService.StripeInitResult stripeResult =
+                stripeService.createPaymentIntent(amountInCents, eventId, callerId);
+
+        // Insert PENDING transaction — payway_tran_id is left null (nullable after migration)
+        TransactionsRecord transaction = dsl.insertInto(TRANSACTIONS)
+                .set(TRANSACTIONS.EVENT_ID, eventId)
+                .set(TRANSACTIONS.USER_ID, callerId)
+                .set(TRANSACTIONS.STRIPE_PAYMENT_INTENT_ID, stripeResult.paymentIntentId())
+                .set(TRANSACTIONS.PAYMENT_PROVIDER, "stripe")
+                .set(TRANSACTIONS.AMOUNT, amountInCents)
+                .set(TRANSACTIONS.PAYMENT_METHOD, method)
+                .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.pending)
+                .returning()
+                .fetchOne();
+
+        // clientSecret goes to the frontend only — not stored in DB
+        return PurchaseResponse.builder()
+                .transactionId(transaction.getId())
+                .stripeClientSecret(stripeResult.clientSecret())
+                .amountInCents(transaction.getAmount())
+                .paymentProvider("stripe")
+                .build();
+    }
+
+    /**
+     * Called by StripeWebhookController when Stripe fires payment_intent.succeeded.
+     *
+     * This is the Stripe equivalent of verifyAndIssueTicket() — it finds the pending
+     * transaction, atomically increments attendance, marks PAID, and issues the ticket.
+     *
+     * This method is idempotent: if the transaction is already processed (not PENDING),
+     * it logs a warning and returns silently. Stripe may retry webhooks, so we must not
+     * double-issue tickets.
+     *
+     * @param intent   Deserialized PaymentIntent from the Stripe webhook event
+     * @param rawEvent Raw Stripe event JSON string for the audit trail
+     */
+    public void handleStripePaymentSucceeded(PaymentIntent intent, String rawEvent) {
+        String paymentIntentId = intent.getId();
+
+        TransactionsRecord transaction = dsl.selectFrom(TRANSACTIONS)
+                .where(TRANSACTIONS.STRIPE_PAYMENT_INTENT_ID.eq(paymentIntentId))
+                .and(TRANSACTIONS.PAYMENT_STATUS.eq(PaymentStatus.pending))
+                .fetchOne();
+
+        if (transaction == null) {
+            // Already processed or unknown PI — idempotency: return without error.
+            // Returning 200 from the controller prevents Stripe from retrying.
+            log.warn("[Stripe] Webhook for unknown or already-processed PaymentIntent: {}", paymentIntentId);
+            return;
+        }
+
+        UUID eventId = transaction.getEventId();
+        UUID userId = transaction.getUserId();
+        String chargeId = intent.getLatestCharge();
+
+        dsl.transactionResult(ctx -> {
+            DSLContext tx = org.jooq.impl.DSL.using(ctx);
+
+            // Atomic attendance increment with capacity enforcement
+            int updated = tx.update(EVENTS)
+                    .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(1))
+                    .where(EVENTS.ID.eq(eventId))
+                    .and(EVENTS.MAX_CAPACITY.isNull()
+                            .or(EVENTS.CURRENT_ATTENDANCE.lt(EVENTS.MAX_CAPACITY)))
+                    .execute();
+
+            if (updated == 0) {
+                // Rare: event sold out between purchase initiation and payment confirmation.
+                // Mark failed — a refund is a deferred feature (Month 2-3).
+                tx.update(TRANSACTIONS)
+                        .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.failed)
+                        .set(TRANSACTIONS.UPDATED_AT, OffsetDateTime.now())
+                        .where(TRANSACTIONS.ID.eq(transaction.getId()))
+                        .execute();
+                log.error("[Stripe] Event sold out after Stripe confirmed payment. PI={} eventId={}. Manual refund required.",
+                        paymentIntentId, eventId);
+                return null;
+            }
+
+            tx.update(TRANSACTIONS)
+                    .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.paid)
+                    .set(TRANSACTIONS.PAID_AT, OffsetDateTime.now())
+                    .set(TRANSACTIONS.UPDATED_AT, OffsetDateTime.now())
+                    .set(TRANSACTIONS.STRIPE_CHARGE_ID, chargeId)
+                    .set(TRANSACTIONS.STRIPE_RESPONSE, JSONB.valueOf(rawEvent))
+                    .where(TRANSACTIONS.ID.eq(transaction.getId()))
+                    .execute();
+
+            String ticketCode = generateTicketCode(eventId, userId);
+
+            tx.insertInto(TICKETS)
+                    .set(TICKETS.EVENT_ID, eventId)
+                    .set(TICKETS.USER_ID, userId)
+                    .set(TICKETS.TRANSACTION_ID, transaction.getId())
+                    .set(TICKETS.TICKET_CODE, ticketCode)
+                    .set(TICKETS.STATUS, TicketStatus.issued)
+                    .execute();
+
+            log.info("[Stripe] Ticket issued for PI={} eventId={} userId={} code={}", paymentIntentId, eventId, userId, ticketCode);
+            return null;
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // PayWay payment flow
+    // -------------------------------------------------------------------------
+
+    private PurchaseResponse initiatePayWayPayment(
+            UUID callerId, UUID eventId, long amountInCents,
+            PaymentMethod method, String paymentMethod, String returnUrl) {
+
         PayWayService.PurchaseResult payWayResult = payWayService.initiatePayment(
                 eventId, callerId, amountInCents, paymentMethod, returnUrl);
 
-        // Store the PENDING transaction. Status will be updated to PAID in verifyAndIssueTicket().
         TransactionsRecord transaction = dsl.insertInto(TRANSACTIONS)
                 .set(TRANSACTIONS.EVENT_ID, eventId)
                 .set(TRANSACTIONS.USER_ID, callerId)
                 .set(TRANSACTIONS.PAYWAY_TRAN_ID, payWayResult.tranId())
+                .set(TRANSACTIONS.PAYMENT_PROVIDER, "payway")
                 .set(TRANSACTIONS.AMOUNT, amountInCents)
                 .set(TRANSACTIONS.PAYMENT_METHOD, method)
                 .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.pending)
@@ -130,29 +261,15 @@ public class TicketService {
                 .qrImage(payWayResult.qrImage())
                 .qrString(payWayResult.qrString())
                 .abapayDeeplink(payWayResult.abapayDeeplink())
+                .paymentProvider("payway")
                 .build();
     }
 
     /**
-     * Step 3 of the paid event flow: verify payment with PayWay and issue the ticket.
-     *
+     * Step 3 of the PayWay flow: verify payment with PayWay and issue the ticket.
      * Called by the frontend after PayWay redirects back to the return_url.
-     *
-     * What this does (all inside one transaction):
-     * - Finds the PENDING transaction by paywayTranId
-     * - Verifies the caller owns this transaction (prevents other users claiming it)
-     * - Calls PayWay Check Transaction API to confirm payment succeeded
-     * - Atomically increments current_attendance — if the event just sold out,
-     *   the UPDATE returns 0 rows and we throw CONFLICT before issuing the ticket
-     * - Marks the transaction as PAID (sets paid_at)
-     * - Generates a unique ticket_code and inserts the ticket
-     *
-     * @param callerId      Must match transaction.user_id (ownership check)
-     * @param paywayTranId  The PayWay transaction ID from the initiatePurchase response
-     * @return The issued ticket
      */
     public TicketResponse verifyAndIssueTicket(UUID callerId, String paywayTranId) {
-        // Find the pending transaction — must be PENDING (not already processed)
         TransactionsRecord transaction = dsl.selectFrom(TRANSACTIONS)
                 .where(TRANSACTIONS.PAYWAY_TRAN_ID.eq(paywayTranId))
                 .and(TRANSACTIONS.PAYMENT_STATUS.eq(PaymentStatus.pending))
@@ -163,15 +280,12 @@ public class TicketService {
                     "Pending transaction not found. It may have already been processed.");
         }
 
-        // Ownership check — only the buyer can claim their own ticket
         if (!transaction.getUserId().equals(callerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This transaction does not belong to you");
         }
 
-        // Ask PayWay to confirm the payment actually went through
         PayWayService.VerifyResult verifyResult = payWayService.verifyPayment(paywayTranId);
         if (!verifyResult.approved()) {
-            // Update transaction to FAILED so it's not retried indefinitely
             dsl.update(TRANSACTIONS)
                     .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.failed)
                     .set(TRANSACTIONS.UPDATED_AT, OffsetDateTime.now())
@@ -186,9 +300,6 @@ public class TicketService {
         return dsl.transactionResult(ctx -> {
             DSLContext tx = org.jooq.impl.DSL.using(ctx);
 
-            // Atomically increment current_attendance.
-            // The WHERE clause also enforces capacity — if the event just filled up
-            // (race condition with another buyer), this UPDATE returns 0 rows.
             int updated = tx.update(EVENTS)
                     .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(1))
                     .where(EVENTS.ID.eq(eventId))
@@ -197,12 +308,10 @@ public class TicketService {
                     .execute();
 
             if (updated == 0) {
-                // Event filled up between purchase initiation and verification
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Event sold out before payment could be confirmed");
             }
 
-            // Mark the transaction as PAID and record the timestamp
             tx.update(TRANSACTIONS)
                     .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.paid)
                     .set(TRANSACTIONS.PAID_AT, OffsetDateTime.now())
@@ -212,11 +321,8 @@ public class TicketService {
                     .where(TRANSACTIONS.ID.eq(transaction.getId()))
                     .execute();
 
-            // Generate a unique scannable ticket code
-            // Format: ANI-{first 8 chars of eventId}-{8 random chars}-{first 8 chars of userId}
             String ticketCode = generateTicketCode(eventId, callerId);
 
-            // Issue the ticket
             TicketsRecord ticket = tx.insertInto(TICKETS)
                     .set(TICKETS.EVENT_ID, eventId)
                     .set(TICKETS.USER_ID, callerId)
@@ -236,19 +342,8 @@ public class TicketService {
 
     /**
      * RSVP flow for free events: "I'm going".
-     *
-     * What this does (inside one transaction):
-     * - Verifies the event exists and is free
-     * - Atomically increments current_attendance with capacity enforcement
-     * - Inserts into event_rsvps — the DB unique constraint on (user_id, event_id)
-     *   automatically rejects duplicate RSVPs, so no extra check is needed here
-     *
-     * @param callerId UUID of the authenticated user (from JWT)
-     * @param eventId  The free event being RSVPed for
-     * @return The created RSVP record
      */
     public RsvpResponse rsvpFreeEvent(UUID callerId, UUID eventId) {
-        // Fetch the event to verify it exists and is free
         var event = dsl.selectFrom(EVENTS)
                 .where(EVENTS.ID.eq(eventId))
                 .fetchOne();
@@ -257,7 +352,6 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
         if (!event.getIsFree()) {
-            // Paid events need the purchase flow
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "This event requires a ticket. Use the purchase endpoint instead.");
         }
@@ -265,8 +359,6 @@ public class TicketService {
         return dsl.transactionResult(ctx -> {
             DSLContext tx = org.jooq.impl.DSL.using(ctx);
 
-            // Atomically increment attendance, enforcing capacity in the same UPDATE.
-            // If the event is full, 0 rows are updated and we throw before inserting the RSVP.
             int updated = tx.update(EVENTS)
                     .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(1))
                     .where(EVENTS.ID.eq(eventId))
@@ -278,9 +370,6 @@ public class TicketService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Event is at full capacity");
             }
 
-            // Insert the RSVP. The unique constraint on (user_id, event_id) will throw a
-            // DataIntegrityViolationException if the user already RSVPed — Spring Boot will
-            // surface this as a 500, but the GlobalExceptionHandler can catch it and return 409.
             var rsvp = tx.insertInto(EVENT_RSVPS)
                     .set(EVENT_RSVPS.USER_ID, callerId)
                     .set(EVENT_RSVPS.EVENT_ID, eventId)
@@ -304,12 +393,6 @@ public class TicketService {
     // Ticket retrieval
     // -------------------------------------------------------------------------
 
-    /**
-     * Returns all non-cancelled tickets for the authenticated user.
-     * Used to power the "My Tickets" page in the frontend.
-     *
-     * @param userId UUID of the authenticated user
-     */
     public List<TicketResponse> getMyTickets(UUID userId) {
         return dsl.select(
                         TICKETS.ID,
@@ -353,12 +436,6 @@ public class TicketService {
                         .build());
     }
 
-    /**
-     * Returns all upcoming RSVPs for the authenticated user (free events only).
-     * Used alongside getMyTickets() to power the "My Tickets" page.
-     *
-     * @param userId UUID of the authenticated user
-     */
     public List<RsvpResponse> getMyRsvps(UUID userId) {
         return dsl.select(
                         EVENT_RSVPS.ID,
@@ -395,12 +472,7 @@ public class TicketService {
 
     /**
      * Generates a unique, human-readable ticket code for event check-in.
-     *
      * Format: ANI-{first 8 chars of eventId}-{8 random chars}-{first 8 chars of userId}
-     * Example: ANI-A1B2C3D4-E5F6G7H8-I9J0K1L2
-     *
-     * The random middle segment ensures uniqueness even if the same user
-     * buys multiple tickets for the same event (e.g. for guests).
      */
     private String generateTicketCode(UUID eventId, UUID userId) {
         String eventPart = eventId.toString().replace("-", "").substring(0, 8).toUpperCase();

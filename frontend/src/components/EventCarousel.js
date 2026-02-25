@@ -7,13 +7,15 @@ import {
   Children,
   cloneElement,
   isValidElement,
+  forwardRef,
+  useImperativeHandle,
 } from "react";
 
-export default function EventCarousel({
+const EventCarousel = forwardRef(function EventCarousel({
   children,
   hideGradients = false,
   enableEnlarge = false,
-}) {
+}, ref) {
   const scrollContainerRef = useRef(null);
   const [showButtons, setShowButtons] = useState(false);
   const [showLeftGradient, setShowLeftGradient] = useState(false);
@@ -24,6 +26,15 @@ export default function EventCarousel({
   const itemRefs = useRef([]);
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToItem: (index) => {
+      const item = itemRefs.current[index];
+      const container = scrollContainerRef.current;
+      if (!item || !container) return;
+      container.scrollTo({ left: item.offsetLeft - 16, behavior: "smooth" });
+    },
+  }));
 
   const childCount = Children.count(children);
 
@@ -249,4 +260,6 @@ export default function EventCarousel({
       )}
     </div>
   );
-}
+});
+
+export default EventCarousel;

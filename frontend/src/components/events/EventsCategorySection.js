@@ -9,6 +9,8 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
   const sectionRef = useRef(null);
 
   useEffect(() => {
+    if (loading) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -21,7 +23,7 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [loading]);
 
   if (loading) {
     return (

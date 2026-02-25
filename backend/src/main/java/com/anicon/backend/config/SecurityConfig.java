@@ -33,6 +33,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/health", "/api/public/**").permitAll()
                         // Event listing and detail viewing are public — no login required to browse
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+                        // Profile lookups by ID/username are public — needed for event organizer display
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/user/**").permitAll()
+                        // Stripe webhook — authenticated via HMAC signature, not JWT
+                        .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -27,12 +27,15 @@ npm run lint      # ESLint check
 ### Backend (`/backend`)
 
 ```zsh
-./mvnw spring-boot:run          # Run the app (localhost:8080)
-./mvnw test                     # Run all tests
-./mvnw test -Dtest=ClassName    # Run a single test class
-./mvnw jooq-codegen:generate    # Regenerate JOOQ types after schema changes
-./mvnw clean install            # Full build
+./mvnw spring-boot:run                                       # Run the app (localhost:8080)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev        # Run with dev profile (verbose errors)
+./mvnw test                                                  # Run all tests
+./mvnw test -Dtest=ClassName                                 # Run a single test class
+./mvnw jooq-codegen:generate                                 # Regenerate JOOQ types after schema changes
+./mvnw clean install                                         # Full build
 ```
+
+To test PayWay flows locally without real payments, set `payway.mock-approved=true` in `application-dev.properties`. This makes `PayWayService` return a mock approved response instead of calling the real PayWay API.
 
 ## Architecture
 
@@ -63,7 +66,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 ### Backend Architecture
 
 - **ORM strategy:** JPA/Hibernate for simple CRUD (profiles, follows, influencer_applications); JOOQ for complex queries (all ticketing tables). JOOQ types are generated into `com.anicon.backend.gen.jooq` via `./mvnw jooq-codegen:generate`.
-- **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine.
+- **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine. CORS is hardcoded to `http://localhost:3000` in `SecurityConfig` — update this for production.
 - **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSLContext.
 - **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
 
@@ -139,10 +142,9 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 - Auth (Supabase JWT + Spring Security), Profiles, Follows
 - Events (list, get, create with role-gating)
 - RSVP for free events (unique constraint handles duplicates)
-- Paid ticket purchase flow (PayWay integration is a **stub** — `PayWayService` methods need real HTTP calls to PayWay API)
+- Paid ticket purchase flow (PayWay integration via Unirest — real HTTP calls with HMAC-SHA512 signing)
 
 **TODO:**
-- `PayWayService` — implement real HTTP calls to PayWay Purchase and Check Transaction APIs
 - Frontend — replace `mockEvents.js` with real `eventApi` calls
 - Frontend — build PayWay checkout redirect flow (`/payment/verify` page)
 - `GlobalExceptionHandler` — map duplicate RSVP DB constraint violation to 409 CONFLICT response

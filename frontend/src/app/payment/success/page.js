@@ -1,9 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isStripe = searchParams.get("provider") === "stripe";
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -15,7 +18,9 @@ export default function PaymentSuccessPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">You&apos;re In!</h1>
         <p className="text-gray-500 text-sm mb-6">
-          Your ticket has been issued. See you at the event!
+          {isStripe
+            ? "Payment confirmed! Your ticket will appear in My Tickets within a few seconds."
+            : "Your ticket has been issued. See you at the event!"}
         </p>
         <button
           onClick={() => router.push("/events")}
@@ -32,5 +37,14 @@ export default function PaymentSuccessPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary in Next.js App Router
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

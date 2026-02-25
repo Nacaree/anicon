@@ -116,6 +116,13 @@
             <version>4.4.5</version>
         </dependency>
 
+        <!-- Stripe payment integration -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>27.1.0</version>
+        </dependency>
+
         <!-- Caffeine for something lol  -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>

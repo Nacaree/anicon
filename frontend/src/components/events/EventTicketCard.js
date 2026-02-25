@@ -4,16 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { ticketApi, ApiError } from "@/lib/api";
+import PaymentMethodModal from "@/components/payments/PaymentMethodModal";
+import StripePaymentModal from "@/components/payments/StripePaymentModal";
 
 export default function EventTicketCard({ event, loading = false }) {
   const { requireAuth } = useAuthGate();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
   const [rsvpDone, setRsvpDone] = useState(false);
+  const [rsvpLoading, setRsvpLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const cardRef = useRef(null);
+
+  // Payment modal state
+  const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [stripeAmountInCents, setStripeAmountInCents] = useState(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -46,40 +54,71 @@ export default function EventTicketCard({ event, loading = false }) {
     );
   }
 
+  // --- Free event: direct RSVP ---
+  const handleRsvp = async () => {
+    setActionError(null);
+    setRsvpLoading(true);
+    try {
+      await ticketApi.rsvp(event.id);
+      setRsvpDone(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setActionError("You're already going!");
+      } else {
+        setActionError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setRsvpLoading(false);
+    }
+  };
+
+  // --- "Get Tickets" / "RSVP" button click ---
   const handleAction = () => {
-    requireAuth(async () => {
+    requireAuth(() => {
       setActionError(null);
-      setPurchasing(true);
-      try {
-        if (event.isFree) {
-          await ticketApi.rsvp(event.id);
-          setRsvpDone(true);
-        } else {
-          const result = await ticketApi.purchase(event.id);
-          if (result.checkoutUrl) {
-            window.location.href = result.checkoutUrl;
-          } else {
-            // QR payment flow (ABA Pay / KHQR) — store data and go to checkout page
-            sessionStorage.setItem("payway_checkout", JSON.stringify({
-              paywayTranId: result.paywayTranId,
-              qrImage: result.qrImage,
-              qrString: result.qrString,
-              abapayDeeplink: result.abapayDeeplink,
-              amountInCents: result.amountInCents,
-            }));
-            router.push("/payment/checkout");
-          }
-        }
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 409) {
-          setActionError(event.isFree ? "You're already going!" : "This event is sold out.");
-        } else {
-          setActionError("Something went wrong. Please try again.");
-        }
-      } finally {
-        setPurchasing(false);
+      if (event.isFree) {
+        handleRsvp();
+      } else {
+        // Open the payment method selector first
+        setMethodModalOpen(true);
       }
     });
+  };
+
+  // --- PaymentMethodModal callbacks ---
+
+  // User picked QR/ABA Pay — use existing PayWay checkout flow
+  const handleQrSelected = (purchaseResult) => {
+    setMethodModalOpen(false);
+    if (purchaseResult.checkoutUrl) {
+      // Hosted PayWay checkout — redirect out of the site
+      window.location.href = purchaseResult.checkoutUrl;
+    } else {
+      // QR data returned — store and go to /payment/checkout
+      sessionStorage.setItem("payway_checkout", JSON.stringify({
+        paywayTranId: purchaseResult.paywayTranId,
+        qrImage: purchaseResult.qrImage,
+        qrString: purchaseResult.qrString,
+        abapayDeeplink: purchaseResult.abapayDeeplink,
+        amountInCents: purchaseResult.amountInCents,
+      }));
+      router.push("/payment/checkout");
+    }
+  };
+
+  // User picked Card — open embedded Stripe modal
+  const handleCardSelected = (clientSecret, amountInCents) => {
+    setMethodModalOpen(false);
+    setStripeClientSecret(clientSecret);
+    setStripeAmountInCents(amountInCents);
+    setStripeModalOpen(true);
+  };
+
+  // Stripe confirmed payment client-side — ticket will be issued via webhook (~1-2s)
+  const handleStripeSuccess = () => {
+    setStripeModalOpen(false);
+    setStripeClientSecret(null);
+    router.push("/payment/success?provider=stripe");
   };
 
   const handleCopyLink = async () => {
@@ -125,13 +164,13 @@ export default function EventTicketCard({ event, loading = false }) {
         <div className="flex items-center gap-3">
           <button
             onClick={handleAction}
-            disabled={purchasing || rsvpDone}
+            disabled={rsvpLoading || rsvpDone}
             className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
               transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
               active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100
               disabled:hover:shadow-none"
           >
-            {purchasing
+            {rsvpLoading
               ? "Processing..."
               : rsvpDone
               ? "You're Going! 🎉"
@@ -189,6 +228,27 @@ export default function EventTicketCard({ event, loading = false }) {
           </button>
         </div>
       </div>
+
+      {/* Payment method selector — shown when user clicks "Get Tickets" */}
+      <PaymentMethodModal
+        open={methodModalOpen}
+        onClose={() => setMethodModalOpen(false)}
+        event={event}
+        onQrSelected={handleQrSelected}
+        onCardSelected={handleCardSelected}
+      />
+
+      {/* Embedded Stripe card form — shown after user picks "Credit / Debit Card" */}
+      <StripePaymentModal
+        open={stripeModalOpen}
+        onClose={() => {
+          setStripeModalOpen(false);
+          setStripeClientSecret(null);
+        }}
+        clientSecret={stripeClientSecret}
+        amountInCents={stripeAmountInCents}
+        onSuccess={handleStripeSuccess}
+      />
     </div>
   );
 }
