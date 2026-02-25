@@ -218,7 +218,7 @@
                             <files>
                                 <file>${project.basedir}/.env</file>
                             </files>
-                            <quiet>false</quiet>
+                            <quiet>true</quiet>
                         </configuration>
                     </execution>
                 </executions>
