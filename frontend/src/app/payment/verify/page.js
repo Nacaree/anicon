@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ticketApi, ApiError } from "@/lib/api";
 
 // Handles the return_url redirect from PayWay after hosted checkout.
 // PayWay appends tran_id as a query param: /payment/verify?tran_id=T...
-export default function PaymentVerifyPage() {
+function PaymentVerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState("verifying"); // "verifying" | "success" | "failed"
@@ -77,5 +77,13 @@ export default function PaymentVerifyPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PaymentVerifyPage() {
+  return (
+    <Suspense>
+      <PaymentVerifyContent />
+    </Suspense>
   );
 }
