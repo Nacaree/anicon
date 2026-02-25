@@ -84,20 +84,23 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `GET` | `/api/events` | Public | All upcoming events with tags |
 | `GET` | `/api/events/{id}` | Public | Single event with tags |
 | `POST` | `/api/events` | Required | Create event (role-gated) |
-| `POST` | `/api/tickets/purchase/{eventId}` | Required | Initiate PayWay payment → returns checkoutUrl |
-| `POST` | `/api/tickets/verify/{paywayTranId}` | Required | Verify payment → issue ticket |
+| `POST` | `/api/tickets/purchase/{eventId}` | Required | Initiate payment → routes to PayWay or Stripe based on `paymentMethod` body field |
+| `POST` | `/api/tickets/verify/{paywayTranId}` | Required | Verify PayWay payment → issue ticket |
 | `POST` | `/api/tickets/rsvp/{eventId}` | Required | RSVP for free event |
 | `GET` | `/api/tickets/my` | Required | User's non-cancelled tickets |
 | `GET` | `/api/tickets/my-rsvps` | Required | User's free event RSVPs |
+| `POST` | `/api/stripe/webhook` | Public (HMAC) | Stripe webhook — issues ticket on `payment_intent.succeeded` |
 
 ### Key Design Patterns
 
 - **Money storage:** `transactions.amount` is `bigint` in **cents** (e.g. 500 = $5.00). `events.ticket_price` is `numeric(10,2)` in **dollars**. Never mix them — divide cents by 100 for display.
 - **Atomic capacity enforcement:** Uses `UPDATE events SET current_attendance = current_attendance + 1 WHERE id = ? AND (max_capacity IS NULL OR current_attendance < max_capacity)`. If 0 rows affected → throw 409 CONFLICT (sold out). Prevents overselling without locking.
-- **Deferred attendance increment (paid events):** `current_attendance` is only incremented after PayWay confirms payment — not on purchase initiation.
+- **Deferred attendance increment (paid events):** `current_attendance` is only incremented after payment is confirmed — not on initiation. PayWay: confirmed in `verifyAndIssueTicket()`. Stripe: confirmed in `handleStripePaymentSucceeded()` (called by webhook).
+- **Payment provider routing:** `TicketService.initiatePurchase()` routes to `StripeService` when `paymentMethod == "card"`, and to `PayWayService` for all other values (`aba_pay`, `khqr`, `wechat`, `alipay`). Both providers write to the same `transactions` table.
+- **Payment state between pages:** The payment checkout/verify pages pass state (QR image, tran ID, amount) via `sessionStorage`, not URL params.
 - **JOOQ multiset for tags:** Tags are loaded in one SQL round-trip (no N+1) using JOOQ's `multiset()` function.
 - **Tag upsert:** Two-step — INSERT tag ON CONFLICT DO NOTHING, then SELECT tag ID by name.
-- **Duplicate RSVP prevention:** The DB `UNIQUE (user_id, event_id)` constraint on `event_rsvps` rejects duplicates automatically — no Spring Boot check needed.
+- **Duplicate RSVP prevention:** The DB `UNIQUE (user_id, event_id)` constraint on `event_rsvps` rejects duplicates; `GlobalExceptionHandler` maps the resulting `DataIntegrityViolationException` to 409 CONFLICT.
 
 ## Database
 
@@ -110,7 +113,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `follows` | Follower graph |
 | `influencer_applications` | Role upgrade requests |
 | `events` | All events (free/paid, mini/normal) |
-| `transactions` | PayWay payment records (paid events only) |
+| `transactions` | Payment records (paid events only; covers both PayWay and Stripe) |
 | `tickets` | Issued tickets (free or paid events) |
 | `event_rsvps` | "I'm going" for free events |
 | `tags` / `event_tags` | Tag definitions and many-to-many junction |
@@ -148,7 +151,6 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 
 **TODO:**
 - Frontend — replace `mockEvents.js` with real `eventApi` calls
-- `GlobalExceptionHandler` — map duplicate RSVP DB constraint violation to 409 CONFLICT response
 - Deferred (Month 2-3): Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
 ## Important Rules
