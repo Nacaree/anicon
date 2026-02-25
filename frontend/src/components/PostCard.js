@@ -4,6 +4,7 @@ import { useAuthGate } from "@/context/AuthGateContext";
 
 export default function PostCard({ username, handle, text, imageUrl, avatarUrl }) {
   const { requireAuth } = useAuthGate();
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 w-full max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto">
       {/* User Header */}
@@ -29,7 +30,7 @@ export default function PostCard({ username, handle, text, imageUrl, avatarUrl }
       </div>
 
       {/* Image Box */}
-      <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden h-80 sm:h-96 lg:h-[32rem]">
+      <div className="bg-gray-200 rounded-lg mb-3 overflow-hidden h-80 sm:h-96 lg:h-128">
         <img
           src={imageUrl}
           alt="Post content"

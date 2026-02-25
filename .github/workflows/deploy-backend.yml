@@ -1,0 +1,38 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Env file lives on the VM at this path — set it up once manually
+      - name: Copy env file
+        run: cp /home/ubuntu/anicon-secrets/backend.env $GITHUB_WORKSPACE/backend/.env
+
+      - name: Build JAR
+        working-directory: backend
+        run: ./mvnw clean package -DskipTests
+
+      - name: Stop old service
+        run: sudo systemctl stop anicon-backend || true
+
+      - name: Deploy JAR
+        run: sudo cp backend/target/anicon-backend-*.jar /opt/anicon/anicon-backend.jar
+
+      - name: Start service
+        run: sudo systemctl start anicon-backend
+
+      - name: Health check
+        run: |
+          echo "Waiting for Spring Boot to start..."
+          sleep 20
+          curl -f http://localhost:8080/api/health || (sudo journalctl -u anicon-backend -n 50 && exit 1)

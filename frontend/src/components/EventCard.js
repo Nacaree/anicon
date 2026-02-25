@@ -1,10 +1,12 @@
-export default function EventCard({ title, date, location, imageUrl }) {
+import Link from "next/link";
+
+export default function EventCard({ id, title, date, location, imageUrl }) {
   // Fallback to placeholder if no image provided
   const finalImageUrl =
     imageUrl ||
     "https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=400&h=300&fit=crop";
 
-  return (
+  const card = (
     <div className="relative rounded-xl h-50 overflow-hidden group cursor-pointer transition-all duration-300 flex-shrink-0 w-64 sm:w-72 lg:w-80">
       {/* Background Image */}
       <img
@@ -30,4 +32,10 @@ export default function EventCard({ title, date, location, imageUrl }) {
       </div>
     </div>
   );
+
+  if (id) {
+    return <Link href={`/events/${id}`}>{card}</Link>;
+  }
+
+  return card;
 }

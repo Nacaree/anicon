@@ -109,6 +109,20 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Unirest HTTP client for PayWay API calls -->
+        <dependency>
+            <groupId>com.konghq</groupId>
+            <artifactId>unirest-java-core</artifactId>
+            <version>4.4.5</version>
+        </dependency>
+
+        <!-- Stripe payment integration -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>27.1.0</version>
+        </dependency>
+
         <!-- Caffeine for something lol  -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -204,29 +218,12 @@
                             <files>
                                 <file>${project.basedir}/.env</file>
                             </files>
-                            <quiet>false</quiet>
+                            <quiet>true</quiet>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.build.directory}/generated-sources/jooq</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!-- build-helper-maven-plugin removed: JOOQ now outputs directly to src/main/java -->
             <!-- ======================================================================= -->
             <!-- JOOQ CODE GENERATION PLUGIN                                             -->
             <!-- ======================================================================= -->
@@ -249,6 +246,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
+                        <configuration>
+                            <skip>${jooq.codegen.skip}</skip>
+                        </configuration>
                     </execution>
                 </executions>
 
@@ -279,7 +279,9 @@
                         <target>
                             <!-- The package where JOOQ will place the generated classes -->
                             <packageName>com.anicon.backend.gen.jooq</packageName>
-                            <directory>target/generated-sources/jooq</directory>
+                            <!-- Output to src/main/java so generated files are committed to git
+                                 and Railway can build without a live DB connection (jooq.codegen.skip=true) -->
+                            <directory>src/main/java</directory>
                         </target>
                     </generator>
                 </configuration>

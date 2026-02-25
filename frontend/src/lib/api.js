@@ -122,4 +122,59 @@ export const profileApi = {
   getProfileById: (userId) => api.get(`/api/profiles/user/${userId}`),
 };
 
+// Event API calls
+export const eventApi = {
+  listEvents: () => api.get("/api/events"),
+  getEvent: (id) => api.get(`/api/events/${id}`),
+};
+
+// Ticket API calls
+export const ticketApi = {
+  // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
+  purchase: (eventId, paymentMethod = "aba_pay") =>
+    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod }),
+  // Paid event: verifies PayWay payment and issues ticket
+  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
+  // Free event: RSVPs the user
+  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`),
+  // Returns all non-cancelled tickets for the current user
+  myTickets: () => api.get("/api/tickets/my"),
+  // Returns all RSVPs for the current user (free events)
+  myRsvps: () => api.get("/api/tickets/my-rsvps"),
+};
+
+// Adapts a raw EventResponse from the backend to the shape frontend components expect.
+// The API returns eventDate/eventTime/coverImageUrl; components expect date/time/imageUrl etc.
+function formatEventDate(isoDate) {
+  if (!isoDate) return "";
+  return new Date(isoDate + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatEventTime(isoTime) {
+  if (!isoTime) return "";
+  const [h, m] = isoTime.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return m === 0
+    ? `${hour} ${period}`
+    : `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
+export function normalizeEvent(event) {
+  return {
+    ...event,
+    date: formatEventDate(event.eventDate),
+    time: formatEventTime(event.eventTime),
+    imageUrl: event.coverImageUrl || null,
+    images: event.coverImageUrl ? [event.coverImageUrl] : [],
+    thumbnails: event.coverImageUrl ? [event.coverImageUrl] : [],
+    wantToGoCount: event.currentAttendance || 0,
+    timeRange: formatEventTime(event.eventTime),
+    dateRange: formatEventDate(event.eventDate),
+  };
+}
+
 export { ApiError };

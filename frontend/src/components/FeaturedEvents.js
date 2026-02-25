@@ -1,12 +1,30 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import EventCarousel from "./EventCarousel";
 import FeaturedEventCard from "./FeaturedEventCard";
 
 export default function FeaturedEvents() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
   const featuredEvents = [
     {
-      id: 1,
+      id: "tr1",
       tagline: "I'M READY FOR",
       title: "JKTANIME",
       subtitle: "2025",
@@ -17,7 +35,7 @@ export default function FeaturedEvents() {
       ctaButton: null,
     },
     {
-      id: 2,
+      id: "tr2",
       tagline: "⚡ JAPAN JAM",
       title: "ANIMECON",
       subtitle: "ANIME FESTIVAL",
@@ -28,7 +46,7 @@ export default function FeaturedEvents() {
       ctaButton: { text: "Get Ticket", show: true },
     },
     {
-      id: 3,
+      id: "tr3",
       tagline: "✨ SPRING EDITION",
       title: "COSPLAY",
       subtitle: "EXPO",
@@ -39,7 +57,7 @@ export default function FeaturedEvents() {
       ctaButton: null,
     },
     {
-      id: 4,
+      id: "tr4",
       tagline: "🎌 SUMMER FEST",
       title: "TOKYO",
       subtitle: "GAME SHOW",
@@ -49,10 +67,103 @@ export default function FeaturedEvents() {
         "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=256&fit=crop",
       ctaButton: null,
     },
+    {
+      id: "tr5",
+      tagline: "🎧 MUSIC LIVE",
+      title: "ANISONG",
+      subtitle: "CONCERT",
+      date: "05-07",
+      month: "AUG 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&h=256&fit=crop",
+      ctaButton: { text: "Book Now", show: true },
+    },
+    {
+      id: "tr6",
+      tagline: "🎮 ESPORTS",
+      title: "GAMING",
+      subtitle: "TOURNAMENT",
+      date: "20-22",
+      month: "SEP 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr7",
+      tagline: "🎎 TRADITION",
+      title: "KYOTO",
+      subtitle: "CULTURE FEST",
+      date: "10-12",
+      month: "OCT 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1528360983277-13d9b152c58b?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr8",
+      tagline: "🎃 HALLOWEEN",
+      title: "SPOOKY",
+      subtitle: "COSPLAY NIGHT",
+      date: "31",
+      month: "OCT 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=600&h=256&fit=crop",
+      ctaButton: { text: "Join Party", show: true },
+    },
+    {
+      id: "tr9",
+      tagline: "❄️ WINTER",
+      title: "SNOW",
+      subtitle: "FESTIVAL",
+      date: "15-20",
+      month: "DEC 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1482686119632-c6041ef687e3?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr10",
+      tagline: "🎆 NEW YEAR",
+      title: "COUNTDOWN",
+      subtitle: "PARTY",
+      date: "31",
+      month: "DEC 2025",
+      imageUrl:
+        "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
+    {
+      id: "tr11",
+      tagline: "🌸 SPRING",
+      title: "SAKURA",
+      subtitle: "PICNIC",
+      date: "01-05",
+      month: "APR 2026",
+      imageUrl:
+        "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&h=256&fit=crop",
+      ctaButton: { text: "RSVP", show: true },
+    },
+    {
+      id: "tr12",
+      tagline: "🏖️ SUMMER",
+      title: "BEACH",
+      subtitle: "BASH",
+      date: "15-17",
+      month: "JUN 2026",
+      imageUrl:
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=256&fit=crop",
+      ctaButton: null,
+    },
   ];
 
   return (
-    <div className="mb-8">
+    <div
+      ref={sectionRef}
+      className={`mb-8 transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      }`}
+    >
       {/* Section Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-800">Featured Events</h2>

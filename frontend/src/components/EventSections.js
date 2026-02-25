@@ -1,94 +1,115 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import EventCard from "./EventCard";
 import EventCarousel from "./EventCarousel";
+import { eventApi, normalizeEvent } from "@/lib/api";
+
+function AnimatedSection({ children }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className={`transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      }`}
+    >
+      {children}
+    </section>
+  );
+}
 
 export default function EventSections() {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    eventApi
+      .listEvents()
+      .then((data) => setEvents(data.map(normalizeEvent)))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const trendingEvents = events.slice(0, 10);
+  const cosplayEvents = events.filter((e) =>
+    e.tags?.some((t) => t.toLowerCase().includes("cosplay"))
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        {[0, 1].map((i) => (
+          <section key={i}>
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4" />
+            <div className="flex gap-4 overflow-hidden">
+              {[...Array(4)].map((_, j) => (
+                <div
+                  key={j}
+                  className="w-64 h-50 bg-gray-200 rounded-xl flex-shrink-0 animate-pulse"
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      {/* Trending Events */}
-      <section>
-        <h2 className="text-xl font-bold text-gray-800">Trending Events</h2>
-        <EventCarousel>
-          <EventCard
-            title="Anime Expo 2025"
-            date="Jan 15-17, 2025"
-            location="Tokyo Big Sight, Japan"
-            imageUrl="https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Cosplay Championship"
-            date="Feb 10-11, 2025"
-            location="Jakarta Convention Center"
-            imageUrl="https://static.wixstatic.com/media/da9adc_6e7d859088b147e4939bc7a3785b7858~mv2.png/v1/fill/w_280,h_150,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/CosplayX_SMASH_COS_Page_Banner-01.png"
-          />
-          <EventCard
-            title="Manga Festival"
-            date="Mar 5-7, 2025"
-            location="Osaka International Convention Center"
-            imageUrl="https://www.otakuthon.com/2025/images/event-announcement.jpg?20230923"
-          />
-          <EventCard
-            title="Tokyo Game Show"
-            date="Apr 20-22, 2025"
-            location="Makuhari Messe, Japan"
-            imageUrl="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Anime North"
-            date="May 15-17, 2025"
-            location="Toronto Convention Center"
-            imageUrl="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Comic Market 103"
-            date="Jun 8-9, 2025"
-            location="Tokyo Big Sight, Japan"
-            imageUrl="https://images.unsplash.com/photo-1601814933824-fd0b574dd592?w=400&h=300&fit=crop"
-          />
-        </EventCarousel>
-      </section>
+      {trendingEvents.length > 0 && (
+        <AnimatedSection>
+          <h2 className="text-xl font-bold text-gray-800">Trending Events</h2>
+          <EventCarousel>
+            {trendingEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                id={event.id}
+                title={event.title}
+                date={`${event.date}, ${event.time}`}
+                location={event.location}
+                imageUrl={event.imageUrl}
+              />
+            ))}
+          </EventCarousel>
+        </AnimatedSection>
+      )}
 
-      {/* Cosplay Events */}
-      <section>
-        <h2 className="text-xl font-bold text-gray-800">Cosplay Events</h2>
-        <EventCarousel>
-          <EventCard
-            title="Summer Cosplay Contest"
-            date="Jun 20-22, 2025"
-            location="Singapore Expo"
-            imageUrl="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Japan Culture Fest"
-            date="Jul 12-14, 2025"
-            location="Tokyo Dome City"
-            imageUrl="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Comic Con Asia"
-            date="Aug 8-10, 2025"
-            location="IMPACT Arena, Bangkok"
-            imageUrl="https://bsmedia.business-standard.com/_media/bs/img/article/2025-07/16/full/20250716140636.jpg"
-          />
-          <EventCard
-            title="Cosplay Mania"
-            date="Sep 15-16, 2025"
-            location="SMX Convention Center, Manila"
-            imageUrl="https://images.unsplash.com/photo-1609743522653-52354461eb27?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Halloween Cosplay Ball"
-            date="Oct 31, 2025"
-            location="Los Angeles Convention Center"
-            imageUrl="https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=400&h=300&fit=crop"
-          />
-          <EventCard
-            title="Winter Wonderland Cosplay"
-            date="Dec 20-21, 2025"
-            location="Sapporo Snow Festival Grounds"
-            imageUrl="https://images.unsplash.com/photo-1551069613-1904dbdcda11?w=400&h=300&fit=crop"
-          />
-        </EventCarousel>
-      </section>
+      {cosplayEvents.length > 0 && (
+        <AnimatedSection>
+          <h2 className="text-xl font-bold text-gray-800">Cosplay Events</h2>
+          <EventCarousel>
+            {cosplayEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                id={event.id}
+                title={event.title}
+                date={`${event.date}, ${event.time}`}
+                location={event.location}
+                imageUrl={event.imageUrl}
+              />
+            ))}
+          </EventCarousel>
+        </AnimatedSection>
+      )}
     </div>
   );
 }
