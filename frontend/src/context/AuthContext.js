@@ -39,9 +39,14 @@ export function AuthProvider({ children }) {
 
     const initAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // Race against a timeout — getSession() can deadlock via navigator.locks
+        // in production (expired token refresh, bfcache restore, etc.)
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 8000)
+          ),
+        ]);
 
         if (!isMounted) return;
 

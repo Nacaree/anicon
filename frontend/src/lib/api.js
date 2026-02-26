@@ -12,9 +12,15 @@ class ApiError extends Error {
 }
 
 async function getAuthHeaders() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Race getSession() against a timeout — it can deadlock via navigator.locks
+  // in certain production environments (expired token refresh, tab restore, etc.)
+  const { data: { session } } = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise((resolve) =>
+      setTimeout(() => resolve({ data: { session: null } }), 8000)
+    ),
+  ]);
+
   const headers = {
     "Content-Type": "application/json",
   };
@@ -33,8 +39,12 @@ async function wait(ms) {
 async function request(endpoint, options = {}, retries = 3) {
   const headers = await getAuthHeaders();
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
   const config = {
     ...options,
+    signal: controller.signal,
     headers: {
       ...headers,
       ...options.headers,
@@ -43,6 +53,7 @@ async function request(endpoint, options = {}, retries = 3) {
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
 
     let data;
     const contentType = response.headers.get("content-type");
@@ -66,8 +77,9 @@ async function request(endpoint, options = {}, retries = 3) {
 
     return data;
   } catch (error) {
-    // Retry on network errors if we have retries left
-    if (retries > 0 && error.name !== "ApiError") {
+    clearTimeout(timeoutId);
+    // Don't retry on timeout (AbortError) or explicit ApiError
+    if (retries > 0 && error.name !== "ApiError" && error.name !== "AbortError") {
       await wait(500);
       return request(endpoint, options, retries - 1);
     }
