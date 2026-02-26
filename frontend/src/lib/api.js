@@ -11,15 +11,41 @@ class ApiError extends Error {
   }
 }
 
+// Module-level token cache — written by AuthContext immediately after getSession()
+// resolves during auth initialization, and on every TOKEN_REFRESHED / SIGNED_IN event.
+//
+// This means authenticated API calls (e.g. ticket fetches) can attach the bearer
+// token without calling getSession() themselves. Calling getSession() concurrently
+// with AuthContext's own getSession() can block indefinitely; using the cached
+// token sidesteps that entirely.
+let _cachedAccessToken = null;
+
+// Called by AuthContext after auth initializes and on every auth state change.
+export function setCachedToken(token) {
+  _cachedAccessToken = token ?? null;
+}
+
+// Called by AuthContext on sign-out.
+export function clearCachedToken() {
+  _cachedAccessToken = null;
+}
+
 async function getAuthHeaders() {
-  // Race getSession() against a timeout — it can deadlock via navigator.locks
-  // in certain production environments (expired token refresh, tab restore, etc.)
-  const { data: { session } } = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise((resolve) =>
-      setTimeout(() => resolve({ data: { session: null } }), 8000)
-    ),
-  ]);
+  // Fast path: use the token AuthContext already resolved.
+  // By the time any auth-required page fires a request (after the authLoading
+  // guard), AuthContext will have already called setCachedToken(), so this
+  // branch is hit on virtually every authenticated request.
+  if (_cachedAccessToken) {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${_cachedAccessToken}`,
+    };
+  }
+
+  // Fallback: no token cached yet (e.g. the request fires before AuthContext
+  // finishes initializing). getSession() should return quickly from the cookie
+  // cache at this point; the lock bypass in supabase.js prevents any deadlock.
+  const { data: { session } } = await supabase.auth.getSession();
 
   const headers = {
     "Content-Type": "application/json",
@@ -37,17 +63,26 @@ async function wait(ms) {
 }
 
 async function request(endpoint, options = {}, retries = 3) {
-  const headers = await getAuthHeaders();
+  // noAuth: true skips getSession() entirely for public endpoints.
+  // This is important because getSession() can block on initial page load
+  // while AuthContext is also calling getSession() concurrently to initialize
+  // the session from cookies / refresh an expired token. Public endpoints
+  // (e.g. GET /api/events) don't need a bearer token, so there's no reason
+  // to wait for auth initialization before sending the request.
+  const { noAuth, ...fetchOptions } = options;
+  const headers = noAuth
+    ? { "Content-Type": "application/json" }
+    : await getAuthHeaders();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
   const config = {
-    ...options,
+    ...fetchOptions,
     signal: controller.signal,
     headers: {
       ...headers,
-      ...options.headers,
+      ...fetchOptions.headers,
     },
   };
 
@@ -62,10 +97,11 @@ async function request(endpoint, options = {}, retries = 3) {
     }
 
     if (!response.ok) {
-      // Retry on server errors (5xx)
+      // Retry on server errors (5xx) — pass noAuth through so public
+      // retries don't suddenly acquire auth they didn't need originally.
       if (response.status >= 500 && retries > 0) {
         await wait(500);
-        return request(endpoint, options, retries - 1);
+        return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
       }
 
       throw new ApiError(
@@ -78,10 +114,11 @@ async function request(endpoint, options = {}, retries = 3) {
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
-    // Don't retry on timeout (AbortError) or explicit ApiError
+    // Don't retry on timeout (AbortError) or explicit ApiError.
+    // Pass noAuth through on network-error retries for the same reason as above.
     if (retries > 0 && error.name !== "ApiError" && error.name !== "AbortError") {
       await wait(500);
-      return request(endpoint, options, retries - 1);
+      return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
     }
     throw error;
   }
@@ -127,17 +164,28 @@ export const authApi = {
 
 // Profile API calls
 export const profileApi = {
+  // /api/profiles/me requires a valid bearer token (auth-required).
+  // Uses getAuthHeaders() so the token is attached.
   getMyProfile: () => api.get("/api/profiles/me"),
-  getProfileByUsername: (username) => api.get(`/api/profiles/${username}`),
-  // ! Depreciated 
-  // !might not get used 
-  getProfileById: (userId) => api.get(`/api/profiles/user/${userId}`),
+
+  // /api/profiles/{username} and /api/profiles/user/{userId} are public endpoints
+  // (anyone can view a profile without being logged in).
+  // noAuth: true skips getSession() so these don't block on auth initialization —
+  // same reason as eventApi below.
+  getProfileByUsername: (username) =>
+    request(`/api/profiles/${username}`, { method: "GET", noAuth: true }),
+  // ! Depreciated
+  // !might not get used
+  getProfileById: (userId) =>
+    request(`/api/profiles/user/${userId}`, { method: "GET", noAuth: true }),
 };
 
-// Event API calls
+// Event API calls — both endpoints are public (no auth required to browse events).
+// noAuth: true bypasses getSession() so the request fires immediately on page load
+// without waiting for auth initialization, which prevents infinite skeleton states.
 export const eventApi = {
-  listEvents: () => api.get("/api/events"),
-  getEvent: (id) => api.get(`/api/events/${id}`),
+  listEvents: () => request("/api/events", { method: "GET", noAuth: true }),
+  getEvent: (id) => request(`/api/events/${id}`, { method: "GET", noAuth: true }),
 };
 
 // Ticket API calls

@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { authApi } from "@/lib/api";
+import { authApi, setCachedToken, clearCachedToken } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -39,16 +39,14 @@ export function AuthProvider({ children }) {
 
     const initAuth = async () => {
       try {
-        // Race against a timeout — getSession() can deadlock via navigator.locks
-        // in production (expired token refresh, bfcache restore, etc.)
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise((resolve) =>
-            setTimeout(() => resolve({ data: { session: null } }), 8000)
-          ),
-        ]);
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!isMounted) return;
+
+        // Cache the access token so authenticated API calls (e.g. ticket fetches)
+        // can attach the bearer token without calling getSession() themselves.
+        // This prevents concurrent getSession() calls that can block indefinitely.
+        setCachedToken(session?.access_token ?? null);
 
         const user = session?.user ?? null;
         setUser(user);
@@ -93,6 +91,10 @@ export function AuthProvider({ children }) {
       if (!isMounted) return;
 
       if (session?.user) {
+        // Keep the token cache in sync so API calls always have a fresh token.
+        // TOKEN_REFRESHED fires when Supabase silently rotates the access token —
+        // without this, getAuthHeaders() would send the old (expired) token.
+        setCachedToken(session.access_token);
         setUser(session.user);
         if (
           (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
@@ -105,6 +107,7 @@ export function AuthProvider({ children }) {
           }
         }
       } else {
+        clearCachedToken();
         setUser(null);
         setProfile(null);
       }
@@ -198,6 +201,8 @@ export function AuthProvider({ children }) {
       throw signOutError;
     }
 
+    // Clear the cached token so subsequent API calls don't send a revoked token.
+    clearCachedToken();
     setUser(null);
     setProfile(null);
   };
