@@ -2,11 +2,30 @@
 
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Lock, ShieldCheck } from "lucide-react";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  {
+    developerTools: {
+      assistant: {
+        enabled: false,
+      },
+    },
+  },
+);
 
 function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
   const stripe = useStripe();
@@ -14,7 +33,9 @@ function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
 
-  const amountDisplay = amountInCents ? `$${(amountInCents / 100).toFixed(2)}` : "";
+  const amountDisplay = amountInCents
+    ? `$${(amountInCents / 100).toFixed(2)}`
+    : "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,9 +80,24 @@ function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
       >
         {processing ? (
           <>
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <svg
+              className="w-4 h-4 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
             Processing...
           </>
@@ -91,7 +127,13 @@ function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
   );
 }
 
-export default function StripePaymentModal({ open, onClose, clientSecret, amountInCents, onSuccess }) {
+export default function StripePaymentModal({
+  open,
+  onClose,
+  clientSecret,
+  amountInCents,
+  onSuccess,
+}) {
   if (!clientSecret) return null;
 
   const appearance = {
@@ -104,7 +146,8 @@ export default function StripePaymentModal({ open, onClose, clientSecret, amount
       colorTextPlaceholder: "#9ca3af",
       colorDanger: "#ef4444",
       borderRadius: "12px",
-      fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      fontFamily:
+        'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       fontSizeBase: "15px",
       spacingUnit: "4px",
     },
@@ -139,10 +182,17 @@ export default function StripePaymentModal({ open, onClose, clientSecret, amount
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Enter Card Details</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            Enter Card Details
+          </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-gray-500 -mt-1">Secure payment via Stripe</p>
 

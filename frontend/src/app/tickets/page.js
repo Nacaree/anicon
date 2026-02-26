@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 import { ticketApi } from "@/lib/api";
 
 function formatDate(dateStr) {
@@ -169,11 +170,18 @@ function SkeletonCard() {
 
 export default function MyTicketsPage() {
   const { isSidebarCollapsed } = useSidebar();
+  // Wait for auth to finish initializing before fetching.
+  // Ticket endpoints require a valid bearer token — if we call them while
+  // AuthContext is still running getSession() (e.g. refreshing an expired token),
+  // the concurrent getSession() call in getAuthHeaders() can block indefinitely.
+  // Once isLoading is false, the session is cached and getSession() returns instantly.
+  const { isLoading: authLoading } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (authLoading) return; // Auth not ready yet — wait
     Promise.all([ticketApi.myTickets(), ticketApi.myRsvps()])
       .then(([tickets, rsvps]) => {
         const ticketItems = tickets.map((t) => ({ ...t, kind: "ticket" }));
@@ -188,7 +196,7 @@ export default function MyTicketsPage() {
       })
       .catch(() => setError("Failed to load tickets. Please try again."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [authLoading]);
 
   return (
     <div className="min-h-screen bg-gray-50">
