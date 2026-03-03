@@ -45,14 +45,14 @@ export default function EventsPageCard({
 
   return (
     <div
-      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out ${
+      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out active:brightness-90 active:scale-95 ${
         isEnlarged
           ? "w-72 sm:w-85 shadow-md hover:shadow-lg"
           : "w-56 sm:w-60 hover:shadow-md"
       } ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
     >
       {/* Clickable area — image + info */}
-      <Link href={`/events/${event.id}`}>
+      <Link href={`/events/${event.id}`} className="block">
         {/* Image */}
         <div
           className={`relative bg-gray-200 overflow-hidden transition-all duration-500 ease-in-out ${

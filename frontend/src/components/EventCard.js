@@ -7,7 +7,7 @@ export default function EventCard({ id, title, date, location, imageUrl }) {
     "https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=400&h=300&fit=crop";
 
   const card = (
-    <div className="relative rounded-xl h-50 overflow-hidden group cursor-pointer transition-all duration-300 flex-shrink-0 w-64 sm:w-72 lg:w-80">
+    <div className="relative rounded-xl h-50 overflow-hidden group cursor-pointer transition-all duration-300 flex-shrink-0 w-64 sm:w-72 lg:w-80 active:brightness-90 active:scale-95">
       {/* Background Image */}
       <img
         src={finalImageUrl}

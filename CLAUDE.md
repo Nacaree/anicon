@@ -159,6 +159,7 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 - All terminal commands must be **zsh compatible** (macOS)
 - **Never read or process `.env` files**
 - Respect all `.claudeignore` entries without exception
+- **Always add comments to new code** explaining what it does and why — especially for non-obvious logic, Next.js conventions (`loading.js`, route groups, Suspense), and architectural decisions. Comments should explain the *why*, not just the *what*.
 
 ## Reference Docs
 <!-- * this is for feature 1: Event Ticketing -->
