@@ -14,7 +14,7 @@ export default function EventDetailInfo({ event, loading = false }) {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (detailsRef.current) observer.observe(detailsRef.current);
@@ -46,7 +46,11 @@ export default function EventDetailInfo({ event, loading = false }) {
         <div className="h-5 w-20 bg-gray-200 rounded mb-3" />
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-4 bg-gray-200 rounded" style={{ width: `${65 + i * 5}%` }} />
+            <div
+              key={i}
+              className="h-4 bg-gray-200 rounded"
+              style={{ width: `${65 + i * 5}%` }}
+            />
           ))}
         </div>
       </div>
@@ -83,14 +87,13 @@ export default function EventDetailInfo({ event, loading = false }) {
       </p>
 
       {/* Tags */}
-      <div className="flex items-center gap-1.5 flex-wrap mb-4">
-        <span className="text-xs text-gray-400">Tags For this Event:</span>
+      <div className="flex gap-1.5 flex-wrap mb-4">
         {event.tags?.map((tag) => (
           <span
             key={tag}
-            className="text-xs bg-white border border-gray-200 px-2.5 py-1 rounded-full text-gray-600"
+            className="text-xs bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-500"
           >
-            {tag}
+            #{tag}
           </span>
         ))}
       </div>
@@ -104,9 +107,7 @@ export default function EventDetailInfo({ event, loading = false }) {
       <div
         ref={detailsRef}
         className={`transition-all duration-700 ease-out ${
-          isVisible
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-6"
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       >
         <h2 className="text-lg font-bold text-gray-900 mb-3">Details</h2>

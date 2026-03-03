@@ -152,47 +152,59 @@ export default function EventDetailPage({ params }) {
   const [organizer, setOrganizer] = useState(null);
   const [relatedEvents, setRelatedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Separate loading state for the "You May Also Like" section.
+  // Decoupled from the main event so the page can render before this finishes.
+  const [relatedLoading, setRelatedLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
-        const [eventData, allEvents] = await Promise.all([
-          eventApi.getEvent(id),
-          eventApi.listEvents(),
-        ]);
+        // Phase 1: fetch only the main event.
+        // setLoading(false) immediately after so the page renders without waiting
+        // for the related events list (which fetches ALL events and is slower in prod).
+        const eventData = await eventApi.getEvent(id);
+        setEvent(normalizeEvent(eventData));
+        setLoading(false);
 
-        const normalized = normalizeEvent(eventData);
-        setEvent(normalized);
+        // Phase 2: fetch organizer + related events after the page is already visible.
+        // These are non-critical — failures are silently ignored.
+        const organizerPromise = eventData.organizerId
+          ? profileApi
+              .getProfileById(eventData.organizerId)
+              .then((profile) =>
+                setOrganizer({
+                  avatarUrl: profile.avatarUrl,
+                  displayName: profile.displayName,
+                  username: profile.username,
+                  role: profile.roles?.[0] || "organizer",
+                  followers: profile.followerCount || 0,
+                  following: profile.followingCount || 0,
+                }),
+              )
+              .catch(() => {}) // Organizer profile unavailable — section won't render
+          : Promise.resolve();
 
-        setRelatedEvents(
-          allEvents
-            .filter((e) => e.id !== id)
-            .slice(0, 10)
-            .map(normalizeEvent),
-        );
+        // listEvents() fetches all events — kept out of Phase 1 because it's the
+        // slowest call and used only for "You May Also Like", not the main content.
+        const relatedPromise = eventApi
+          .listEvents()
+          .then((allEvents) =>
+            setRelatedEvents(
+              allEvents
+                .filter((e) => e.id !== id)
+                .slice(0, 10)
+                .map(normalizeEvent),
+            ),
+          )
+          .catch(() => {}); // "You May Also Like" failing is non-critical
 
-        if (eventData.organizerId) {
-          try {
-            const profile = await profileApi.getProfileById(
-              eventData.organizerId,
-            );
-            setOrganizer({
-              avatarUrl: profile.avatarUrl,
-              displayName: profile.displayName,
-              username: profile.username,
-              role: profile.roles?.[0] || "organizer",
-              followers: profile.followerCount || 0,
-              following: profile.followingCount || 0,
-            });
-          } catch {
-            // Organizer profile unavailable — section won't render
-          }
-        }
+        await Promise.all([organizerPromise, relatedPromise]);
       } catch (err) {
         if (err.status === 404) setNotFound(true);
-      } finally {
         setLoading(false);
+      } finally {
+        setRelatedLoading(false);
       }
     }
 
