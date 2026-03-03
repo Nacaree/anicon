@@ -56,11 +56,12 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route. `callback/route.js` handles the Supabase OAuth callback.
 - **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`). Public routes: `/`, `/events`, `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/callback`, `/_next`.
 - **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle).
-- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`, `currentAttendance`→`wantToGoCount`.
+- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`, `currentAttendance`→`wantToGoCount`. Pass `noAuth: true` in the options object to skip the token fetch on public endpoints (avoids unnecessary `getSession()` calls).
+- **Token caching:** `api.js` maintains a `_cachedAccessToken` updated by `AuthContext`. This avoids concurrent `getSession()` calls that would deadlock via Supabase's `navigator.locks`. Do not call `supabase.auth.getSession()` directly inside page components — use the cached token path through `api.js` or read from `AuthContext`.
 - **UI components:** Shadcn/ui (New York style) with Radix UI primitives, Lucide icons, and Tailwind CSS 4. Custom components live in `src/components/`; shadcn-managed primitives live in `src/components/ui/`.
 - **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties in `globals.css` using OKLch color space. Dark mode uses the `.dark` class. Primary brand color is `#FF7927` (orange).
 - **Performance:** React Compiler is enabled (`reactCompiler: true` in `next.config.mjs`). Heavy components use `next/dynamic` with skeleton loaders.
-- **Mock data:** `src/data/mockEvents.js` provides all event data while the backend events API is not yet wired up in the frontend — this file needs to be replaced with real `eventApi` calls.
+- **Mock data:** `src/data/mockEvents.js` exists but is **deprecated and unused** — `app/events/page.js` already calls `eventApi.listEvents()` with the real backend API.
 - **Testing:** No test framework is configured in the frontend.
 
 ### Backend Architecture
@@ -96,8 +97,9 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Money storage:** `transactions.amount` is `bigint` in **cents** (e.g. 500 = $5.00). `events.ticket_price` is `numeric(10,2)` in **dollars**. Never mix them — divide cents by 100 for display.
 - **Atomic capacity enforcement:** Uses `UPDATE events SET current_attendance = current_attendance + 1 WHERE id = ? AND (max_capacity IS NULL OR current_attendance < max_capacity)`. If 0 rows affected → throw 409 CONFLICT (sold out). Prevents overselling without locking.
 - **Deferred attendance increment (paid events):** `current_attendance` is only incremented after payment is confirmed — not on initiation. PayWay: confirmed in `verifyAndIssueTicket()`. Stripe: confirmed in `handleStripePaymentSucceeded()` (called by webhook).
-- **Payment provider routing:** `TicketService.initiatePurchase()` routes to `StripeService` when `paymentMethod == "card"`, and to `PayWayService` for all other values (`aba_pay`, `khqr`, `wechat`, `alipay`). Both providers write to the same `transactions` table.
-- **Payment state between pages:** The payment checkout/verify pages pass state (QR image, tran ID, amount) via `sessionStorage`, not URL params.
+- **Payment provider routing:** `TicketService.initiatePurchase()` routes to `StripeService` when `paymentMethod == "card"`, and to `PayWayService` for all other values (`aba_pay`, `khqr`, `wechat`, `alipay`). Both providers write to the same `transactions` table with a `payment_provider` column ("stripe" or "payway"). The `PurchaseResponse` includes `paymentProvider` + either `stripeClientSecret` (Stripe) or `checkoutUrl` + `paywayTranId` (PayWay) — check `paymentProvider` on the frontend before deciding which field to use.
+- **Dual payment UI flow:** PayWay (`aba_pay`, `khqr`, `wechat`, `alipay`) redirects the user to an external checkout URL; the frontend's `payment/checkout/` and `payment/verify/` pages handle the return flow, with state (QR image, tran ID, amount) passed via `sessionStorage`. Stripe (`card`) stays on-site: `StripePaymentModal` uses Stripe Elements, the backend returns a `stripeClientSecret`, and the ticket is issued asynchronously via webhook — no verify page needed.
+- **Payment state between pages:** PayWay checkout/verify pages pass state via `sessionStorage`, not URL params. Both `payment/verify/` and `payment/success/` use `useSearchParams()` wrapped in `<Suspense>` — required by Next.js App Router; omitting it causes a build error.
 - **JOOQ multiset for tags:** Tags are loaded in one SQL round-trip (no N+1) using JOOQ's `multiset()` function.
 - **Tag upsert:** Two-step — INSERT tag ON CONFLICT DO NOTHING, then SELECT tag ID by name.
 - **Duplicate RSVP prevention:** The DB `UNIQUE (user_id, event_id)` constraint on `event_rsvps` rejects duplicates; `GlobalExceptionHandler` maps the resulting `DataIntegrityViolationException` to 409 CONFLICT.
@@ -149,9 +151,8 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 - Paid ticket purchase flow: PayWay (Unirest, HMAC-SHA512 signing) + Stripe (`StripeService`, `StripeWebhookController`)
 - Payment UI pages: `app/payment/checkout/`, `app/payment/verify/`, `app/payment/success/`
 
-**TODO:**
-- Frontend — replace `mockEvents.js` with real `eventApi` calls
-- Deferred (Month 2-3): Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
+**TODO (Deferred to Month 2-3):**
+- Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
 ## Important Rules
 
