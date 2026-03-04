@@ -146,6 +146,11 @@ public class Events extends TableImpl<EventsRecord> {
      */
     public final TableField<EventsRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
+    /**
+     * The column <code>public.events.description</code>.
+     */
+    public final TableField<EventsRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.CLOB, this, "");
+
     private Events(Name alias, Table<EventsRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

@@ -3,26 +3,6 @@
 import Link from "next/link";
 
 export default function TrendingEvent({ event = null, loading = false }) {
-  const handleShare = async () => {
-    if (!event) return;
-    const shareData = {
-      title: event.title,
-      text: `Check out ${event.title} on AniCon!`,
-      url: `${window.location.origin}/events/${event.id}`,
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        /* User cancelled */
-      }
-    } else {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/events/${event.id}`,
-      );
-    }
-  };
-
   // Skeleton
   if (loading || !event) {
     return (
@@ -65,7 +45,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
               src={event.imageUrl}
               alt=""
               aria-hidden="true"
-              className="w-full h-full object-cover scale-150 blur-2xl saturate-200 brightness-90 opacity-80"
+              className="w-full h-full object-cover scale-150 blur-3xl saturate-200 brightness-90 opacity-90"
             />
           ) : (
             <div className="w-full h-full bg-gray-300" />
@@ -76,7 +56,6 @@ export default function TrendingEvent({ event = null, loading = false }) {
             overflow-visible is required so the image div can extend above/below the card on desktop.
             The blur layers are wrapped in their own inset clipping div so they stay within the card shape. */}
         <div className="relative rounded-2xl border border-white/40 flex flex-col md:min-h-72 shadow-2xl">
-
           {/* Blur layers — clipped to the card shape by their own overflow-hidden wrapper.
               Kept separate from the main card so overflow-visible works for the image pop. */}
           <div className="absolute inset-0 rounded-2xl overflow-hidden z-0">
@@ -97,7 +76,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
               overflow-hidden clips the image to its own rounded container, not the parent card. */}
           <div
             className="relative z-10 w-full h-72 overflow-hidden rounded-t-2xl
-                        md:absolute md:left-0 md:-top-3 md:-bottom-3 md:w-[50%] md:h-auto md:rounded-2xl"
+                        md:absolute md:-left-px md:-top-3 md:-bottom-3 md:w-[calc(50%+1px)] md:h-auto md:rounded-2xl"
           >
             {event.imageUrl ? (
               <img
@@ -124,20 +103,20 @@ export default function TrendingEvent({ event = null, loading = false }) {
             )}
 
             {/* Trending badge */}
-            <div className="absolute top-3 left-3">
-              <span className="text-xs font-semibold bg-[#FF7927] text-white px-3 py-1 rounded-full shadow-sm">
+            <div className="absolute top-5 left-5">
+              <span className="text-xs font-semibold bg-[#FF2727] text-white px-5 py-2 rounded-full shadow-sm">
                 Trending
               </span>
             </div>
           </div>
 
           {/* Content — sits above the blur layers (z-10), pushed right on desktop */}
-          <div className="relative z-10 flex-1 p-5 sm:p-6 md:pl-[54%] flex flex-col justify-between gap-4">
-            <div>
-              <p className="text-xs text-[#FF7927] font-semibold mb-1">
+          <div className="relative z-10 flex-1 p-5 sm:p-6 md:pl-[54%] flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <p className="text-[15px] text-[#FF7927] font-bold">
                 {event.date}, {event.time}
               </p>
-              <h3 className="font-bold text-xl text-gray-900 mb-2 leading-snug">
+              <h3 className="font-bold text-xl text-gray-900 leading-snug">
                 {event.title}
               </h3>
               <p className="text-sm text-gray-600 flex items-center gap-1">
@@ -155,13 +134,17 @@ export default function TrendingEvent({ event = null, loading = false }) {
                 {event.location}
               </p>
             </div>
-
+            {event.description && (
+              <p className="text-sm text-gray-700 line-clamp-2">
+                {event.description}
+              </p>
+            )}
             {event.tags?.length > 0 && (
               <div className="flex gap-1.5 flex-wrap">
                 {event.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs bg-white/60 border border-white/70 px-3 py-1 rounded-full text-gray-700 backdrop-blur-sm"
+                    className="text-xs bg-white/60 border border-white/70 px-4 py-1 rounded-full text-gray-700 backdrop-blur-sm"
                   >
                     #{tag}
                   </span>
@@ -169,32 +152,14 @@ export default function TrendingEvent({ event = null, loading = false }) {
               </div>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="mt-auto">
               <Link
                 href={`/events/${event.id}`}
-                className="bg-[#FF7927] hover:bg-[#E66B1F] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors duration-200"
+                className="inline-block bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-8 py-3 rounded-full
+                  transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
               >
                 View Event
               </Link>
-              <button
-                onClick={handleShare}
-                className="p-2 rounded-full bg-white/60 hover:bg-white/90 backdrop-blur-sm transition-colors duration-200"
-                aria-label="Share"
-              >
-                <svg
-                  className="w-4 h-4 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </div>

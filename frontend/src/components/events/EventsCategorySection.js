@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import EventsPageCard from "./EventsPageCard";
 import EventCarousel from "@/components/EventCarousel";
 
-export default function EventsCategorySection({ title, emoji, events, loading = false }) {
+export default function EventsCategorySection({ title, emoji, events, loading = false, hideGradients = false }) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
 
@@ -58,7 +58,7 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
         </h2>
       </div>
 
-      <EventCarousel enableEnlarge>
+      <EventCarousel enableEnlarge hideGradients={hideGradients}>
         {events.map((event) => (
           <EventsPageCard key={event.id} event={event} />
         ))}

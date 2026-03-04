@@ -44,6 +44,8 @@ public class EventResponse {
 
     private String coverImageUrl;
 
+    private String description;
+
     private List<String> tags;
 
     private OffsetDateTime createdAt;

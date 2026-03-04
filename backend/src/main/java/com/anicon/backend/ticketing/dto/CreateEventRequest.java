@@ -47,6 +47,9 @@ public class CreateEventRequest {
 
     private String coverImageUrl;
 
+    /** Optional event description. Markdown or plain text. */
+    private String description;
+
     /** Tag names to attach, e.g. ["naruto", "cosplay"]. Tags are created if they don't exist. */
     private List<String> tags;
 }
