@@ -187,6 +187,13 @@ export const profileApi = {
 // Direct links to /events/:id still fetch normally — the cache is simply empty.
 const _eventCache = new Map();
 
+// Synchronous cache read exposed for the detail page to initialize React state
+// without waiting for a Promise. This lets the page render with real event data
+// on the very first paint (no skeleton flash) when coming from the events list.
+export function getCachedEvent(id) {
+  return _eventCache.get(String(id)) ?? null;
+}
+
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
