@@ -8,99 +8,10 @@ import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
 import { eventApi, profileApi, normalizeEvent, getCachedEvent } from "@/lib/api";
-
-const EventImageCarousel = dynamic(
-  () => import("@/components/events/EventImageCarousel"),
-  {
-    ssr: false,
-    loading: () => (
-      <div>
-        <Skeleton className="rounded-xl aspect-[16/9] mb-3" />
-        <div className="flex gap-2">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton
-              key={i}
-              className="w-20 h-14 sm:w-24 sm:h-16 rounded-lg flex-shrink-0"
-            />
-          ))}
-        </div>
-      </div>
-    ),
-  },
-);
-
-const EventDetailInfo = dynamic(
-  () => import("@/components/events/EventDetailInfo"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="animate-pulse">
-        <div className="mb-3">
-          <div className="h-4 w-28 bg-gray-200 rounded mb-2" />
-          <div className="h-7 w-64 bg-gray-200 rounded" />
-        </div>
-        <div className="h-4 w-44 bg-gray-200 rounded mb-3" />
-        <div className="flex gap-1.5 mb-4">
-          <div className="h-6 w-16 bg-gray-200 rounded-full" />
-          <div className="h-6 w-20 bg-gray-200 rounded-full" />
-          <div className="h-6 w-18 bg-gray-200 rounded-full" />
-        </div>
-        <div className="space-y-2 mb-6">
-          <div className="h-4 w-full bg-gray-200 rounded" />
-          <div className="h-4 w-3/4 bg-gray-200 rounded" />
-        </div>
-        <div className="h-5 w-20 bg-gray-200 rounded mb-3" />
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="h-4 bg-gray-200 rounded"
-              style={{ width: `${65 + i * 5}%` }}
-            />
-          ))}
-        </div>
-      </div>
-    ),
-  },
-);
-
-const EventOrganizer = dynamic(
-  () => import("@/components/events/EventOrganizer"),
-  {
-    ssr: false,
-    loading: () => (
-      <div>
-        <div className="h-5 w-36 bg-gray-200 rounded animate-pulse mb-3" />
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm animate-pulse">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gray-200" />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="h-5 w-28 bg-gray-200 rounded" />
-                <div className="h-5 w-16 bg-gray-200 rounded-full" />
-              </div>
-              <div className="h-4 w-24 bg-gray-200 rounded" />
-            </div>
-          </div>
-          <div className="flex items-center gap-4 mt-4 px-1">
-            <div className="flex-1 flex flex-col items-center gap-1">
-              <div className="h-5 w-10 bg-gray-200 rounded" />
-              <div className="h-3 w-16 bg-gray-200 rounded" />
-            </div>
-            <div className="w-px h-7 bg-gray-200" />
-            <div className="flex-1 flex flex-col items-center gap-1">
-              <div className="h-5 w-10 bg-gray-200 rounded" />
-              <div className="h-3 w-16 bg-gray-200 rounded" />
-            </div>
-          </div>
-          <div className="border-t border-gray-100 pt-3 mt-4 flex justify-center">
-            <div className="h-4 w-24 bg-gray-200 rounded" />
-          </div>
-        </div>
-      </div>
-    ),
-  },
-);
+// Inlined — no heavy deps, no extra chunk round-trip needed
+import EventImageCarousel from "@/components/events/EventImageCarousel";
+import EventDetailInfo from "@/components/events/EventDetailInfo";
+import EventOrganizer from "@/components/events/EventOrganizer";
 
 const EventTicketCard = dynamic(
   () => import("@/components/events/EventTicketCard"),

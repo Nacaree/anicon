@@ -5,6 +5,7 @@ import com.anicon.backend.ticketing.dto.CreateEventRequest;
 import com.anicon.backend.ticketing.dto.EventResponse;
 
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * REST controller for event endpoints.
@@ -44,9 +46,21 @@ public class EventController {
      *
      * @return List of events, each including their tags. Empty list if none upcoming.
      */
+    // Cache the events list at the CDN edge (Vercel) for 5 minutes, and in the
+    // browser for 1 minute. s-maxage controls what Vercel caches; max-age controls
+    // the browser. stale-while-revalidate lets the CDN serve a stale copy instantly
+    // while it fetches a fresh one in the background — users never wait for a miss.
+    private static final CacheControl EVENT_CACHE =
+            CacheControl.maxAge(60, TimeUnit.SECONDS)
+                    .cachePublic()
+                    .sMaxAge(5, TimeUnit.MINUTES)
+                    .staleWhileRevalidate(1, TimeUnit.HOURS);
+
     @GetMapping
     public ResponseEntity<List<EventResponse>> listEvents() {
-        return ResponseEntity.ok(eventService.listUpcomingEvents());
+        return ResponseEntity.ok()
+                .cacheControl(EVENT_CACHE)
+                .body(eventService.listUpcomingEvents());
     }
 
     /**
@@ -60,7 +74,9 @@ public class EventController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEvent(@PathVariable UUID id) {
-        return ResponseEntity.ok(eventService.getEvent(id));
+        return ResponseEntity.ok()
+                .cacheControl(EVENT_CACHE)
+                .body(eventService.getEvent(id));
     }
 
     /**
