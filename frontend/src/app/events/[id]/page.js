@@ -7,7 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
-import { eventApi, profileApi, normalizeEvent } from "@/lib/api";
+import { eventApi, profileApi, normalizeEvent, getCachedEvent } from "@/lib/api";
 
 const EventImageCarousel = dynamic(
   () => import("@/components/events/EventImageCarousel"),
@@ -148,13 +148,18 @@ export default function EventDetailPage({ params }) {
   const router = useRouter();
   const { isSidebarCollapsed } = useSidebar();
 
-  const [event, setEvent] = useState(null);
+  // Synchronously initialize from the in-memory event cache on first render.
+  // When the user clicks a card from /events, listEvents() already ran and
+  // populated _eventCache — getCachedEvent() returns the raw event immediately,
+  // so loading starts as false and the skeleton never flashes.
+  // Direct links (/events/[id] typed or refreshed) still get loading=true and fetch normally.
+  const [event, setEvent] = useState(() => {
+    const cached = getCachedEvent(id);
+    return cached ? normalizeEvent(cached) : null;
+  });
   const [organizer, setOrganizer] = useState(null);
   const [relatedEvents, setRelatedEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // Separate loading state for the "You May Also Like" section.
-  // Decoupled from the main event so the page can render before this finishes.
-  const [relatedLoading, setRelatedLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedEvent(id) === null);
   const [notFound, setNotFound] = useState(false);
 
   // Scroll to top on every navigation to this page.
@@ -211,8 +216,6 @@ export default function EventDetailPage({ params }) {
       } catch (err) {
         if (err.status === 404) setNotFound(true);
         setLoading(false);
-      } finally {
-        setRelatedLoading(false);
       }
     }
 
