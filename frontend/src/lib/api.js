@@ -69,11 +69,8 @@ async function request(endpoint, options = {}, retries = 3) {
   // the session from cookies / refresh an expired token. Public endpoints
   // (e.g. GET /api/events) don't need a bearer token, so there's no reason
   // to wait for auth initialization before sending the request.
-  // base: "" uses a relative URL so the request goes to the same origin (Vercel),
-  // hitting the Next.js proxy route handler instead of Railway directly.
-  // Omitting base (or any other value) falls back to the full Railway API_URL.
-  const { noAuth, base, ...fetchOptions } = options;
-  const baseUrl = base !== undefined ? base : API_URL;
+  const { noAuth, ...fetchOptions } = options;
+  const baseUrl = API_URL;
   const headers = noAuth
     ? { "Content-Type": "application/json" }
     : await getAuthHeaders();
@@ -101,11 +98,10 @@ async function request(endpoint, options = {}, retries = 3) {
     }
 
     if (!response.ok) {
-      // Retry on server errors (5xx) — pass noAuth and base through so retries
-      // use the same origin and auth settings as the original request.
+      // Retry on server errors (5xx) — pass noAuth through so retries use the same auth settings.
       if (response.status >= 500 && retries > 0) {
         await wait(500);
-        return request(endpoint, { ...fetchOptions, noAuth, base }, retries - 1);
+        return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
       }
 
       throw new ApiError(
@@ -119,10 +115,9 @@ async function request(endpoint, options = {}, retries = 3) {
   } catch (error) {
     clearTimeout(timeoutId);
     // Don't retry on timeout (AbortError) or explicit ApiError.
-    // Pass noAuth and base through on network-error retries.
     if (retries > 0 && error.name !== "ApiError" && error.name !== "AbortError") {
       await wait(500);
-      return request(endpoint, { ...fetchOptions, noAuth, base }, retries - 1);
+      return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
     }
     throw error;
   }
@@ -209,12 +204,12 @@ export function getCachedEvents() {
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
+// Both calls go directly to Railway (same as profile fetches) — Railway is already
+// fast (~50-80ms RTT), and routing through the Vercel proxy adds an extra hop that
+// makes requests slower (~400ms) rather than faster.
 export const eventApi = {
   listEvents: async () => {
-    // base: "" → relative URL → hits the Next.js proxy at /api/events on the same
-    // origin (anicon.online). Vercel caches the proxy response at the edge for 5
-    // minutes, so most requests cost ~20ms instead of a Railway round-trip (~400ms).
-    const events = await request("/api/events", { method: "GET", noAuth: true, base: "" });
+    const events = await request("/api/events", { method: "GET", noAuth: true });
     // Populate cache so subsequent getEvent(id) calls are instant.
     if (Array.isArray(events)) {
       events.forEach((e) => _eventCache.set(String(e.id), e));
@@ -222,10 +217,10 @@ export const eventApi = {
     return events;
   },
   getEvent: (id) => {
-    // Return cached event immediately if available; fall back to the Vercel proxy.
+    // Return cached event immediately if available; otherwise fetch Railway directly.
     const cached = _eventCache.get(String(id));
     if (cached) return Promise.resolve(cached);
-    return request(`/api/events/${id}`, { method: "GET", noAuth: true, base: "" });
+    return request(`/api/events/${id}`, { method: "GET", noAuth: true });
   },
 };
 
