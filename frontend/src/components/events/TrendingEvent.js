@@ -164,7 +164,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
           })()}
 
           {/* Content — sits above the blur layers (z-10), pushed right on desktop */}
-          <div className="relative z-10 flex-1 p-5 sm:p-6 md:pl-[54%] flex flex-col gap-4">
+          <div className="relative z-10 flex-1 p-5 sm:p-6 md:pl-[54%] flex flex-col gap-5">
             <div className="flex flex-col gap-1">
               <h3 className="font-bold text-xl text-gray-900 leading-snug">
                 {event.title}

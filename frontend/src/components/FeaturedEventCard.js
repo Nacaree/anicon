@@ -2,43 +2,66 @@ import Link from "next/link";
 
 export default function FeaturedEventCard({
   id,
-  tagline,
+  tagline,   // "🎪 CONVENTION"
   title,
-  subtitle,
-  date,
-  month,
+  date,      // "15"
+  month,     // "MAR 2026"
   imageUrl,
-  ctaButton,
+  isFree,
 }) {
+  // Drop the year — only show "MAR" in the date badge
+  const monthLabel = month ? month.split(" ")[0] : null;
+
   const card = (
-    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0">
-      {/* Background Image */}
-      <img
-        src={imageUrl}
-        alt={title}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-      />
+    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0 transition-[transform,filter] duration-150 active:scale-[0.97] active:brightness-90">
+      {/* object-top keeps subjects visible on the wide/short landscape crop */}
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={title}
+          className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gray-700" />
+      )}
 
-      {/* Gradient Overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+      {/* Gradient: slight top scrim + heavier bottom for readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/65" />
 
-      {/* Content */}
-      <div className="relative h-full flex flex-col justify-between p-4 sm:p-5 md:p-6 text-white z-10">
-        <div>
-          {tagline && <p className="text-xs mb-1 sm:mb-2 opacity-90">{tagline}</p>}
-          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">{title}</h3>
-          {subtitle && (
-            <p className="text-xl sm:text-2xl md:text-3xl font-light italic">{subtitle}</p>
-          )}
-          {date && <p className="text-xs sm:text-sm mt-1 sm:mt-2">{date}</p>}
-          {month && <p className="text-xs">{month}</p>}
-        </div>
+      {/* ── Top badges row ── */}
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-10 flex items-start justify-between gap-2">
 
-        {ctaButton?.show && (
-          <button className="self-end bg-[#FF7927] hover:bg-[#E66D20] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-            {ctaButton.text}
-          </button>
+        {/* Category pill — frosted glass + pulsing orange glow */}
+        {tagline && (
+          <span className="featured-category-pill inline-flex items-center gap-1 bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-semibold px-5 py-2.5 rounded-full">
+            {tagline}
+          </span>
         )}
+
+        {/* Date badge — frosted, same style as PromotedEvents, no year */}
+        {date && monthLabel && (
+          <div className="flex flex-col items-center bg-white/15 backdrop-blur-md border border-white/25 rounded-xl px-3 py-1.5 shadow-md min-w-11
+            transition-all duration-300 group-hover:scale-110 group-hover:bg-white/25 group-hover:border-white/45">
+            <span className="text-white text-lg font-bold leading-none">{date}</span>
+            <span className="text-white/80 text-[10px] font-semibold uppercase tracking-widest">{monthLabel}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom info bar ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 md:p-5">
+        <h3 className="text-white font-bold text-xl sm:text-2xl md:text-3xl leading-tight mb-2 drop-shadow-sm line-clamp-2">
+          {title}
+        </h3>
+
+        {/* Free / Paid pill — pulsing glow matching the color */}
+        <span className={`inline-flex items-center text-xs font-semibold px-5 py-2 rounded-full backdrop-blur-sm ${
+          isFree
+            ? "featured-free-pill bg-green-500/75 text-white"
+            : "featured-ticket-pill bg-[#FF7927]/80 text-white"
+        }`}>
+          {isFree ? "Free Entry" : "Get Ticket"}
+        </span>
       </div>
     </div>
   );

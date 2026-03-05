@@ -143,6 +143,13 @@ export function AuthProvider({ children }) {
       throw authError;
     }
 
+    // Supabase does not return an error for duplicate emails — it silently returns
+    // a fake success to prevent email enumeration. The tell is an empty identities
+    // array: a real new user always has at least one identity entry.
+    if (authData.user?.identities?.length === 0) {
+      throw new Error("An account with this email already exists. Please sign in instead.");
+    }
+
     setUser(authData.user);
     return authData;
   };

@@ -157,6 +157,14 @@ export default function EventDetailPage({ params }) {
   const [relatedLoading, setRelatedLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Scroll to top on every navigation to this page.
+  // Next.js App Router caches scroll positions per URL in production and restores
+  // them on revisit — causing the page to load mid-scroll. Imperatively resetting
+  // here wins over that cache and always gives the user a fresh view from the top.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [id]);
+
   useEffect(() => {
     async function load() {
       try {
