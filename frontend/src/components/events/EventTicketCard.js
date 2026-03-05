@@ -175,7 +175,7 @@ export default function EventTicketCard({ event, loading = false }) {
               : rsvpDone
               ? "You're Going! 🎉"
               : event.isFree
-              ? "RSVP"
+              ? "I'm Going"
               : "Get Tickets"}
           </button>
 

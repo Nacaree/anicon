@@ -15,6 +15,9 @@ const EventCarousel = forwardRef(function EventCarousel({
   children,
   hideGradients = false,
   enableEnlarge = false,
+  // autoPlay: advances the carousel automatically on an interval, pauses on hover
+  autoPlay = false,
+  autoPlayInterval = 4000,
 }, ref) {
   const scrollContainerRef = useRef(null);
   const [showButtons, setShowButtons] = useState(false);
@@ -93,6 +96,34 @@ const EventCarousel = forwardRef(function EventCarousel({
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
+
+  // Auto-play: advance one page on each interval tick, loop back to start at the end.
+  // Re-runs whenever showButtons changes so hover pauses/resumes the timer cleanly.
+  useEffect(() => {
+    if (!autoPlay || showButtons) return;
+
+    const id = setInterval(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const atEnd = scrollLeft >= scrollWidth - clientWidth - 5;
+
+      if (atEnd) {
+        // Loop: jump back to the start
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        // Advance exactly 1 card at a time so 2 cards are always visible during the transition
+        const sampleItem = itemRefs.current[0];
+        const scrollAmount = sampleItem
+          ? sampleItem.offsetWidth + 20 // 20px = gap-5
+          : clientWidth * 0.5;
+        container.scrollTo({ left: scrollLeft + scrollAmount, behavior: "smooth" });
+      }
+    }, autoPlayInterval);
+
+    return () => clearInterval(id);
+  }, [autoPlay, autoPlayInterval, showButtons]);
 
   // Reset when children change (e.g. EventTimeline filtering)
   const prevChildCount = useRef(childCount);

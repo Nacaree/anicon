@@ -61,7 +61,7 @@ function TicketCard({ item }) {
         {/* Type badge */}
         <div className="absolute top-3 left-3">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/90 text-gray-700 shadow-sm">
-            {isRsvp ? "Free RSVP" : item.isFree ? "Free" : item.ticketPrice ? `$${Number(item.ticketPrice).toFixed(2)}` : "Paid"}
+            {isRsvp ? "Free Entry" : item.isFree ? "Free" : item.ticketPrice ? `$${Number(item.ticketPrice).toFixed(2)}` : "Paid"}
           </span>
         </div>
 
@@ -233,7 +233,7 @@ export default function MyTicketsPage() {
               </div>
               <h2 className="text-lg font-semibold text-gray-900 mb-1">No tickets yet</h2>
               <p className="text-gray-500 text-sm mb-6">
-                Tickets and RSVPs for events you join will appear here.
+                Tickets and free event sign-ups will appear here.
               </p>
               <a
                 href="/events"

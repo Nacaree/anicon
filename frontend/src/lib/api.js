@@ -180,12 +180,31 @@ export const profileApi = {
     request(`/api/profiles/user/${userId}`, { method: "GET", noAuth: true }),
 };
 
+// In-memory event cache populated by listEvents().
+// When the user browses the events page, listEvents() already has every event in
+// memory. Storing them here lets getEvent(id) return instantly on card click
+// instead of making a round-trip to Railway (~300–800 ms in prod).
+// Direct links to /events/:id still fetch normally — the cache is simply empty.
+const _eventCache = new Map();
+
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
 export const eventApi = {
-  listEvents: () => request("/api/events", { method: "GET", noAuth: true }),
-  getEvent: (id) => request(`/api/events/${id}`, { method: "GET", noAuth: true }),
+  listEvents: async () => {
+    const events = await request("/api/events", { method: "GET", noAuth: true });
+    // Populate cache so subsequent getEvent(id) calls are instant.
+    if (Array.isArray(events)) {
+      events.forEach((e) => _eventCache.set(String(e.id), e));
+    }
+    return events;
+  },
+  getEvent: (id) => {
+    // Return cached event immediately if available; fall back to network.
+    const cached = _eventCache.get(String(id));
+    if (cached) return Promise.resolve(cached);
+    return request(`/api/events/${id}`, { method: "GET", noAuth: true });
+  },
 };
 
 // Ticket API calls

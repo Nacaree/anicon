@@ -1,12 +1,77 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import EventCarousel from "./EventCarousel";
 import FeaturedEventCard from "./FeaturedEventCard";
+import { eventApi, normalizeEvent } from "@/lib/api";
+
+// Emoji per category for the tagline displayed on each card
+const CATEGORY_EMOJI = {
+  convention: "🎪",
+  meetup: "🎭",
+  workshop: "🛠️",
+  concert: "🎵",
+  competition: "🏆",
+  screening: "🎬",
+};
+
+// Format "2026-03-15" → "15"
+function formatDay(isoDate) {
+  if (!isoDate) return null;
+  return String(parseInt(String(isoDate).split("-")[2], 10));
+}
+
+// Format "2026-03-15" → "MAR 2026"
+function formatMonthYear(isoDate) {
+  if (!isoDate) return null;
+  const [year, month] = String(isoDate).split("-");
+  const names = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
+  return `${names[parseInt(month, 10) - 1]} ${year}`;
+}
+
+// Map a normalized event to the shape FeaturedEventCard expects
+function toFeaturedCard(event) {
+  const cat = event.category?.toLowerCase() ?? "";
+  const emoji = CATEGORY_EMOJI[cat] ?? "🎌";
+  return {
+    id: event.id,
+    tagline: `${emoji} ${(event.category ?? "EVENT").toUpperCase()}`,
+    title: event.title,
+    date: formatDay(event.eventDate),
+    month: formatMonthYear(event.eventDate),
+    imageUrl: event.coverImageUrl || event.imageUrl || null,
+    isFree: event.isFree,
+  };
+}
 
 export default function FeaturedEvents() {
   const [isVisible, setIsVisible] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const sectionRef = useRef(null);
+
+  // Two-layer crossfade background: Layer A and B alternate visibility.
+  // When cycling, we pre-load the next image into the inactive layer before fading it in.
+  const [bgLayerA, setBgLayerA] = useState("");
+  const [bgLayerB, setBgLayerB] = useState("");
+  const [activeLayer, setActiveLayer] = useState("A"); // which layer is fully visible
+  // Stable ref to the current images list so interval callbacks don't go stale
+  const eventImagesRef = useRef([]);
+  const bgIndexRef = useRef(0);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -16,181 +81,128 @@ export default function FeaturedEvents() {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
-  const featuredEvents = [
-    {
-      id: "tr1",
-      tagline: "I'M READY FOR",
-      title: "JKTANIME",
-      subtitle: "2025",
-      date: "10-12",
-      month: "JAN 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr2",
-      tagline: "⚡ JAPAN JAM",
-      title: "ANIMECON",
-      subtitle: "ANIME FESTIVAL",
-      date: null,
-      month: null,
-      imageUrl:
-        "https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=600&h=256&fit=crop",
-      ctaButton: { text: "Get Ticket", show: true },
-    },
-    {
-      id: "tr3",
-      tagline: "✨ SPRING EDITION",
-      title: "COSPLAY",
-      subtitle: "EXPO",
-      date: "25-27",
-      month: "MAR 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr4",
-      tagline: "🎌 SUMMER FEST",
-      title: "TOKYO",
-      subtitle: "GAME SHOW",
-      date: "15-17",
-      month: "JUL 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr5",
-      tagline: "🎧 MUSIC LIVE",
-      title: "ANISONG",
-      subtitle: "CONCERT",
-      date: "05-07",
-      month: "AUG 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&h=256&fit=crop",
-      ctaButton: { text: "Book Now", show: true },
-    },
-    {
-      id: "tr6",
-      tagline: "🎮 ESPORTS",
-      title: "GAMING",
-      subtitle: "TOURNAMENT",
-      date: "20-22",
-      month: "SEP 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr7",
-      tagline: "🎎 TRADITION",
-      title: "KYOTO",
-      subtitle: "CULTURE FEST",
-      date: "10-12",
-      month: "OCT 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1528360983277-13d9b152c58b?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr8",
-      tagline: "🎃 HALLOWEEN",
-      title: "SPOOKY",
-      subtitle: "COSPLAY NIGHT",
-      date: "31",
-      month: "OCT 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=600&h=256&fit=crop",
-      ctaButton: { text: "Join Party", show: true },
-    },
-    {
-      id: "tr9",
-      tagline: "❄️ WINTER",
-      title: "SNOW",
-      subtitle: "FESTIVAL",
-      date: "15-20",
-      month: "DEC 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1482686119632-c6041ef687e3?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr10",
-      tagline: "🎆 NEW YEAR",
-      title: "COUNTDOWN",
-      subtitle: "PARTY",
-      date: "31",
-      month: "DEC 2025",
-      imageUrl:
-        "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-    {
-      id: "tr11",
-      tagline: "🌸 SPRING",
-      title: "SAKURA",
-      subtitle: "PICNIC",
-      date: "01-05",
-      month: "APR 2026",
-      imageUrl:
-        "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&h=256&fit=crop",
-      ctaButton: { text: "RSVP", show: true },
-    },
-    {
-      id: "tr12",
-      tagline: "🏖️ SUMMER",
-      title: "BEACH",
-      subtitle: "BASH",
-      date: "15-17",
-      month: "JUN 2026",
-      imageUrl:
-        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=256&fit=crop",
-      ctaButton: null,
-    },
-  ];
+
+  useEffect(() => {
+    eventApi
+      .listEvents()
+      .then((data) => setEvents(data.map(normalizeEvent)))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const featuredCards = events.map(toFeaturedCard);
+
+  // Keep the images ref current so interval callbacks always see the latest list
+  const eventImages = featuredCards.map((e) => e.imageUrl).filter(Boolean);
+  eventImagesRef.current = eventImages;
+
+  // Seed Layer A with the first event image as soon as events load
+  useEffect(() => {
+    if (eventImages.length === 0) return;
+    setBgLayerA(eventImages[0]);
+    bgIndexRef.current = 0;
+    // Only run once when events first become available (length goes from 0 → N)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventImages.length > 0]);
+
+  // Cycle background image every 5 s with a 1 s CSS crossfade between layers.
+  // Only runs when there are at least 2 images to cycle through.
+  useEffect(() => {
+    if (eventImages.length < 2) return;
+
+    const id = setInterval(() => {
+      const images = eventImagesRef.current;
+      if (images.length < 2) return;
+
+      bgIndexRef.current = (bgIndexRef.current + 1) % images.length;
+      const nextImage = images[bgIndexRef.current];
+
+      // Load next image into the inactive layer, then toggle which layer is on top
+      setActiveLayer((prev) => {
+        if (prev === "A") {
+          setBgLayerB(nextImage);
+          return "B";
+        } else {
+          setBgLayerA(nextImage);
+          return "A";
+        }
+      });
+    }, 5000);
+
+    return () => clearInterval(id);
+    // Re-run only when the image count changes (i.e., events load or are filtered)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventImages.length]);
 
   return (
     <div
       ref={sectionRef}
-      className={`mb-8 transition-all duration-700 ease-out ${
+      className={`mb-8 transition-all duration-1000 ease-out ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
       {/* Section Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-800">Featured Events</h2>
-        <button className="text-sm text-gray-500 hover:text-[#FF7927] transition-colors">
+        <Link
+          href="/events"
+          className="text-sm text-gray-500 hover:text-[#FF7927] transition-colors"
+        >
           Show all →
-        </button>
+        </Link>
       </div>
 
-      {/* Background Container with Image and Gradient */}
+      {/* Background Container — two crossfade layers + dark dim overlay */}
       <div className="relative rounded-xl overflow-hidden p-6">
-        {/* Background Image */}
+        {/* Layer A — fades in/out as activeLayer toggles */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=400&fit=crop')",
-          }}
-        ></div>
+          className={`absolute inset-0 bg-cover bg-top transition-opacity duration-1000 ${
+            activeLayer === "A" ? "opacity-100" : "opacity-0"
+          }`}
+          style={
+            bgLayerA ? { backgroundImage: `url('${bgLayerA}')` } : undefined
+          }
+        />
+        {/* Layer B — the counterpart to Layer A */}
+        <div
+          className={`absolute inset-0 bg-cover bg-top transition-opacity duration-1000 ${
+            activeLayer === "B" ? "opacity-100" : "opacity-0"
+          }`}
+          style={
+            bgLayerB ? { backgroundImage: `url('${bgLayerB}')` } : undefined
+          }
+        />
+        {/* Dark overlay — dims the background so cards remain readable */}
+        <div className="absolute inset-0 bg-black/45" />
 
-        {/* Events Carousel */}
-        <div className="relative z-10">
-          <EventCarousel hideGradients={true}>
-            {featuredEvents.map((event) => (
-              <FeaturedEventCard key={event.id} {...event} />
+        {/* Skeleton shimmer while events are loading */}
+        {loading && (
+          <div className="relative z-10 flex gap-4 overflow-hidden">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] bg-white/20 animate-pulse shrink-0"
+              />
             ))}
-          </EventCarousel>
-        </div>
+          </div>
+        )}
+
+        {/* Real events carousel */}
+        {!loading && featuredCards.length > 0 && (
+          <div className="relative z-10">
+            <EventCarousel hideGradients={true} autoPlay={true}>
+              {featuredCards.map((event) => (
+                <FeaturedEventCard key={event.id} {...event} />
+              ))}
+            </EventCarousel>
+          </div>
+        )}
       </div>
     </div>
   );
