@@ -1,12 +1,9 @@
 "use client";
 
 // Client component for the event detail page.
-// Receives `initialEvent` from the Server Component wrapper (page.js), which
-// fetches the event on Vercel's server before sending HTML to the browser.
-// When initialEvent is present, there is NO client-side fetch for the main event —
-// the content is already in the HTML, so the page renders immediately with no skeleton.
-// When initialEvent is null (Railway was down, event not found, etc.) it falls back
-// to the normal client-side fetch path.
+// Renders immediately from _eventCache (populated by listEvents() on the events page)
+// with no skeleton when navigating from the events list. Falls back to a proxy fetch
+// for direct URL visits where the cache is cold.
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -15,7 +12,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
-import { eventApi, profileApi, normalizeEvent, getCachedEvent } from "@/lib/api";
+import { eventApi, profileApi, normalizeEvent, getCachedEvent, getCachedEvents } from "@/lib/api";
 // Inlined — no heavy deps, no extra chunk round-trip needed
 import EventImageCarousel from "@/components/events/EventImageCarousel";
 import EventDetailInfo from "@/components/events/EventDetailInfo";
@@ -62,22 +59,18 @@ const EventsCategorySection = dynamic(
   },
 );
 
-export default function EventDetailClient({ id, initialEvent }) {
+export default function EventDetailClient({ id }) {
   const router = useRouter();
   const { isSidebarCollapsed } = useSidebar();
 
   // Priority order for initial event state:
-  // 1. initialEvent from SSR (server fetched it before sending HTML — fastest, no skeleton)
-  // 2. _eventCache from a prior listEvents() call (user navigated from /events page)
-  // 3. null → loading=true → client-side fetch (direct URL on cold load)
-  const [event, setEvent] = useState(() => {
-    if (initialEvent) return normalizeEvent(initialEvent);
-    const cached = getCachedEvent(id);
-    return cached ? normalizeEvent(cached) : null;
-  });
+  // 1. _eventCache from a prior listEvents() call (user navigated from /events page)
+  // 2. null → loading=true → client-side proxy fetch (direct URL on cold load)
+  const cached = getCachedEvent(id);
+  const [event, setEvent] = useState(() => (cached ? normalizeEvent(cached) : null));
   const [organizer, setOrganizer] = useState(null);
   const [relatedEvents, setRelatedEvents] = useState([]);
-  const [loading, setLoading] = useState(!initialEvent && getCachedEvent(id) === null);
+  const [loading, setLoading] = useState(cached === null);
   const [notFound, setNotFound] = useState(false);
 
   // Scroll to top on every navigation to this page.
@@ -92,10 +85,10 @@ export default function EventDetailClient({ id, initialEvent }) {
     async function load() {
       try {
         // Phase 1: get event data.
-        // Skip the fetch if we already have it from SSR (initialEvent) or the client
-        // cache (_eventCache). Both paths set event state synchronously before this
-        // effect runs, so loading is already false — no fetch needed.
-        let eventData = initialEvent;
+        // Skip the fetch if _eventCache already has it (user came from /events list).
+        // getCachedEvent() is checked synchronously in useState above, so if loading
+        // is false here, the event is already rendered — no network call needed.
+        let eventData = getCachedEvent(id);
         if (!eventData) {
           eventData = await eventApi.getEvent(id);
           setEvent(normalizeEvent(eventData));
@@ -120,19 +113,28 @@ export default function EventDetailClient({ id, initialEvent }) {
               .catch(() => {}) // Organizer profile unavailable — section won't render
           : Promise.resolve();
 
-        // listEvents() fetches all events — kept out of Phase 1 because it's the
-        // slowest call and used only for "You May Also Like", not the main content.
-        const relatedPromise = eventApi
-          .listEvents()
-          .then((allEvents) =>
-            setRelatedEvents(
-              allEvents
+        // Use _eventCache for "You May Also Like" if already warm (user came from /events).
+        // Only call listEvents() on direct URL visits where the cache is cold — avoids
+        // an unnecessary network request on every card click from the events list.
+        const cachedAll = getCachedEvents();
+        const relatedPromise = cachedAll
+          ? Promise.resolve(
+              cachedAll
                 .filter((e) => e.id !== id)
                 .slice(0, 10)
                 .map(normalizeEvent),
-            ),
-          )
-          .catch(() => {}); // "You May Also Like" failing is non-critical
+            ).then(setRelatedEvents)
+          : eventApi
+              .listEvents()
+              .then((allEvents) =>
+                setRelatedEvents(
+                  allEvents
+                    .filter((e) => e.id !== id)
+                    .slice(0, 10)
+                    .map(normalizeEvent),
+                ),
+              )
+              .catch(() => {}); // "You May Also Like" failing is non-critical
 
         await Promise.all([organizerPromise, relatedPromise]);
       } catch (err) {

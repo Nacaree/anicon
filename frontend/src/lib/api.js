@@ -198,6 +198,14 @@ export function getCachedEvent(id) {
   return _eventCache.get(String(id)) ?? null;
 }
 
+// Returns all cached events as an array, or null if the cache is empty.
+// Used by EventDetailClient to skip the listEvents() network request when the
+// user navigated from the events list (cache already warm).
+export function getCachedEvents() {
+  if (_eventCache.size === 0) return null;
+  return [..._eventCache.values()];
+}
+
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
