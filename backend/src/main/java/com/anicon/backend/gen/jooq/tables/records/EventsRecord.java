@@ -235,6 +235,20 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
         return (OffsetDateTime) get(14);
     }
 
+    /**
+     * Setter for <code>public.events.description</code>.
+     */
+    public void setDescription(String value) {
+        set(15, value);
+    }
+
+    /**
+     * Getter for <code>public.events.description</code>.
+     */
+    public String getDescription() {
+        return (String) get(15);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -258,7 +272,7 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
     /**
      * Create a detached, initialised EventsRecord
      */
-    public EventsRecord(UUID id, String title, String location, LocalDate eventDate, LocalTime eventTime, UUID organizerId, EventType eventType, String category, Boolean isFree, BigDecimal ticketPrice, Integer maxCapacity, Integer currentAttendance, String coverImageUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public EventsRecord(UUID id, String title, String location, LocalDate eventDate, LocalTime eventTime, UUID organizerId, EventType eventType, String category, Boolean isFree, BigDecimal ticketPrice, Integer maxCapacity, Integer currentAttendance, String coverImageUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt, String description) {
         super(Events.EVENTS);
 
         setId(id);
@@ -276,6 +290,7 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
         setCoverImageUrl(coverImageUrl);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setDescription(description);
         resetTouchedOnNotNull();
     }
 }

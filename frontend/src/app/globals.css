@@ -13,6 +13,121 @@
   }
 }
 
+/* Shimmer sweep for the trending card — diagonal sheen that repeats every ~4s */
+@keyframes card-shimmer {
+  0%   { transform: translateX(-150%) skewX(-15deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(350%) skewX(-15deg); opacity: 0; }
+}
+
+.trending-shimmer {
+  animation: card-shimmer 4s ease-in-out infinite;
+  animation-delay: 1.5s;
+  /* backwards: hold the 0% state (opacity 0, off-screen) during the delay so the
+     shimmer div isn't visible at its natural position before the sweep begins */
+  animation-fill-mode: backwards;
+}
+
+/* Right panel shimmer — delayed by 2.4s so it enters exactly as the image shimmer exits */
+.trending-shimmer-right {
+  animation: card-shimmer 4s ease-in-out infinite;
+  animation-delay: 2.9s;
+  animation-fill-mode: backwards;
+}
+
+/* Outer aura breathing — slow opacity + scale pulse. Includes the base offset so
+   we can override the Tailwind translate classes and keep everything in one animation. */
+@keyframes aura-breathe {
+  0%, 100% { opacity: 0.75; transform: translate(8px, 8px) scale(1); }
+  50%       { opacity: 1;    transform: translate(8px, 8px) scale(1.05); }
+}
+
+.trending-aura {
+  animation: aura-breathe 5s ease-in-out infinite;
+}
+
+/* Hue drift — slow filter animation on the blurred shadow image. Includes all filter
+   values so they don't conflict with Tailwind's filter custom properties. Alternates
+   direction for a gentle back-and-forth color wander. */
+@keyframes hue-drift {
+  0%   { filter: blur(48px) saturate(2) brightness(0.9) hue-rotate(0deg); }
+  100% { filter: blur(48px) saturate(2) brightness(0.9) hue-rotate(30deg); }
+}
+
+.trending-hue-drift {
+  animation: hue-drift 8s ease-in-out infinite alternate;
+}
+
+/* Promoted card aura — wrapper div breathes in opacity and shifts right+down for depth.
+   translate(4px,5px) mirrors the trending card's shadow offset.
+   Scale is kept small here; the real visual spread comes from the blurred img inside. */
+@keyframes promoted-aura-breathe {
+  0%, 100% { opacity: 0.5;  transform: translate(4px, 5px) scale(1); }
+  50%       { opacity: 0.78; transform: translate(4px, 5px) scale(1.04); }
+}
+
+.promoted-aura {
+  animation: promoted-aura-breathe 5s ease-in-out infinite;
+}
+
+/* Promoted card hue drift — applied to the scaled img inside the aura wrapper.
+   blur(36px) + scale-125 on the img means the blur bleeds well past the wrapper edges,
+   mirroring how TrendingEvent's blur(48px) + scale-150 bleeds past its aura container. */
+@keyframes promoted-hue-drift {
+  0%   { filter: blur(36px) saturate(1.8) brightness(0.88) hue-rotate(0deg); }
+  100% { filter: blur(36px) saturate(2.2) brightness(0.88) hue-rotate(25deg); }
+}
+
+.promoted-hue-drift {
+  animation: promoted-hue-drift 7s ease-in-out infinite alternate;
+}
+
+/* Promoted card shimmer — reuses card-shimmer keyframe, slightly lighter and slower than trending.
+   backwards: hold 0% state (off-screen) during delay so it isn't visible before the sweep starts. */
+.promoted-shimmer {
+  animation: card-shimmer 5s ease-in-out infinite;
+  animation-delay: 1s;
+  animation-fill-mode: backwards;
+}
+
+/* Ki charge pulse — expanding ring bursts outward and fades, like a DBZ energy release.
+   Repeats every 2s with a 1s rest gap so it feels like a deliberate charge, not a loop. */
+@keyframes ki-pulse {
+  0%   { box-shadow: 0 0 0 0px #FF792780; }
+  60%  { box-shadow: 0 0 0 10px #FF792700; }
+  100% { box-shadow: 0 0 0 0px #FF792700; }
+}
+
+/* Neon breathe — steady ambient glow that slowly intensifies and dims underneath the ki ring */
+/* 0% and 100% are identical (ring transparent at 0px) so the loop is seamless.
+   At 10% the ring charges to orange at 0px spread — invisible since spread=0,
+   but gives the interpolation a visible start point before it expands outward. */
+@keyframes neon-breathe {
+  0%, 100% { box-shadow: 0 0 6px 1px #FF7927, 0 0 12px 2px #FF792760,
+                         0 0 0 0px #FF792700; }
+  10%       { box-shadow: 0 0 6px 1px #FF7927, 0 0 12px 2px #FF792760,
+                         0 0 0 0px #FF792780; }
+  65%       { box-shadow: 0 0 6px 1px #FF7927, 0 0 12px 2px #FF792760,
+                         0 0 0 10px #FF792700; }
+}
+
+.trending-btn-ki {
+  /* neon-breathe owns both the ambient glow layers and the expanding ki ring
+     via the third box-shadow, so one animation drives the full effect */
+  animation: neon-breathe 2s ease-out infinite;
+}
+
+/* Trending badge — pulsing red glow that repeats to draw attention */
+@keyframes trending-glow {
+  0%, 100% { box-shadow: 0 2px 12px rgba(255, 39, 39, 0.6); }
+  50%       { box-shadow: 0 4px 24px rgba(255, 39, 39, 0.95); }
+}
+
+.trending-badge {
+  animation: trending-glow 2s ease-in-out infinite;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

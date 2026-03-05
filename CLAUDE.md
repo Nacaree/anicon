@@ -12,6 +12,7 @@ Key reference docs:
 - `docs/ANICONNECT_TICKETING_SCHEMA_V2.sql` — Ticketing schema (Feature 1)
 - `docs/ticketing_schema_design_guide.md` — Ticketing design rationale and payment flow
 - `docs/TICKETING_BACKEND_PROGRESS.md` — Build session summary, TODOs, design decisions
+- `docs/DEPLOYMENT_GUIDE.md` — Railway + Vercel hosting setup, env vars, known build issues
 - `backend/README.md` — Backend API documentation and setup
 
 ## Commands
@@ -66,8 +67,8 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 
 ### Backend Architecture
 
-- **ORM strategy:** JPA/Hibernate for simple CRUD (profiles, follows, influencer_applications); JOOQ for complex queries (all ticketing tables). JOOQ types are generated into `com.anicon.backend.gen.jooq` via `./mvnw jooq-codegen:generate`.
-- **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine. CORS is hardcoded to `http://localhost:3000` in `SecurityConfig` — update this for production.
+- **ORM strategy:** JPA/Hibernate for simple CRUD (profiles, follows, influencer_applications); JOOQ for complex queries (all ticketing tables). JOOQ types live in `com.anicon.backend.gen.jooq` and are **committed to git** (not gitignored) so Railway CI builds don't need a live DB connection. To regenerate after schema changes: run `./mvnw jooq-codegen:generate` locally with a real DB, then commit the output. The build flag `-Djooq.codegen.skip=true` is set in `Dockerfile` to skip codegen in CI.
+- **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine. CORS origins are read from the `CORS_ALLOWED_ORIGINS` env var (comma-separated) in `SecurityConfig` — set this to `http://localhost:3000` locally and `https://anicon.online` in production.
 - **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSLContext.
 - **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, `StripeService`, `StripeWebhookController`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
 
@@ -141,6 +142,15 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 - `follower_count` / `following_count` are denormalized on `profiles` and updated atomically on follow/unfollow — do not recount from the `follows` table
 - All timestamps use `timestamptz`
 - Mini events must always be free (enforced at both DB level and Spring Boot service layer)
+
+## Deployment
+
+- **Frontend:** Vercel, auto-deploys from `main` branch → `https://anicon.online`
+- **Backend:** Railway, auto-deploys from `main` branch → `https://anicon-production.up.railway.app`
+- **Workflow:** develop on feature branches → merge to `main` → both services auto-deploy
+- **Key env vars:** `NEXT_PUBLIC_API_URL` on Vercel, `CORS_ALLOWED_ORIGINS` + `PAYWAY_RETURN_URL` on Railway
+
+See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and build troubleshooting.
 
 ## Current Implementation Status
 

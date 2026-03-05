@@ -82,18 +82,21 @@ export default function EventsPage() {
   const sidebarOffset = isSidebarCollapsed ? "md:ml-20" : "md:ml-64";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-clip">
       <Sidebar />
       <Header />
 
       <div className={`${sidebarOffset} pt-16 transition-all duration-300`}>
-        {/* Promoted Events */}
+        {/* Promoted Events — first 2 events from the list */}
         <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
-          <PromotedEvents />
+          <PromotedEvents events={events.slice(2, 4)} loading={loading} />
         </div>
 
-        {/* Event Timeline — full bleed so gradient extends edge to edge */}
-        <EventTimeline events={events} loading={loading} />
+        {/* Event Timeline — relative z-10 creates a stacking context above the
+            TrendingEvent depth shadow so the glow bleeds under it, not over it */}
+        <div className="relative z-10">
+          <EventTimeline events={events} loading={loading} />
+        </div>
 
         {/* Trending Event */}
         <div className="px-4 sm:px-6 md:px-8 pt-6 max-w-7xl mx-auto">
@@ -107,7 +110,7 @@ export default function EventsPage() {
             Background is transparent while the bar is in flow; fills in once stuck. */}
         {allTags.length > 0 && (
           <div
-            className="sticky top-16 z-20 backdrop-blur-sm mt-6 transition-colors duration-300"
+            className={`sticky top-16 z-20 mt-6 transition-colors duration-300${isTagBarStuck ? " backdrop-blur-sm" : ""}`}
             style={{ backgroundColor: isTagBarStuck ? "rgba(249, 250, 251, 0.95)" : "transparent" }}
           >
             <div className="px-4 sm:px-6 md:px-8 py-3 max-w-7xl mx-auto flex items-center gap-2 flex-wrap">
@@ -146,7 +149,7 @@ export default function EventsPage() {
               {selectedTags.length > 1 && (
                 <button
                   onClick={() => setSelectedTags([])}
-                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors ml-1"
+                  className="text-sm text-gray-600 hover:text-black transition-colors ml-1"
                 >
                   Clear all
                 </button>
@@ -171,6 +174,7 @@ export default function EventsPage() {
             title="Cosplay events"
             events={cosplayEvents}
             loading={loading}
+            hideGradients
           />
 
           {/* Convention Events — always visible, unaffected by tag selection */}

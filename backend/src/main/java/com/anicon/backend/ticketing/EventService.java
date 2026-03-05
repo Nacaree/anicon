@@ -112,6 +112,7 @@ public class EventService {
                     .set(EVENTS.TICKET_PRICE, req.getTicketPrice())   // null for free events
                     .set(EVENTS.MAX_CAPACITY, req.getMaxCapacity())   // null = no cap
                     .set(EVENTS.COVER_IMAGE_URL, req.getCoverImageUrl())
+                    .set(EVENTS.DESCRIPTION, req.getDescription())
                     .returning()
                     .fetchOne();
 
@@ -166,7 +167,7 @@ public class EventService {
                         EVENTS.EVENT_DATE, EVENTS.EVENT_TIME, EVENTS.ORGANIZER_ID,
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
-                        EVENTS.COVER_IMAGE_URL, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
                         tagsField)
                 .from(EVENTS)
                 .where(EVENTS.ID.eq(eventId))
@@ -191,7 +192,7 @@ public class EventService {
                         EVENTS.EVENT_DATE, EVENTS.EVENT_TIME, EVENTS.ORGANIZER_ID,
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
-                        EVENTS.COVER_IMAGE_URL, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
                         tagsField)
                 .from(EVENTS)
                 .where(EVENTS.EVENT_DATE.greaterOrEqual(LocalDate.now()))
@@ -281,6 +282,7 @@ public class EventService {
                 .maxCapacity(r.getMaxCapacity())
                 .currentAttendance(r.getCurrentAttendance())
                 .coverImageUrl(r.getCoverImageUrl())
+                .description(r.getDescription())
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .tags(tags)
@@ -308,6 +310,7 @@ public class EventService {
                 .maxCapacity(r.get(EVENTS.MAX_CAPACITY))
                 .currentAttendance(r.get(EVENTS.CURRENT_ATTENDANCE))
                 .coverImageUrl(r.get(EVENTS.COVER_IMAGE_URL))
+                .description(r.get(EVENTS.DESCRIPTION))
                 .createdAt(r.get(EVENTS.CREATED_AT))
                 .updatedAt(r.get(EVENTS.UPDATED_AT))
                 .tags(r.get(tagsField))

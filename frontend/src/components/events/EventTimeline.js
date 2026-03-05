@@ -3,21 +3,82 @@
 import { useState, useMemo, useRef } from "react";
 import EventsPageCard from "./EventsPageCard";
 
-const MONTH_KEYS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const MONTH_KEYS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
 
 const MONTH_COLORS = {
-  jan: { bg: "bg-gradient-to-b from-sky-100 to-transparent",    pill: "bg-sky-400 text-white",    line: "bg-sky-400" },
-  feb: { bg: "bg-gradient-to-b from-pink-100 to-transparent",   pill: "bg-pink-400 text-white",   line: "bg-pink-400" },
-  mar: { bg: "bg-gradient-to-b from-green-100 to-transparent",  pill: "bg-green-500 text-white",  line: "bg-green-500" },
-  apr: { bg: "bg-gradient-to-b from-violet-100 to-transparent", pill: "bg-violet-400 text-white", line: "bg-violet-400" },
-  may: { bg: "bg-gradient-to-b from-amber-100 to-transparent",  pill: "bg-amber-400 text-white",  line: "bg-amber-400" },
-  jun: { bg: "bg-gradient-to-b from-orange-100 to-transparent", pill: "bg-orange-400 text-white", line: "bg-orange-400" },
-  jul: { bg: "bg-gradient-to-b from-red-100 to-transparent",    pill: "bg-red-400 text-white",    line: "bg-red-400" },
-  aug: { bg: "bg-gradient-to-b from-teal-100 to-transparent",   pill: "bg-teal-500 text-white",   line: "bg-teal-500" },
-  sep: { bg: "bg-gradient-to-b from-indigo-100 to-transparent", pill: "bg-indigo-400 text-white", line: "bg-indigo-400" },
-  oct: { bg: "bg-gradient-to-b from-rose-100 to-transparent",   pill: "bg-rose-400 text-white",   line: "bg-rose-400" },
-  nov: { bg: "bg-gradient-to-b from-purple-100 to-transparent", pill: "bg-purple-400 text-white", line: "bg-purple-400" },
-  dec: { bg: "bg-gradient-to-b from-yellow-100 to-transparent",  pill: "bg-yellow-500 text-white", line: "bg-yellow-500" },
+  jan: {
+    bg: "bg-gradient-to-b from-sky-100 to-transparent",
+    pill: "bg-sky-400 text-white",
+    line: "bg-sky-400",
+  },
+  feb: {
+    bg: "bg-gradient-to-b from-pink-100 to-transparent",
+    pill: "bg-pink-400 text-white",
+    line: "bg-pink-400",
+  },
+  mar: {
+    bg: "bg-gradient-to-b from-green-100 to-transparent",
+    pill: "bg-green-500 text-white",
+    line: "bg-green-500",
+  },
+  apr: {
+    bg: "bg-gradient-to-b from-violet-100 to-transparent",
+    pill: "bg-violet-400 text-white",
+    line: "bg-violet-400",
+  },
+  may: {
+    bg: "bg-gradient-to-b from-amber-100 to-transparent",
+    pill: "bg-amber-400 text-white",
+    line: "bg-amber-400",
+  },
+  jun: {
+    bg: "bg-gradient-to-b from-orange-100 to-transparent",
+    pill: "bg-orange-400 text-white",
+    line: "bg-orange-400",
+  },
+  jul: {
+    bg: "bg-gradient-to-b from-red-100 to-transparent",
+    pill: "bg-red-400 text-white",
+    line: "bg-red-400",
+  },
+  aug: {
+    bg: "bg-gradient-to-b from-teal-100 to-transparent",
+    pill: "bg-teal-500 text-white",
+    line: "bg-teal-500",
+  },
+  sep: {
+    bg: "bg-gradient-to-b from-indigo-100 to-transparent",
+    pill: "bg-indigo-400 text-white",
+    line: "bg-indigo-400",
+  },
+  oct: {
+    bg: "bg-gradient-to-b from-rose-100 to-transparent",
+    pill: "bg-rose-400 text-white",
+    line: "bg-rose-400",
+  },
+  nov: {
+    bg: "bg-gradient-to-b from-purple-100 to-transparent",
+    pill: "bg-purple-400 text-white",
+    line: "bg-purple-400",
+  },
+  dec: {
+    bg: "bg-gradient-to-b from-yellow-100 to-transparent",
+    pill: "bg-yellow-500 text-white",
+    line: "bg-yellow-500",
+  },
 };
 
 function getMonthKey(eventDate) {
@@ -39,7 +100,7 @@ export default function EventTimeline({ events = [], loading = false }) {
   const filteredEvents = useMemo(() => {
     if (activeCategory === "All") return events;
     return events.filter(
-      (e) => e.category?.toLowerCase() === activeCategory.toLowerCase()
+      (e) => e.category?.toLowerCase() === activeCategory.toLowerCase(),
     );
   }, [events, activeCategory]);
 
@@ -58,22 +119,31 @@ export default function EventTimeline({ events = [], loading = false }) {
     return order.map((key) => ({ key, events: groups[key] }));
   }, [filteredEvents]);
 
-  const firstMonthBg = monthGroups.length > 0
-    ? (MONTH_COLORS[monthGroups[0].key]?.bg ?? "bg-gray-50")
-    : "bg-gray-50";
-  const firstMonthLine = monthGroups.length > 0
-    ? (MONTH_COLORS[monthGroups[0].key]?.line ?? "bg-gray-300")
-    : "bg-gray-300";
+  const firstMonthBg =
+    monthGroups.length > 0
+      ? (MONTH_COLORS[monthGroups[0].key]?.bg ?? "bg-gray-50")
+      : "bg-gray-50";
+  const firstMonthLine =
+    monthGroups.length > 0
+      ? (MONTH_COLORS[monthGroups[0].key]?.line ?? "bg-gray-300")
+      : "bg-gray-300";
 
-  const lastMonthBg = monthGroups.length > 0
-    ? (MONTH_COLORS[monthGroups[monthGroups.length - 1].key]?.bg ?? "bg-gray-50")
-    : "bg-gray-50";
-  const lastMonthLine = monthGroups.length > 0
-    ? (MONTH_COLORS[monthGroups[monthGroups.length - 1].key]?.line ?? "bg-gray-300")
-    : "bg-gray-300";
+  const lastMonthBg =
+    monthGroups.length > 0
+      ? (MONTH_COLORS[monthGroups[monthGroups.length - 1].key]?.bg ??
+        "bg-gray-50")
+      : "bg-gray-50";
+  const lastMonthLine =
+    monthGroups.length > 0
+      ? (MONTH_COLORS[monthGroups[monthGroups.length - 1].key]?.line ??
+        "bg-gray-300")
+      : "bg-gray-300";
 
   const scroll = (dir) => {
-    scrollRef.current?.scrollBy({ left: dir === "left" ? -400 : 400, behavior: "smooth" });
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -400 : 400,
+      behavior: "smooth",
+    });
   };
 
   if (loading) {
@@ -112,8 +182,7 @@ export default function EventTimeline({ events = [], loading = false }) {
   }
 
   return (
-    <section className="py-8">
-
+    <section className="py-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mb-4">
         <div className="flex items-center gap-3">
@@ -153,41 +222,63 @@ export default function EventTimeline({ events = [], loading = false }) {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <div className="flex" style={{ minWidth: "100%" }}>
-              {/* Filler: extends the first month's color to the left edge */}
-              <div className={`flex-1 ${firstMonthBg}`}>
+              {/* Filler: extends the first month's line and gradient to the left edge */}
+              {/* Gradient is absolutely positioned starting at top-4.5 = center of h-9 line row */}
+              <div className="flex-1 relative">
                 <div className="relative h-9">
-                  <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${firstMonthLine}`} />
+                  <div
+                    className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${firstMonthLine}`}
+                  />
                 </div>
+                <div className={`absolute inset-x-0 bottom-0 top-[18.5px] ${firstMonthBg}`} />
               </div>
               {monthGroups.map(({ key, events: monthEvents }) => {
-                const colors = MONTH_COLORS[key] ?? { bg: "bg-gray-50", pill: "bg-gray-400 text-white", line: "bg-gray-400" };
+                const colors = MONTH_COLORS[key] ?? {
+                  bg: "bg-gray-50",
+                  pill: "bg-gray-400 text-white",
+                  line: "bg-gray-400",
+                };
                 return (
-                  <div key={key} className={`${colors.bg} shrink-0`}>
-                    {/* Pill sitting on the line */}
-                    <div className="relative h-9 px-4 sm:px-6 md:px-8">
-                      <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${colors.line}`} />
+                  <div key={key} className="shrink-0 relative">
+                    {/* Gradient overlay starting at the line's center (top-4.5 = h-9 / 2) */}
+                    <div className={`absolute inset-x-0 bottom-0 top-[18.5px] ${colors.bg}`} />
+
+                    {/* Pill sitting on the line — rendered above the gradient via relative */}
+                    <div className="relative h-9 px-4 sm:px-6 md:px-17">
+                      <div
+                        className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${colors.line}`}
+                      />
                       <div className="relative h-full flex items-center">
-                        <span className={`${colors.pill} text-xs font-bold px-3 py-1 rounded-full`}>
+                        <span
+                          className={`${colors.pill} text-xs font-bold px-3 py-1 rounded-full`}
+                        >
                           {key.toUpperCase()}
                         </span>
                       </div>
                     </div>
 
-                    {/* Cards */}
-                    <div className="flex gap-4 pt-3 pb-4 px-4 sm:px-6 md:px-8">
+                    {/* Cards sit on top of the gradient */}
+                    <div className="relative flex gap-4 pt-3 pb-4 px-4 sm:px-6 md:px-17">
                       {monthEvents.map((event) => (
-                        <EventsPageCard key={event.id} event={event} isHoverEnlargeable />
+                        <EventsPageCard
+                          key={event.id}
+                          event={event}
+                          isHoverEnlargeable
+                        />
                       ))}
                     </div>
                   </div>
                 );
               })}
 
-              {/* Filler: extends the last month's color to the right edge */}
-              <div className={`flex-1 ${lastMonthBg}`}>
+              {/* Filler: extends the last month's line and gradient to the right edge */}
+              <div className="flex-1 relative">
                 <div className="relative h-9">
-                  <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${lastMonthLine}`} />
+                  <div
+                    className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${lastMonthLine}`}
+                  />
                 </div>
+                <div className={`absolute inset-x-0 bottom-0 top-[18.5px] ${lastMonthBg}`} />
               </div>
             </div>
           </div>
@@ -199,8 +290,18 @@ export default function EventTimeline({ events = [], loading = false }) {
             }`}
             aria-label="Scroll left"
           >
-            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-5 h-5 text-orange-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
 
@@ -211,13 +312,25 @@ export default function EventTimeline({ events = [], loading = false }) {
             }`}
             aria-label="Scroll right"
           >
-            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-5 h-5 text-orange-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400 text-sm">No events found</div>
+        <div className="text-center py-8 text-gray-400 text-sm">
+          No events found
+        </div>
       )}
     </section>
   );
