@@ -49,7 +49,10 @@ export default function EventsPageCard({
         ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
     >
       {/* Clickable area — image + info */}
-      <Link href={`/events/${event.id}`} className="block">
+      {/* prefetch={true} pre-fetches the full RSC payload while the card is visible.
+          Default Next.js prefetch only covers the loading boundary — prefetch=true
+          caches the complete page so navigation is instant instead of ~400ms. */}
+      <Link href={`/events/${event.id}`} prefetch={true} className="block">
         {/* Image */}
         <div
           className={`relative bg-gray-200 overflow-hidden transition-all duration-500 ease-in-out ${

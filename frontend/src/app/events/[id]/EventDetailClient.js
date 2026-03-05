@@ -1,9 +1,8 @@
 "use client";
 
 // Client component for the event detail page.
-// Renders immediately from _eventCache (populated by listEvents() on the events page)
-// with no skeleton when navigating from the events list. Falls back to a proxy fetch
-// for direct URL visits where the cache is cold.
+// Renders immediately from _eventCache when navigating from the events list.
+// Falls back to a direct Railway fetch for direct URL visits (cold cache).
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -65,7 +64,7 @@ export default function EventDetailClient({ id }) {
 
   // Priority order for initial event state:
   // 1. _eventCache from a prior listEvents() call (user navigated from /events page)
-  // 2. null → loading=true → client-side proxy fetch (direct URL on cold load)
+  // 2. null → loading=true → direct Railway fetch (direct URL on cold load)
   const cached = getCachedEvent(id);
   const [event, setEvent] = useState(() => (cached ? normalizeEvent(cached) : null));
   const [organizer, setOrganizer] = useState(null);
