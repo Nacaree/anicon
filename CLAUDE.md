@@ -164,6 +164,14 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 **TODO (Deferred to Month 2-3):**
 - Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
+## CDN Caching — Important for Event Creation
+
+`GET /api/events` and `GET /api/events/{id}` return `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=3600`. This means:
+- Vercel's CDN edge caches the events list for **5 minutes**
+- When a user creates/publishes a new event via `POST /api/events`, it will **not appear immediately** for other users — they'll see the stale cached list for up to 5 minutes
+
+If instant visibility after event creation becomes a requirement (e.g. the hosting user expects to see their event appear right away), the fix is to call Vercel's Cache Purge API after a successful `POST /api/events` to invalidate the cached list. See [Vercel Cache API docs](https://vercel.com/docs/edge-network/caching).
+
 ## Important Rules
 
 - All terminal commands must be **zsh compatible** (macOS)
