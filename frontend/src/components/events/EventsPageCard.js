@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthGate } from "@/context/AuthGateContext";
 
@@ -12,6 +12,21 @@ export default function EventsPageCard({
   const { requireAuth } = useAuthGate();
   const [wantToGo, setWantToGo] = useState(false);
   const [goingCount, setGoingCount] = useState(event.wantToGoCount || 0);
+
+  // Scroll reveal — card starts invisible and slides up when it enters the viewport.
+  // disconnect() after first trigger so the animation only plays once per card.
+  const cardRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { threshold: 0.1, rootMargin: "0px 0px -20px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleWantToGo = () => {
     requireAuth(() => {
@@ -27,11 +42,11 @@ export default function EventsPageCard({
 
   return (
     <div
-      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm border border-gray-100 transition-all duration-500 ease-in-out active:brightness-90 active:scale-95 ${
-        isEnlarged
-          ? "w-72 sm:w-85 shadow-md hover:shadow-lg"
-          : "w-56 sm:w-60 hover:shadow-md"
-      } ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
+      ref={cardRef}
+      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm transition-all duration-500 ease-in-out active:brightness-90 active:scale-95
+        ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+        ${isEnlarged ? "w-72 sm:w-85 shadow-md hover:shadow-lg" : "w-56 sm:w-60 hover:shadow-md"}
+        ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
     >
       {/* Clickable area — image + info */}
       <Link href={`/events/${event.id}`} className="block">
@@ -45,6 +60,9 @@ export default function EventsPageCard({
             <img
               src={event.imageUrl}
               alt={event.title}
+              loading="lazy"
+              style={{ opacity: 0, transition: "opacity 0.5s ease" }}
+              onLoad={(e) => { e.currentTarget.style.opacity = "1"; }}
               className="w-full h-full object-cover"
             />
           ) : (

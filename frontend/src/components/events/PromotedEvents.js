@@ -1,29 +1,53 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 function PromotedEventCard({ event }) {
+  // Scroll reveal — card slides up when it enters the viewport.
+  const cardRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -20px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     // Outer wrapper — flex-1 so both cards split available width equally.
     // py-2 gives the glow room to bleed above/below the card edges.
     // group/card drives the glow intensity on hover (named group so it doesn't
     // conflict with the inner `group` used for the image zoom).
-    <div className="relative flex-1 min-w-0 py-2 mb-[-15] group/card">
-      {/* Ambient glow — same image, heavily blurred + scaled up slightly.
-          This creates a soft color halo that dynamically matches the card's
-          cover art without any hardcoded colors. opacity increases on hover. */}
+    <div
+      ref={cardRef}
+      className={`relative flex-1 min-w-0 py-3 mb-[-15] group/card transition-all duration-500 ease-in-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+    >
+      {/* Aura bleed — no overflow-hidden so the blurred image bleeds freely past the card edges, mirroring TrendingEvent. */}
       {event.imageUrl && (
-        <img
-          src={event.imageUrl}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-x-0 inset-y-2 w-full h-[calc(100%-16px)] object-cover
-                     rounded-2xl blur-2xl scale-[1.1] opacity-50 pointer-events-none
-                     transition-opacity duration-500 group-hover/card:opacity-70"
-        />
+        <div className="absolute top-0 bottom-0 left-0 right-0 rounded-3xl promoted-aura">
+          <img
+            src={event.imageUrl}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="w-full h-full object-cover scale-125 pointer-events-none promoted-hue-drift"
+          />
+        </div>
       )}
 
       <Link
         href={`/events/${event.id}`}
-        className="relative rounded-3xl overflow-hidden h-56 sm:h-64 md:h-90 group cursor-pointer block"
+        className="relative rounded-3xl overflow-hidden h-56 sm:h-64 md:h-90 group cursor-pointer block transition-transform duration-150 active:scale-[0.98] active:brightness-90"
       >
         {/* Background */}
         {event.imageUrl ? (
@@ -38,6 +62,9 @@ function PromotedEventCard({ event }) {
 
         {/* Subtle top-to-mid scrim so the badge stays readable */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+
+        {/* Shimmer sweep — diagonal sheen that repeats every 5s, sits below badges (z-[5]) */}
+        <div className="promoted-shimmer absolute inset-0 w-1/2 bg-linear-to-r from-transparent via-white/20 to-transparent pointer-events-none z-5" />
 
         {/* Promoted Badge */}
         <div className="absolute top-4 left-4 z-10">
@@ -56,7 +83,7 @@ function PromotedEventCard({ event }) {
             const [month, day] = event.date.split(" ");
             return (
               <div
-                className="absolute top-4 right-4 z-10 flex flex-col items-center bg-white/15 backdrop-blur-md border border-white/25 rounded-xl px-3 py-1.5 shadow-md min-w-[44px]
+                className="absolute top-4 right-4 z-10 flex flex-col items-center bg-white/15 backdrop-blur-md border border-white/25 rounded-xl px-3 py-1.5 shadow-md min-w-11
                 transition-all duration-300 group-hover:scale-110 group-hover:bg-white/25 group-hover:border-white/45"
               >
                 <span className="text-white text-lg font-bold leading-none">
@@ -72,7 +99,7 @@ function PromotedEventCard({ event }) {
         {/* Info bar — darkens on hover (option 2); arrow reveals on hover (option 4) */}
         <div
           className="absolute bottom-0 left-0 right-0 z-10
-          bg-white/10 group-hover:bg-black/40 backdrop-blur-md border-t border-white/20
+          bg-white/10 group-hover:bg-black/40 backdrop-blur-md
           p-4 sm:p-3.5 text-white
           transition-colors duration-300"
         >

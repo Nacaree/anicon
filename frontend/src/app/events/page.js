@@ -89,7 +89,7 @@ export default function EventsPage() {
       <div className={`${sidebarOffset} pt-16 transition-all duration-300`}>
         {/* Promoted Events — first 2 events from the list */}
         <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
-          <PromotedEvents events={events.slice(0, 2)} loading={loading} />
+          <PromotedEvents events={events.slice(2, 4)} loading={loading} />
         </div>
 
         {/* Event Timeline — relative z-10 creates a stacking context above the
