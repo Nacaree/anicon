@@ -56,6 +56,10 @@ public class SecurityConfig {
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
+        // Cache the preflight result for 1 hour in the browser.
+        // Without this, the browser sends an OPTIONS preflight before EVERY API call,
+        // doubling round trips and adding ~150-200ms per request in production.
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
