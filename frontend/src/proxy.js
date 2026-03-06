@@ -77,19 +77,11 @@ export async function proxy(request) {
   );
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // For truly public routes (not login/signup/etc), use getSession() — reads the
-  // JWT from the cookie locally with no Supabase network round-trip. This avoids
-  // ~100-300ms latency on every navigation to pages like /events/[id].
-  // For protected routes and auth-redirect routes we still use getUser(), which
-  // validates the JWT with Supabase's servers — necessary for secure gatekeeping.
-  let user;
-  if (isPublicRoute && !isAuthRoute) {
-    const { data: { session } } = await supabase.auth.getSession();
-    user = session?.user ?? null;
-  } else {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
-  }
+  // Always use getUser() — it validates the JWT with Supabase's auth server.
+  // getSession() reads from cookies without server-side validation, which is insecure
+  // in a middleware context (cookies can be tampered with).
+  const { data } = await supabase.auth.getUser();
+  const user = data.user ?? null;
 
   const isAuthenticated = !!user;
   const isEmailVerified = user?.email_confirmed_at != null;

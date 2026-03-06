@@ -123,16 +123,24 @@ export default function FeaturedEvents() {
       bgIndexRef.current = (bgIndexRef.current + 1) % images.length;
       const nextImage = images[bgIndexRef.current];
 
-      // Load next image into the inactive layer, then toggle which layer is on top
-      setActiveLayer((prev) => {
-        if (prev === "A") {
-          setBgLayerB(nextImage);
-          return "B";
-        } else {
-          setBgLayerA(nextImage);
-          return "A";
-        }
-      });
+      // Preload the image before fading so the inactive layer is ready
+      // when it becomes visible — avoids a gray flash while the browser fetches it.
+      const img = new Image();
+      const doSwap = () => {
+        setActiveLayer((prev) => {
+          if (prev === "A") {
+            setBgLayerB(nextImage);
+            return "B";
+          } else {
+            setBgLayerA(nextImage);
+            return "A";
+          }
+        });
+      };
+      img.onload = doSwap;
+      // If the image fails, still crossfade so the carousel keeps moving
+      img.onerror = doSwap;
+      img.src = nextImage;
     }, 5000);
 
     return () => clearInterval(id);
@@ -159,7 +167,8 @@ export default function FeaturedEvents() {
       </div>
 
       {/* Background Container — two crossfade layers + dark dim overlay */}
-      <div className="relative rounded-xl overflow-hidden p-6">
+      {/* bg-gray-900 is the fallback shown before images load or if all images fail */}
+      <div className="relative rounded-xl overflow-hidden p-6 bg-gray-900">
         {/* Layer A — fades in/out as activeLayer toggles */}
         <div
           className={`absolute inset-0 bg-cover bg-top transition-opacity duration-1000 ${
