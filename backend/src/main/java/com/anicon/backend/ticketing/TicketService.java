@@ -82,7 +82,7 @@ public class TicketService {
      * @param paymentMethod "card" → Stripe, others → PayWay
      * @param returnUrl     PayWay return URL (unused for Stripe)
      */
-    public PurchaseResponse initiatePurchase(UUID callerId, UUID eventId, String paymentMethod, String returnUrl) {
+    public PurchaseResponse initiatePurchase(UUID callerId, UUID eventId, String paymentMethod, String returnUrl, int quantity) {
         var event = dsl.selectFrom(EVENTS)
                 .where(EVENTS.ID.eq(eventId))
                 .fetchOne();
@@ -95,16 +95,18 @@ public class TicketService {
                     "This event is free. Use the RSVP endpoint instead.");
         }
 
-        // Quick capacity check before hitting the payment gateway
+        // Capacity check: ensure enough spots for the requested quantity
         if (event.getMaxCapacity() != null
-                && event.getCurrentAttendance() >= event.getMaxCapacity()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Event is sold out");
+                && event.getCurrentAttendance() + quantity > event.getMaxCapacity()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Not enough spots available for the requested quantity");
         }
 
         // ticket_price is stored as dollars (e.g. 5.00); payment providers use cents (e.g. 500)
-        long amountInCents = event.getTicketPrice()
+        // Multiply by quantity so the payment covers all tickets in one transaction
+        long unitPriceInCents = event.getTicketPrice()
                 .multiply(BigDecimal.valueOf(100))
                 .longValue();
+        long amountInCents = unitPriceInCents * quantity;
 
         // Validate method against the JOOQ enum (covers all valid values: card, aba_pay, khqr, wechat, alipay)
         PaymentMethod method = PaymentMethod.lookupLiteral(paymentMethod);
@@ -114,9 +116,9 @@ public class TicketService {
         }
 
         if ("card".equals(paymentMethod)) {
-            return initiateStripePayment(callerId, eventId, amountInCents, method);
+            return initiateStripePayment(callerId, eventId, amountInCents, method, quantity);
         } else {
-            return initiatePayWayPayment(callerId, eventId, amountInCents, method, paymentMethod, returnUrl);
+            return initiatePayWayPayment(callerId, eventId, amountInCents, method, paymentMethod, returnUrl, quantity);
         }
     }
 
@@ -125,7 +127,7 @@ public class TicketService {
     // -------------------------------------------------------------------------
 
     private PurchaseResponse initiateStripePayment(
-            UUID callerId, UUID eventId, long amountInCents, PaymentMethod method) {
+            UUID callerId, UUID eventId, long amountInCents, PaymentMethod method, int quantity) {
 
         StripeService.StripeInitResult stripeResult =
                 stripeService.createPaymentIntent(amountInCents, eventId, callerId);
@@ -137,6 +139,7 @@ public class TicketService {
                 .set(TRANSACTIONS.STRIPE_PAYMENT_INTENT_ID, stripeResult.paymentIntentId())
                 .set(TRANSACTIONS.PAYMENT_PROVIDER, "stripe")
                 .set(TRANSACTIONS.AMOUNT, amountInCents)
+                .set(TRANSACTIONS.QUANTITY, quantity)
                 .set(TRANSACTIONS.PAYMENT_METHOD, method)
                 .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.pending)
                 .returning()
@@ -166,32 +169,39 @@ public class TicketService {
      */
     public void handleStripePaymentSucceeded(PaymentIntent intent, String rawEvent) {
         String paymentIntentId = intent.getId();
-
-        TransactionsRecord transaction = dsl.selectFrom(TRANSACTIONS)
-                .where(TRANSACTIONS.STRIPE_PAYMENT_INTENT_ID.eq(paymentIntentId))
-                .and(TRANSACTIONS.PAYMENT_STATUS.eq(PaymentStatus.pending))
-                .fetchOne();
-
-        if (transaction == null) {
-            // Already processed or unknown PI — idempotency: return without error.
-            // Returning 200 from the controller prevents Stripe from retrying.
-            log.warn("[Stripe] Webhook for unknown or already-processed PaymentIntent: {}", paymentIntentId);
-            return;
-        }
-
-        UUID eventId = transaction.getEventId();
-        UUID userId = transaction.getUserId();
         String chargeId = intent.getLatestCharge();
 
-        dsl.transactionResult(ctx -> {
+        // Move the SELECT inside the DB transaction with FOR UPDATE so concurrent webhook
+        // retries queue up on the lock rather than racing. When the second webhook acquires
+        // the lock, the row is already PAID and fetchOne() returns null — it exits cleanly.
+        dsl.transaction(ctx -> {
             DSLContext tx = org.jooq.impl.DSL.using(ctx);
 
-            // Atomic attendance increment with capacity enforcement
+            // Lock the row — any concurrent webhook for the same PI will block here until
+            // this transaction commits, then find the row already PAID and skip.
+            TransactionsRecord transaction = tx.selectFrom(TRANSACTIONS)
+                    .where(TRANSACTIONS.STRIPE_PAYMENT_INTENT_ID.eq(paymentIntentId))
+                    .and(TRANSACTIONS.PAYMENT_STATUS.eq(PaymentStatus.pending))
+                    .forUpdate()
+                    .fetchOne();
+
+            if (transaction == null) {
+                // Row not found as PENDING — either already processed (idempotency) or unknown PI.
+                // Both cases are safe to skip; Stripe receiving 200 prevents further retries.
+                log.debug("[Stripe] Skipping already-processed or unknown PaymentIntent: {}", paymentIntentId);
+                return;
+            }
+
+            UUID eventId = transaction.getEventId();
+            UUID userId = transaction.getUserId();
+            int quantity = transaction.getQuantity() != null ? transaction.getQuantity() : 1;
+
+            // Atomically increment attendance by the full quantity purchased
             int updated = tx.update(EVENTS)
-                    .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(1))
+                    .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(quantity))
                     .where(EVENTS.ID.eq(eventId))
                     .and(EVENTS.MAX_CAPACITY.isNull()
-                            .or(EVENTS.CURRENT_ATTENDANCE.lt(EVENTS.MAX_CAPACITY)))
+                            .or(EVENTS.CURRENT_ATTENDANCE.plus(quantity).le(EVENTS.MAX_CAPACITY)))
                     .execute();
 
             if (updated == 0) {
@@ -204,7 +214,7 @@ public class TicketService {
                         .execute();
                 log.error("[Stripe] Event sold out after Stripe confirmed payment. PI={} eventId={}. Manual refund required.",
                         paymentIntentId, eventId);
-                return null;
+                return;
             }
 
             tx.update(TRANSACTIONS)
@@ -216,18 +226,19 @@ public class TicketService {
                     .where(TRANSACTIONS.ID.eq(transaction.getId()))
                     .execute();
 
-            String ticketCode = generateTicketCode(eventId, userId);
-
-            tx.insertInto(TICKETS)
-                    .set(TICKETS.EVENT_ID, eventId)
-                    .set(TICKETS.USER_ID, userId)
-                    .set(TICKETS.TRANSACTION_ID, transaction.getId())
-                    .set(TICKETS.TICKET_CODE, ticketCode)
-                    .set(TICKETS.STATUS, TicketStatus.issued)
-                    .execute();
-
-            log.info("[Stripe] Ticket issued for PI={} eventId={} userId={} code={}", paymentIntentId, eventId, userId, ticketCode);
-            return null;
+            // Issue one ticket record per purchased seat under the same transaction
+            for (int i = 0; i < quantity; i++) {
+                String ticketCode = generateTicketCode(eventId, userId);
+                tx.insertInto(TICKETS)
+                        .set(TICKETS.EVENT_ID, eventId)
+                        .set(TICKETS.USER_ID, userId)
+                        .set(TICKETS.TRANSACTION_ID, transaction.getId())
+                        .set(TICKETS.TICKET_CODE, ticketCode)
+                        .set(TICKETS.STATUS, TicketStatus.issued)
+                        .execute();
+                log.info("[Stripe] Ticket {}/{} issued for PI={} eventId={} userId={} code={}",
+                        i + 1, quantity, paymentIntentId, eventId, userId, ticketCode);
+            }
         });
     }
 
@@ -237,7 +248,7 @@ public class TicketService {
 
     private PurchaseResponse initiatePayWayPayment(
             UUID callerId, UUID eventId, long amountInCents,
-            PaymentMethod method, String paymentMethod, String returnUrl) {
+            PaymentMethod method, String paymentMethod, String returnUrl, int quantity) {
 
         PayWayService.PurchaseResult payWayResult = payWayService.initiatePayment(
                 eventId, callerId, amountInCents, paymentMethod, returnUrl);
@@ -248,6 +259,7 @@ public class TicketService {
                 .set(TRANSACTIONS.PAYWAY_TRAN_ID, payWayResult.tranId())
                 .set(TRANSACTIONS.PAYMENT_PROVIDER, "payway")
                 .set(TRANSACTIONS.AMOUNT, amountInCents)
+                .set(TRANSACTIONS.QUANTITY, quantity)
                 .set(TRANSACTIONS.PAYMENT_METHOD, method)
                 .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.pending)
                 .returning()
@@ -297,14 +309,17 @@ public class TicketService {
 
         UUID eventId = transaction.getEventId();
 
+        int quantity = transaction.getQuantity() != null ? transaction.getQuantity() : 1;
+
         return dsl.transactionResult(ctx -> {
             DSLContext tx = org.jooq.impl.DSL.using(ctx);
 
+            // Atomically increment attendance by the full quantity purchased
             int updated = tx.update(EVENTS)
-                    .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(1))
+                    .set(EVENTS.CURRENT_ATTENDANCE, EVENTS.CURRENT_ATTENDANCE.plus(quantity))
                     .where(EVENTS.ID.eq(eventId))
                     .and(EVENTS.MAX_CAPACITY.isNull()
-                            .or(EVENTS.CURRENT_ATTENDANCE.lt(EVENTS.MAX_CAPACITY)))
+                            .or(EVENTS.CURRENT_ATTENDANCE.plus(quantity).le(EVENTS.MAX_CAPACITY)))
                     .execute();
 
             if (updated == 0) {
@@ -321,18 +336,22 @@ public class TicketService {
                     .where(TRANSACTIONS.ID.eq(transaction.getId()))
                     .execute();
 
-            String ticketCode = generateTicketCode(eventId, callerId);
+            // Issue one ticket record per purchased seat; return the first for the response
+            TicketsRecord firstTicket = null;
+            for (int i = 0; i < quantity; i++) {
+                String ticketCode = generateTicketCode(eventId, callerId);
+                TicketsRecord ticket = tx.insertInto(TICKETS)
+                        .set(TICKETS.EVENT_ID, eventId)
+                        .set(TICKETS.USER_ID, callerId)
+                        .set(TICKETS.TRANSACTION_ID, transaction.getId())
+                        .set(TICKETS.TICKET_CODE, ticketCode)
+                        .set(TICKETS.STATUS, TicketStatus.issued)
+                        .returning()
+                        .fetchOne();
+                if (firstTicket == null) firstTicket = ticket;
+            }
 
-            TicketsRecord ticket = tx.insertInto(TICKETS)
-                    .set(TICKETS.EVENT_ID, eventId)
-                    .set(TICKETS.USER_ID, callerId)
-                    .set(TICKETS.TRANSACTION_ID, transaction.getId())
-                    .set(TICKETS.TICKET_CODE, ticketCode)
-                    .set(TICKETS.STATUS, TicketStatus.issued)
-                    .returning()
-                    .fetchOne();
-
-            return toTicketResponse(ticket);
+            return toTicketResponse(firstTicket);
         });
     }
 

@@ -147,6 +147,11 @@ public class Transactions extends TableImpl<TransactionsRecord> {
      */
     public final TableField<TransactionsRecord, JSONB> STRIPE_RESPONSE = createField(DSL.name("stripe_response"), SQLDataType.JSONB, this, "");
 
+    /**
+     * The column <code>public.transactions.quantity</code>.
+     */
+    public final TableField<TransactionsRecord, Integer> QUANTITY = createField(DSL.name("quantity"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("1"), SQLDataType.INTEGER)), this, "");
+
     private Transactions(Name alias, Table<TransactionsRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -275,7 +280,8 @@ public class Transactions extends TableImpl<TransactionsRecord> {
     public List<Check<TransactionsRecord>> getChecks() {
         return Arrays.asList(
             Internal.createCheck(this, DSL.name("positive_amount"), "((amount > 0))", true),
-            Internal.createCheck(this, DSL.name("valid_payment_provider"), "(((payment_provider)::text = ANY ((ARRAY['payway'::character varying, 'stripe'::character varying])::text[])))", true)
+            Internal.createCheck(this, DSL.name("valid_payment_provider"), "(((payment_provider)::text = ANY ((ARRAY['payway'::character varying, 'stripe'::character varying])::text[])))", true),
+            Internal.createCheck(this, DSL.name("valid_quantity"), "((quantity >= 1))", true)
         );
     }
 

@@ -6,6 +6,7 @@ import { useAuthGate } from "@/context/AuthGateContext";
 import { ticketApi, ApiError } from "@/lib/api";
 import PaymentMethodModal from "@/components/payments/PaymentMethodModal";
 import StripePaymentModal from "@/components/payments/StripePaymentModal";
+import TicketQuantityModal from "@/components/payments/TicketQuantityModal";
 
 export default function EventTicketCard({ event, loading = false }) {
   const { requireAuth } = useAuthGate();
@@ -18,6 +19,8 @@ export default function EventTicketCard({ event, loading = false }) {
   const cardRef = useRef(null);
 
   // Payment modal state
+  const [quantityModalOpen, setQuantityModalOpen] = useState(false);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
@@ -79,10 +82,17 @@ export default function EventTicketCard({ event, loading = false }) {
       if (event.isFree) {
         handleRsvp();
       } else {
-        // Open the payment method selector first
-        setMethodModalOpen(true);
+        // Open quantity selector first, then payment method modal
+        setQuantityModalOpen(true);
       }
     });
+  };
+
+  // --- TicketQuantityModal callback — user confirmed quantity, move to payment method ---
+  const handleQuantityCheckout = (qty) => {
+    setSelectedQuantity(qty);
+    setQuantityModalOpen(false);
+    setMethodModalOpen(true);
   };
 
   // --- PaymentMethodModal callbacks ---
@@ -229,11 +239,20 @@ export default function EventTicketCard({ event, loading = false }) {
         </div>
       </div>
 
-      {/* Payment method selector — shown when user clicks "Get Tickets" */}
+      {/* Quantity selector — first step for paid events */}
+      <TicketQuantityModal
+        open={quantityModalOpen}
+        onClose={() => setQuantityModalOpen(false)}
+        event={event}
+        onCheckout={handleQuantityCheckout}
+      />
+
+      {/* Payment method selector — shown after user picks quantity */}
       <PaymentMethodModal
         open={methodModalOpen}
         onClose={() => setMethodModalOpen(false)}
         event={event}
+        quantity={selectedQuantity}
         onQrSelected={handleQrSelected}
         onCardSelected={handleCardSelected}
       />

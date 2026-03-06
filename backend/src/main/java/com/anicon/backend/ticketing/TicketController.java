@@ -68,7 +68,7 @@ public class TicketController {
         // paywayReturnUrl is configured in application.properties (payway.return-url).
         // The frontend handles this route and calls POST /verify/{paywayTranId}.
         PurchaseResponse response = ticketService.initiatePurchase(
-                callerId, eventId, req.getPaymentMethod(), paywayReturnUrl);
+                callerId, eventId, req.getPaymentMethod(), paywayReturnUrl, req.getQuantity());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
