@@ -18,6 +18,23 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventResponse {
 
+    /**
+     * Organizer's public profile data, embedded in the event response to avoid
+     * a second round-trip to /api/profiles/user/{id} on the event detail page.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizerInfo {
+        private String username;
+        private String displayName;
+        private String avatarUrl;
+        private List<String> roles;
+        private Long followerCount;
+        private Long followingCount;
+    }
+
     private UUID id;
     private String title;
     private String location;
@@ -47,6 +64,9 @@ public class EventResponse {
     private String description;
 
     private List<String> tags;
+
+    /** Null when the organizer profile row is missing (should not happen in practice). */
+    private OrganizerInfo organizer;
 
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

@@ -168,8 +168,13 @@ public class EventService {
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
                         EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        PROFILES.USERNAME, PROFILES.DISPLAY_NAME, PROFILES.AVATAR_URL,
+                        PROFILES.ROLES, PROFILES.FOLLOWER_COUNT, PROFILES.FOLLOWING_COUNT,
                         tagsField)
                 .from(EVENTS)
+                // LEFT JOIN so missing profile rows don't 404 the event (should never happen,
+                // but defensive against orphaned organizer_id references)
+                .leftJoin(PROFILES).on(PROFILES.ID.eq(EVENTS.ORGANIZER_ID))
                 .where(EVENTS.ID.eq(eventId))
                 .fetchOne();
 
@@ -193,8 +198,12 @@ public class EventService {
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
                         EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        PROFILES.USERNAME, PROFILES.DISPLAY_NAME, PROFILES.AVATAR_URL,
+                        PROFILES.ROLES, PROFILES.FOLLOWER_COUNT, PROFILES.FOLLOWING_COUNT,
                         tagsField)
                 .from(EVENTS)
+                // LEFT JOIN so events with missing profile rows are still returned
+                .leftJoin(PROFILES).on(PROFILES.ID.eq(EVENTS.ORGANIZER_ID))
                 .where(EVENTS.EVENT_DATE.greaterOrEqual(LocalDate.now()))
                 .orderBy(EVENTS.EVENT_DATE.asc())
                 .fetch()
@@ -296,6 +305,23 @@ public class EventService {
      * JOOQ uses field identity (not just the alias string) to look up the value in the record.
      */
     private EventResponse mapRow(Record r, Field<List<String>> tagsField) {
+        // Build embedded organizer info — null only if the LEFT JOIN found no matching profile row
+        UserRole[] roleValues = r.get(PROFILES.ROLES);
+        EventResponse.OrganizerInfo organizer = null;
+        if (r.get(PROFILES.USERNAME) != null) {
+            organizer = EventResponse.OrganizerInfo.builder()
+                    .username(r.get(PROFILES.USERNAME))
+                    .displayName(r.get(PROFILES.DISPLAY_NAME))
+                    .avatarUrl(r.get(PROFILES.AVATAR_URL))
+                    // Convert UserRole[] enum array to List<String> of literals (e.g. "organizer", "creator")
+                    .roles(roleValues != null
+                            ? Arrays.stream(roleValues).map(UserRole::getLiteral).toList()
+                            : List.of())
+                    .followerCount(r.get(PROFILES.FOLLOWER_COUNT))
+                    .followingCount(r.get(PROFILES.FOLLOWING_COUNT))
+                    .build();
+        }
+
         return EventResponse.builder()
                 .id(r.get(EVENTS.ID))
                 .title(r.get(EVENTS.TITLE))
@@ -314,6 +340,7 @@ public class EventService {
                 .createdAt(r.get(EVENTS.CREATED_AT))
                 .updatedAt(r.get(EVENTS.UPDATED_AT))
                 .tags(r.get(tagsField))
+                .organizer(organizer)
                 .build();
     }
 }

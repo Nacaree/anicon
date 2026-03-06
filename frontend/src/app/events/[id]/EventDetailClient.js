@@ -94,23 +94,39 @@ export default function EventDetailClient({ id }) {
           setLoading(false);
         }
 
-        // Phase 2: fetch organizer + related events after the page is already visible.
-        // These are non-critical — failures are silently ignored.
-        const organizerPromise = eventData?.organizerId
-          ? profileApi
-              .getProfileById(eventData.organizerId)
-              .then((profile) =>
-                setOrganizer({
-                  avatarUrl: profile.avatarUrl,
-                  displayName: profile.displayName,
-                  username: profile.username,
-                  role: profile.roles?.[0] || "organizer",
-                  followers: profile.followerCount || 0,
-                  following: profile.followingCount || 0,
-                }),
-              )
-              .catch(() => {}) // Organizer profile unavailable — section won't render
-          : Promise.resolve();
+        // Phase 2: resolve organizer profile.
+        // Fast path: organizer data is now embedded in the event response — use it directly
+        // with no extra network request. Fallback to a separate fetch only for stale cached
+        // events that were loaded before this change was deployed (no organizer field yet).
+        let organizerPromise;
+        if (eventData?.organizer) {
+          setOrganizer({
+            avatarUrl: eventData.organizer.avatarUrl,
+            displayName: eventData.organizer.displayName,
+            username: eventData.organizer.username,
+            role: eventData.organizer.roles?.[0] || "organizer",
+            followers: eventData.organizer.followerCount || 0,
+            following: eventData.organizer.followingCount || 0,
+          });
+          organizerPromise = Promise.resolve();
+        } else if (eventData?.organizerId) {
+          // Fallback: stale cache entry missing organizer field — fetch separately
+          organizerPromise = profileApi
+            .getProfileById(eventData.organizerId)
+            .then((profile) =>
+              setOrganizer({
+                avatarUrl: profile.avatarUrl,
+                displayName: profile.displayName,
+                username: profile.username,
+                role: profile.roles?.[0] || "organizer",
+                followers: profile.followerCount || 0,
+                following: profile.followingCount || 0,
+              }),
+            )
+            .catch(() => {}); // Organizer profile unavailable — section won't render
+        } else {
+          organizerPromise = Promise.resolve();
+        }
 
         // Use _eventCache for "You May Also Like" if already warm (user came from /events).
         // Only call listEvents() on direct URL visits where the cache is cold — avoids
