@@ -31,7 +31,13 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      // Hard redirect instead of router.push() — forces a full page reload so
+      // the @supabase/ssr session cookie is fully committed before any navigation
+      // to middleware-protected routes (e.g. /tickets). With router.push() (soft
+      // nav), the Vercel edge middleware can run before the cookie is visible and
+      // redirect back to /login. Magic link avoids this because /callback does
+      // a full server-side redirect. We match that behavior here.
+      window.location.href = "/";
     } catch (err) {
       setError(err.message || "Failed to sign in");
     } finally {

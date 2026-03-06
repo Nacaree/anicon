@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -151,6 +152,17 @@ const RightPanel = dynamic(
 
 export default function Home() {
   const { isSidebarCollapsed } = useSidebar();
+  // Incremented by the "anicon-home-refresh" custom event dispatched from Header
+  // when the user clicks the logo while already on the homepage.
+  // Passing this as `key` to FeaturedEvents and EventSections forces React to
+  // unmount + remount them, re-running their useEffect data fetches.
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener("anicon-home-refresh", handler);
+    return () => window.removeEventListener("anicon-home-refresh", handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -165,14 +177,14 @@ export default function Home() {
       >
         {/* Featured Events - Full Width Section */}
         <section className="w-full px-4 sm:px-6 md:px-8 pt-4 pb-8">
-          <FeaturedEvents />
+          <FeaturedEvents key={refreshKey} />
         </section>
 
         {/* Main Content + Right Panel Row */}
         <div className="flex flex-col xl:flex-row gap-6 px-4 sm:px-6 md:px-8 pb-8">
           {/* Main Content Area */}
           <main className="flex-1 min-w-0">
-            <EventSections />
+            <EventSections key={refreshKey} />
 
             {/* Social Feed */}
             <div className="mt-8">

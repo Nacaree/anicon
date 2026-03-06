@@ -13,6 +13,16 @@
   }
 }
 
+/* Logo refresh spinner — fades in and drops down slightly from the top of the page */
+@keyframes spinner-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.spinner-fade-in {
+  animation: spinner-fade-in 180ms ease-out forwards;
+}
+
 /* Shimmer sweep for the trending card — diagonal sheen that repeats every ~4s */
 @keyframes card-shimmer {
   0%   { transform: translateX(-150%) skewX(-15deg); opacity: 0; }
