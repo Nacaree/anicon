@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
 
@@ -18,6 +20,22 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
+      // Check if the email belongs to a registered account before sending the
+      // reset link. Supabase's resetPasswordForEmail always returns success
+      // (to prevent email enumeration on their end), so we do this check
+      // explicitly to give the user immediate feedback instead of a silent no-op.
+      const res = await fetch(`${API_URL}/api/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const { exists } = await res.json();
+
+      if (!exists) {
+        setError('No account found with that email address. Check for typos or sign up instead.');
+        return;
+      }
+
       await resetPassword(email);
       setEmailSent(true);
     } catch (err) {

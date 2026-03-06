@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/health", "/api/public/**").permitAll()
+                        // Email existence check for forgot-password page — no auth required
+                        .requestMatchers(HttpMethod.POST, "/api/auth/check-email").permitAll()
                         // Event listing and detail viewing are public — no login required to browse
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
                         // Profile lookups by ID/username are public — needed for event organizer display

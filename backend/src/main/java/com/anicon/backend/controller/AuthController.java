@@ -1,10 +1,15 @@
 package com.anicon.backend.controller;
 
+import java.util.Map;
 import java.util.Objects;
 
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,14 +40,11 @@ import com.anicon.backend.service.ProfileService;
 public class AuthController {
 
     private final ProfileService profileService;
+    private final DSLContext dsl;
 
-    /**
-     * Constructor injection for services.
-     *
-     * @param profileService Service for fetching user profiles
-     */
-    public AuthController(ProfileService profileService) {
+    public AuthController(ProfileService profileService, DSLContext dsl) {
         this.profileService = profileService;
+        this.dsl = dsl;
     }
 
     /**
@@ -68,6 +70,36 @@ public class AuthController {
      * @return AuthResponse containing user ID, email, verification status, and full
      *         profile
      */
+    /**
+     * Checks whether an email address belongs to a registered user.
+     *
+     * Used by the forgot-password page to show immediate feedback ("no account found")
+     * instead of silently sending a reset email to a non-existent address.
+     *
+     * Queries auth.users directly (the Supabase-managed auth table) because
+     * the public profiles table does not store email.
+     *
+     * This endpoint is intentionally public — the user's intent is to show
+     * the existence check visually (like signup's duplicate-email detection).
+     */
+    @PostMapping("/check-email")
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.ok(Map.of("exists", false));
+        }
+
+        // auth.users is in the auth schema (Supabase-managed), not the public schema,
+        // so it has no generated JOOQ types. Use a raw table/field reference instead.
+        boolean exists = dsl.fetchExists(
+            DSL.selectOne()
+               .from(DSL.table(DSL.name("auth", "users")))
+               .where(DSL.field("email", String.class).eq(email.trim().toLowerCase()))
+        );
+
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> getCurrentUser(
             @AuthenticationPrincipal SupabaseUserPrincipal principal) {

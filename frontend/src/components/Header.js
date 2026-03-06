@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -9,9 +11,39 @@ import ProfileDropdown from "@/components/ProfileDropdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
+  const pathname = usePathname();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [spinnerState, setSpinnerState] = useState("hidden"); // 'hidden', 'showing', 'visible', 'hiding'
   const { isAuthenticated, isLoading } = useAuth();
   const { requireAuth } = useAuthGate();
   const { toggleSidebar } = useSidebar();
+
+  // On the homepage, fire a custom event that page.js listens to in order to
+  // remount FeaturedEvents + EventSections and re-fetch their data.
+  // A custom event is used so Header doesn't need to own or pass down any state —
+  // page.js handles the remount via a refreshKey passed as `key` to those components.
+  const handleLogoClick = (e) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      if (isRefreshing) return;
+
+      setIsRefreshing(true);
+      setSpinnerState("showing");
+      setTimeout(() => setSpinnerState("visible"), 10);
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.dispatchEvent(new CustomEvent("anicon-home-refresh"));
+
+      setTimeout(() => {
+        setSpinnerState("hiding"); // Trigger fade-out
+        // After animation, hide and allow re-triggering
+        setTimeout(() => {
+          setSpinnerState("hidden");
+          setIsRefreshing(false);
+        }, 300); // Corresponds to duration-300
+      }, 700);
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-transparent fixed top-0 left-0 right-0 z-50 flex items-center px-3 sm:px-4 md:px-6">
@@ -36,7 +68,7 @@ export default function Header() {
       </button>
 
       {/* Logo */}
-      <Link href="/" className="mr-3 sm:mr-4 md:mr-6">
+      <Link href="/" onClick={handleLogoClick} className="mr-3 sm:mr-4 md:mr-6">
         <Image
           src="/logo.svg"
           alt="ANIKON Logo"
@@ -54,6 +86,37 @@ export default function Header() {
           priority
         />
       </Link>
+
+      {/* Refresh spinner — fixed at top-center, fades in when logo is clicked on homepage */}
+      {spinnerState !== "hidden" && (
+        <div
+          className={`fixed top-28 left-0 right-0 flex justify-center z-[100] pointer-events-none
+            transition-all duration-300 ease-out
+            ${spinnerState === "visible" ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
+        >
+          <div className="bg-white rounded-full p-2 shadow-md">
+            <svg
+              className="w-8 h-8 text-[#FF7927] animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="3"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="flex-1 max-w-xl mr-auto">
