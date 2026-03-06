@@ -248,6 +248,20 @@ public class TransactionsRecord extends UpdatableRecordImpl<TransactionsRecord> 
         return (JSONB) get(15);
     }
 
+    /**
+     * Setter for <code>public.transactions.quantity</code>.
+     */
+    public void setQuantity(Integer value) {
+        set(16, value);
+    }
+
+    /**
+     * Getter for <code>public.transactions.quantity</code>.
+     */
+    public Integer getQuantity() {
+        return (Integer) get(16);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -271,7 +285,7 @@ public class TransactionsRecord extends UpdatableRecordImpl<TransactionsRecord> 
     /**
      * Create a detached, initialised TransactionsRecord
      */
-    public TransactionsRecord(UUID id, UUID eventId, UUID userId, String paywayTranId, Long amount, PaymentMethod paymentMethod, PaymentStatus paymentStatus, String paywayApprovalCode, JSONB paywayResponse, OffsetDateTime createdAt, OffsetDateTime paidAt, OffsetDateTime updatedAt, String paymentProvider, String stripePaymentIntentId, String stripeChargeId, JSONB stripeResponse) {
+    public TransactionsRecord(UUID id, UUID eventId, UUID userId, String paywayTranId, Long amount, PaymentMethod paymentMethod, PaymentStatus paymentStatus, String paywayApprovalCode, JSONB paywayResponse, OffsetDateTime createdAt, OffsetDateTime paidAt, OffsetDateTime updatedAt, String paymentProvider, String stripePaymentIntentId, String stripeChargeId, JSONB stripeResponse, Integer quantity) {
         super(Transactions.TRANSACTIONS);
 
         setId(id);
@@ -290,6 +304,7 @@ public class TransactionsRecord extends UpdatableRecordImpl<TransactionsRecord> 
         setStripePaymentIntentId(stripePaymentIntentId);
         setStripeChargeId(stripeChargeId);
         setStripeResponse(stripeResponse);
+        setQuantity(quantity);
         resetTouchedOnNotNull();
     }
 }

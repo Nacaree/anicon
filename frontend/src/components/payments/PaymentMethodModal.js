@@ -15,10 +15,11 @@ import { ticketApi, ApiError } from "@/lib/api";
  *   open            boolean
  *   onClose         () => void
  *   event           normalized event object (needs event.id, event.ticketPrice)
+ *   quantity        number — how many tickets to purchase (default 1)
  *   onQrSelected    (purchaseResult) => void  — called with full PayWay purchase result
  *   onCardSelected  (clientSecret, amountInCents) => void  — called with Stripe data
  */
-export default function PaymentMethodModal({ open, onClose, event, onQrSelected, onCardSelected }) {
+export default function PaymentMethodModal({ open, onClose, event, quantity = 1, onQrSelected, onCardSelected }) {
   const [loading, setLoading] = useState(null); // "qr" | "card" | null
   const [error, setError] = useState(null);
 
@@ -26,7 +27,7 @@ export default function PaymentMethodModal({ open, onClose, event, onQrSelected,
     setError(null);
     setLoading(method);
     try {
-      const result = await ticketApi.purchase(event.id, method === "qr" ? "aba_pay" : "card");
+      const result = await ticketApi.purchase(event.id, method === "qr" ? "aba_pay" : "card", quantity);
       if (result.paymentProvider === "stripe") {
         onCardSelected(result.stripeClientSecret, result.amountInCents);
       } else {
@@ -47,9 +48,12 @@ export default function PaymentMethodModal({ open, onClose, event, onQrSelected,
     if (!isOpen && !loading) onClose();
   };
 
+  const unitPrice = Number(event?.ticketPrice || 0);
   const priceDisplay = event?.isFree
     ? "Free"
-    : `$${Number(event?.ticketPrice || 0).toFixed(2)}`;
+    : quantity > 1
+    ? `${quantity} × $${unitPrice.toFixed(2)} = $${(unitPrice * quantity).toFixed(2)}`
+    : `$${unitPrice.toFixed(2)} per ticket`;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

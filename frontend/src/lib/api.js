@@ -227,8 +227,8 @@ export const eventApi = {
 // Ticket API calls
 export const ticketApi = {
   // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
-  purchase: (eventId, paymentMethod = "aba_pay") =>
-    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod }),
+  purchase: (eventId, paymentMethod = "aba_pay", quantity = 1) =>
+    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod, quantity }),
   // Paid event: verifies PayWay payment and issues ticket
   verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
   // Free event: RSVPs the user
