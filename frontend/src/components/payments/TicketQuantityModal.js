@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Ticket quantity selector modal — shown when a user clicks "Get Tickets" on a paid event.
@@ -45,18 +46,26 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Get Tickets</DialogTitle>
         </DialogHeader>
 
+        {/* Order summary — event context so the user knows what they're buying */}
+        <div className="bg-gray-50 rounded-xl px-4 py-3.5 mb-1">
+          <p className="font-semibold text-gray-900 text-base truncate">{event?.title}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {event?.date}{event?.time ? ` · ${event.time}` : ""}
+          </p>
+        </div>
+
         {/* Ticket row with quantity selector */}
-        <div className="flex items-center justify-between py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between py-5 border-b border-gray-100">
           <div className="flex-1 min-w-0 pr-4">
-            <p className="font-semibold text-gray-900 truncate">
-              {event?.title || "General Admission"}
+            <p className="font-semibold text-gray-900 text-base truncate">
+              {event?.title || "Ticket"}
             </p>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-1">
               ${pricePerTicket.toFixed(2)} per ticket
             </p>
           </div>
@@ -95,14 +104,14 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
         </div>
 
         {/* Order summary */}
-        <div className="py-3">
-          <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
+        <div className="py-4">
+          <div className="flex justify-between items-center text-sm text-gray-500 mb-1.5">
             <span>
               {quantity} × ${pricePerTicket.toFixed(2)}
             </span>
             <span>${total.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center font-bold text-gray-900 text-base">
+          <div className="flex justify-between items-center font-bold text-gray-900 text-lg">
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
@@ -112,19 +121,12 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
         <button
           onClick={handleCheckout}
           disabled={quantity < 1 || remaining <= 0}
-          className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+          className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3.5 text-base rounded-full
             transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
             active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
             disabled:hover:scale-100 disabled:hover:shadow-none"
         >
           {remaining <= 0 ? "Sold Out" : "Checkout →"}
-        </button>
-
-        <button
-          onClick={onClose}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          Cancel
         </button>
       </DialogContent>
     </Dialog>

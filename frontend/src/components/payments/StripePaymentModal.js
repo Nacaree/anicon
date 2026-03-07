@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
+import { Separator } from "@/components/ui/separator";
 import {
   Elements,
   PaymentElement,
@@ -27,7 +28,7 @@ const stripePromise = loadStripe(
   },
 );
 
-function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
+function StripeCheckoutForm({ amountInCents, quantity, event, onSuccess, onClose }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -58,8 +59,28 @@ function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
     onSuccess();
   };
 
+  // Unit price derived from backend-authoritative cents value
+  const unitPriceDollars = amountInCents && quantity ? amountInCents / 100 / quantity : 0;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* Order summary — shows what the user is paying for */}
+      <div className="bg-gray-50 rounded-xl px-4 py-3.5">
+        <p className="font-semibold text-gray-900 text-base truncate">{event?.title}</p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {event?.date}{event?.time ? ` · ${event.time}` : ""}
+        </p>
+        <Separator className="my-3" />
+        <div className="flex justify-between text-sm text-gray-500">
+          <span>{quantity} × General Admission</span>
+          <span>${(unitPriceDollars * quantity).toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-base font-bold text-gray-900 mt-1.5">
+          <span>Total</span>
+          <span>{amountDisplay}</span>
+        </div>
+      </div>
+
       <PaymentElement options={{ layout: "tabs" }} />
 
       {error && (
@@ -109,15 +130,7 @@ function StripeCheckoutForm({ amountInCents, onSuccess, onClose }) {
         )}
       </button>
 
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={processing}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
-        >
-          Cancel
-        </button>
+      <div className="flex items-center justify-end">
         <span className="flex items-center gap-1 text-xs text-gray-400">
           <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
           256-bit SSL encrypted
@@ -133,7 +146,12 @@ export default function StripePaymentModal({
   clientSecret,
   amountInCents,
   onSuccess,
+  event,
+  quantity,
 }) {
+  // Controls the "Leave checkout?" confirmation overlay
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
   if (!clientSecret) return null;
 
   const appearance = {
@@ -185,10 +203,12 @@ export default function StripePaymentModal({
     <Dialog
       open={open}
       onOpenChange={(isOpen) => {
-        if (!isOpen) onClose();
+        // Intercept dismiss (Escape / backdrop click) — show confirmation instead of
+        // immediately closing, since a pending PaymentIntent was already created
+        if (!isOpen) setShowLeaveConfirm(true);
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             Enter Card Details
@@ -199,10 +219,47 @@ export default function StripePaymentModal({
         <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
           <StripeCheckoutForm
             amountInCents={amountInCents}
+            quantity={quantity}
+            event={event}
             onSuccess={onSuccess}
-            onClose={onClose}
+            onClose={() => setShowLeaveConfirm(true)}
           />
         </Elements>
+
+        {/* Leave confirmation overlay — shown when user tries to dismiss mid-checkout */}
+        {showLeaveConfirm && (
+          <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm rounded-xl
+            flex flex-col items-center justify-center gap-4 p-8 text-center">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-1">
+              <svg className="w-6 h-6 text-[#FF7927]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">Leave Checkout?</h3>
+            <p className="text-sm text-gray-500 max-w-xs">
+              Your card details will be lost and you'll need to start over.
+            </p>
+            <div className="flex gap-3 w-full max-w-xs">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold
+                  py-3 rounded-full transition-all duration-200 hover:scale-[1.02]
+                  hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+              >
+                Stay
+              </button>
+              <button
+                onClick={() => { setShowLeaveConfirm(false); onClose(); }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold
+                  py-3 rounded-full transition-all duration-200 hover:scale-[1.02]
+                  hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
