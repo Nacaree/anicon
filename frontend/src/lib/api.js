@@ -69,11 +69,24 @@ async function request(endpoint, options = {}, retries = 3) {
   // the session from cookies / refresh an expired token. Public endpoints
   // (e.g. GET /api/events) don't need a bearer token, so there's no reason
   // to wait for auth initialization before sending the request.
-  const { noAuth, ...fetchOptions } = options;
+  const { noAuth, bestEffortAuth, ...fetchOptions } = options;
   const baseUrl = API_URL;
-  const headers = noAuth
-    ? { "Content-Type": "application/json" }
-    : await getAuthHeaders();
+
+  let headers;
+  if (noAuth) {
+    // Public endpoint — no token needed at all.
+    headers = { "Content-Type": "application/json" };
+  } else if (bestEffortAuth) {
+    // Optionally-authenticated endpoint: use the cached token synchronously if available,
+    // otherwise send no Authorization header (never call getSession()).
+    // This lets the request fire instantly on page load without waiting for auth init.
+    // The backend treats a missing token as a guest request and returns safe defaults.
+    headers = _cachedAccessToken
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${_cachedAccessToken}` }
+      : { "Content-Type": "application/json" };
+  } else {
+    headers = await getAuthHeaders();
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -237,6 +250,14 @@ export const ticketApi = {
   myTickets: () => api.get("/api/tickets/my"),
   // Returns all RSVPs for the current user (free events)
   myRsvps: () => api.get("/api/tickets/my-rsvps"),
+  // Cancel an abandoned Stripe checkout — marks the PaymentIntent cancelled on Stripe's side
+  // and updates the transaction row in the DB. Called fire-and-forget; errors are swallowed.
+  cancelStripe: (transactionId) => api.post(`/api/tickets/${transactionId}/cancel`),
+  // Returns { ticketCount, hasRsvp } for the current user on a specific event.
+  // Uses bestEffortAuth: sends the cached token if available (no getSession() call),
+  // or no token if auth hasn't resolved yet. The backend handles both cases gracefully.
+  // Called on event detail page mount — fires instantly without waiting for auth init.
+  eventStatus: (eventId) => api.get(`/api/tickets/event-status/${eventId}`, { bestEffortAuth: true }),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

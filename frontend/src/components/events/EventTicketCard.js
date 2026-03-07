@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { ticketApi, ApiError } from "@/lib/api";
 import PaymentMethodModal from "@/components/payments/PaymentMethodModal";
@@ -9,6 +10,9 @@ import StripePaymentModal from "@/components/payments/StripePaymentModal";
 import TicketQuantityModal from "@/components/payments/TicketQuantityModal";
 
 export default function EventTicketCard({ event, loading = false }) {
+  // isLoading: auth not yet resolved. isAuthenticated: user is logged in.
+  // Both are needed to know when it's safe to fire the status fetch with a cached token.
+  const { isAuthenticated } = useAuth();
   const { requireAuth } = useAuthGate();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -16,6 +20,12 @@ export default function EventTicketCard({ event, loading = false }) {
   const [rsvpDone, setRsvpDone] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
+  // How many non-cancelled tickets this user holds for this event (paid events).
+  // Fetched on mount when authenticated; stays 0 for guests or on fetch error.
+  const [ticketCount, setTicketCount] = useState(0);
+  // True while the eventStatus fetch is in flight (or auth is still resolving).
+  // Used to show a skeleton placeholder so the card height doesn't jump when the badge appears.
+  const [statusLoading, setStatusLoading] = useState(true);
   const cardRef = useRef(null);
 
   // Payment modal state
@@ -25,6 +35,46 @@ export default function EventTicketCard({ event, loading = false }) {
   const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [stripeAmountInCents, setStripeAmountInCents] = useState(null);
+  // Stored so we can cancel the pending PaymentIntent if the user leaves checkout
+  const [stripeTransactionId, setStripeTransactionId] = useState(null);
+
+  // Register a beforeunload guard while Stripe checkout is open.
+  // This catches tab close / refresh / external navigation — the modal's own
+  // leave-confirm overlay handles in-app dismiss (Escape, backdrop, Cancel).
+  useEffect(() => {
+    if (!stripeModalOpen) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = ""; // Required for Chrome to show the native dialog
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [stripeModalOpen]);
+
+  // Fetch personalized ticket/RSVP status.
+  //
+  // Strategy: fire immediately on mount using bestEffortAuth (synchronous cached-token-only path).
+  // This means:
+  //   - If the user navigated from another page (token already cached): request fires instantly
+  //     WITH the user's token → gets real data in ~7ms.
+  //   - If the user landed via direct URL (token not yet cached): request fires instantly
+  //     WITHOUT a token → backend returns zeros (same as guest) → UI shows defaults.
+  //
+  // Re-fires when isAuthenticated flips to true so direct-URL visitors who land on the page
+  // before auth resolves eventually get their real ticket count once the token is cached.
+  // The [isAuthenticated] dep causes exactly one re-fire (false → true) — not a loop.
+  useEffect(() => {
+    if (!event?.id) return;
+    ticketApi
+      .eventStatus(event.id)
+      .then((status) => {
+        // Pre-populate rsvpDone so "You're Going!" shows on first render, not just after clicking
+        if (status.hasRsvp) setRsvpDone(true);
+        if (status.ticketCount > 0) setTicketCount(status.ticketCount);
+      })
+      .catch(() => {}) // Network error — default state is safe
+      .finally(() => setStatusLoading(false));
+  }, [event?.id, isAuthenticated]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -34,7 +84,7 @@ export default function EventTicketCard({ event, loading = false }) {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (cardRef.current) observer.observe(cardRef.current);
@@ -105,22 +155,26 @@ export default function EventTicketCard({ event, loading = false }) {
       window.location.href = purchaseResult.checkoutUrl;
     } else {
       // QR data returned — store and go to /payment/checkout
-      sessionStorage.setItem("payway_checkout", JSON.stringify({
-        paywayTranId: purchaseResult.paywayTranId,
-        qrImage: purchaseResult.qrImage,
-        qrString: purchaseResult.qrString,
-        abapayDeeplink: purchaseResult.abapayDeeplink,
-        amountInCents: purchaseResult.amountInCents,
-      }));
+      sessionStorage.setItem(
+        "payway_checkout",
+        JSON.stringify({
+          paywayTranId: purchaseResult.paywayTranId,
+          qrImage: purchaseResult.qrImage,
+          qrString: purchaseResult.qrString,
+          abapayDeeplink: purchaseResult.abapayDeeplink,
+          amountInCents: purchaseResult.amountInCents,
+        }),
+      );
       router.push("/payment/checkout");
     }
   };
 
   // User picked Card — open embedded Stripe modal
-  const handleCardSelected = (clientSecret, amountInCents) => {
+  const handleCardSelected = (clientSecret, amountInCents, transactionId) => {
     setMethodModalOpen(false);
     setStripeClientSecret(clientSecret);
     setStripeAmountInCents(amountInCents);
+    setStripeTransactionId(transactionId);
     setStripeModalOpen(true);
   };
 
@@ -145,9 +199,7 @@ export default function EventTicketCard({ event, loading = false }) {
     <div
       ref={cardRef}
       className={`transition-all duration-700 ease-out ${
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-6"
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
       <h2 className="text-lg font-bold text-gray-900 mb-3">
@@ -164,6 +216,34 @@ export default function EventTicketCard({ event, loading = false }) {
         <p className="text-sm text-[#FF7927] font-medium mb-4">
           {event.dateRange}
         </p>
+
+        {/* Ticket ownership badge — shown once status resolves and user has tickets.
+            No skeleton: the card stays at its natural size for users without tickets.
+            The fade + slide animation makes the growth smooth for users who do have tickets. */}
+        {!event.isFree && !statusLoading && ticketCount > 0 && (
+          <div
+            className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-3 py-2.5 mb-3
+            animate-in fade-in slide-in-from-top-1 duration-300"
+          >
+            <svg
+              className="w-4 h-4 text-green-600 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <p className="text-sm text-green-700 font-medium">
+              You have {ticketCount} ticket{ticketCount !== 1 ? "s" : ""} for
+              this event
+            </p>
+          </div>
+        )}
 
         {/* Error */}
         {actionError && (
@@ -183,10 +263,10 @@ export default function EventTicketCard({ event, loading = false }) {
             {rsvpLoading
               ? "Processing..."
               : rsvpDone
-              ? "You're Going! 🎉"
-              : event.isFree
-              ? "I'm Going"
-              : "Get Tickets"}
+                ? "You're Going! 🎉"
+                : event.isFree
+                  ? "I'm Going"
+                  : "Get Tickets"}
           </button>
 
           <button
@@ -263,10 +343,19 @@ export default function EventTicketCard({ event, loading = false }) {
         onClose={() => {
           setStripeModalOpen(false);
           setStripeClientSecret(null);
+          // Best-effort cancel — fire-and-forget, don't await or surface errors.
+          // Cancels the Stripe PaymentIntent and marks the DB transaction cancelled.
+          // If the request fails, Stripe auto-expires the PI after 24h anyway.
+          if (stripeTransactionId) {
+            ticketApi.cancelStripe(stripeTransactionId).catch(() => {});
+            setStripeTransactionId(null);
+          }
         }}
         clientSecret={stripeClientSecret}
         amountInCents={stripeAmountInCents}
         onSuccess={handleStripeSuccess}
+        event={event}
+        quantity={selectedQuantity}
       />
     </div>
   );

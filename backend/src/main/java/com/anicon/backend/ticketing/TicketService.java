@@ -5,10 +5,12 @@ import com.anicon.backend.gen.jooq.enums.PaymentStatus;
 import com.anicon.backend.gen.jooq.enums.TicketStatus;
 import com.anicon.backend.gen.jooq.tables.records.TicketsRecord;
 import com.anicon.backend.gen.jooq.tables.records.TransactionsRecord;
+import com.anicon.backend.ticketing.dto.EventTicketStatusResponse;
 import com.anicon.backend.ticketing.dto.PurchaseResponse;
 import com.anicon.backend.ticketing.dto.RsvpResponse;
 import com.anicon.backend.ticketing.dto.TicketResponse;
 
+import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
@@ -409,8 +411,93 @@ public class TicketService {
     }
 
     // -------------------------------------------------------------------------
+    // Stripe cancellation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Cancels a pending Stripe checkout that the user abandoned.
+     *
+     * Ownership + status check: the transaction must belong to callerId and be PENDING.
+     * If not found (already paid, already cancelled, or wrong user) — no-op, not an error.
+     * This keeps the endpoint safe for fire-and-forget calls from the frontend.
+     *
+     * Stripe cancel is best-effort: if it fails we log a warning and still mark the DB row
+     * cancelled, since Stripe auto-expires uncompleted PaymentIntents after 24h anyway.
+     *
+     * @param callerId      UUID of the authenticated user — used as ownership check
+     * @param transactionId Our internal transaction UUID from the purchase response
+     */
+    public void cancelStripePayment(UUID callerId, UUID transactionId) {
+        TransactionsRecord record = dsl.selectFrom(TRANSACTIONS)
+                .where(TRANSACTIONS.ID.eq(transactionId))
+                .and(TRANSACTIONS.USER_ID.eq(callerId))
+                .and(TRANSACTIONS.PAYMENT_PROVIDER.eq("stripe"))
+                .and(TRANSACTIONS.PAYMENT_STATUS.eq(PaymentStatus.pending))
+                .fetchOne();
+
+        if (record == null) {
+            // Already cancelled, paid, or doesn't belong to this user — safe no-op
+            log.debug("[Stripe] cancelStripePayment: no pending transaction found for id={} user={}", transactionId, callerId);
+            return;
+        }
+
+        try {
+            stripeService.cancelPaymentIntent(record.getStripePaymentIntentId());
+        } catch (StripeException e) {
+            // Non-fatal: Stripe will auto-expire the PI. Log and continue to DB update.
+            log.warn("[Stripe] Could not cancel PaymentIntent {}: {}", record.getStripePaymentIntentId(), e.getMessage());
+        }
+
+        dsl.update(TRANSACTIONS)
+                .set(TRANSACTIONS.PAYMENT_STATUS, PaymentStatus.cancelled)
+                .set(TRANSACTIONS.UPDATED_AT, OffsetDateTime.now())
+                .where(TRANSACTIONS.ID.eq(transactionId))
+                .execute();
+
+        log.info("[Stripe] Cancelled pending transaction id={} PI={}", transactionId, record.getStripePaymentIntentId());
+    }
+
+    // -------------------------------------------------------------------------
     // Ticket retrieval
     // -------------------------------------------------------------------------
+
+    /**
+     * Returns the user's ticket count and RSVP status for a single event.
+     *
+     * Two cheap COUNT/EXISTS queries — no joins. Used by the event detail page
+     * to personalize the "Grab Your Tickets" card on mount without fetching all
+     * of the user's tickets.
+     *
+     * @param userId  The authenticated user
+     * @param eventId The event being viewed
+     */
+    public EventTicketStatusResponse getEventStatus(UUID userId, UUID eventId) {
+        // Guest or pre-auth request (bestEffortAuth sent no token) — return zeros immediately.
+        // The frontend re-fires once auth resolves, so logged-in users always get real data.
+        if (userId == null) {
+            return EventTicketStatusResponse.builder().ticketCount(0).hasRsvp(false).build();
+        }
+
+        // Count non-cancelled tickets this user holds for the event (paid flow)
+        int ticketCount = dsl.fetchCount(
+                dsl.selectFrom(TICKETS)
+                        .where(TICKETS.USER_ID.eq(userId))
+                        .and(TICKETS.EVENT_ID.eq(eventId))
+                        .and(TICKETS.STATUS.ne(TicketStatus.cancelled))
+        );
+
+        // Check RSVP existence (free event flow)
+        boolean hasRsvp = dsl.fetchExists(
+                dsl.selectFrom(EVENT_RSVPS)
+                        .where(EVENT_RSVPS.USER_ID.eq(userId))
+                        .and(EVENT_RSVPS.EVENT_ID.eq(eventId))
+        );
+
+        return EventTicketStatusResponse.builder()
+                .ticketCount(ticketCount)
+                .hasRsvp(hasRsvp)
+                .build();
+    }
 
     public List<TicketResponse> getMyTickets(UUID userId) {
         return dsl.select(
