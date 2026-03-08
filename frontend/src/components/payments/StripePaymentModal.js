@@ -72,7 +72,7 @@ function StripeCheckoutForm({ amountInCents, quantity, event, onSuccess, onClose
         </p>
         <Separator className="my-3" />
         <div className="flex justify-between text-sm text-gray-500">
-          <span>{quantity} × General Admission</span>
+          <span>{quantity} × Ticket</span>
           <span>${(unitPriceDollars * quantity).toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-base font-bold text-gray-900 mt-1.5">
