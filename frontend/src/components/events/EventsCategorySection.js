@@ -4,7 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import EventsPageCard from "./EventsPageCard";
 import EventCarousel from "@/components/EventCarousel";
 
-export default function EventsCategorySection({ title, emoji, events, loading = false, hideGradients = false }) {
+export default function EventsCategorySection({
+  title,
+  emoji,
+  events,
+  loading = false,
+  hideGradients = false,
+}) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
 
@@ -18,7 +24,7 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
@@ -45,13 +51,11 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
   return (
     <section
       ref={sectionRef}
-      className={`transition-all duration-700 ease-out ${
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-6"
+      className={`transition-all duration-400 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           {emoji && <span>{emoji}</span>}
           {title}

@@ -30,13 +30,13 @@ export default function EventsPage() {
     (tag) => ({
       name: tag,
       count: events.filter((e) => e.tags?.includes(tag)).length,
-    })
+    }),
   );
 
   // Toggle a tag in/out of the active set (D)
   const toggleTag = (tag) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
@@ -51,16 +51,19 @@ export default function EventsPage() {
     if (!sentinel) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsTagBarStuck(!entry.isIntersecting),
-      { threshold: 0 }
+      { threshold: 0 },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
 
   // Trending = event with the highest attendance; falls back to null while loading
-  const trendingEvent = events.length > 0
-    ? [...events].sort((a, b) => (b.wantToGoCount || 0) - (a.wantToGoCount || 0))[0]
-    : null;
+  const trendingEvent =
+    events.length > 0
+      ? [...events].sort(
+          (a, b) => (b.wantToGoCount || 0) - (a.wantToGoCount || 0),
+        )[0]
+      : null;
 
   // Events matching ANY of the selected tags (D — union, not intersection)
   const tagFilteredEvents =
@@ -71,7 +74,7 @@ export default function EventsPage() {
   const cosplayEvents = events.filter(
     (e) =>
       e.category === "meetup" ||
-      e.tags?.some((t) => t.toLowerCase().includes("cosplay"))
+      e.tags?.some((t) => t.toLowerCase().includes("cosplay")),
   );
 
   const conventionEvents = events.filter((e) => e.category === "convention");
@@ -111,7 +114,11 @@ export default function EventsPage() {
         {allTags.length > 0 && (
           <div
             className={`sticky top-16 z-20 mt-6 transition-colors duration-300${isTagBarStuck ? " backdrop-blur-sm" : ""}`}
-            style={{ backgroundColor: isTagBarStuck ? "rgba(249, 250, 251, 0.95)" : "transparent" }}
+            style={{
+              backgroundColor: isTagBarStuck
+                ? "rgba(249, 250, 251, 0.95)"
+                : "transparent",
+            }}
           >
             <div className="px-4 sm:px-6 md:px-8 py-3 max-w-7xl mx-auto flex items-center gap-2 flex-wrap">
               {allTags.map((tag) => {
@@ -122,8 +129,8 @@ export default function EventsPage() {
                     onClick={() => toggleTag(tag.name)}
                     className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border transition-all duration-200 ${
                       isActive
-                        ? "bg-[#FF7927] text-white border-[#FF7927]"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-[#FF7927] hover:text-[#FF7927]"
+                        ? "bg-[#FF7927]/80 text-white border-[#FF7927]/30 backdrop-blur-md shadow-[0_0_12px_rgba(255,121,39,0.45)]"
+                        : "bg-white/60 text-gray-600 border-white/70 backdrop-blur-sm hover:border-[#FF7927]/90 hover:text-[#FF7927] hover:bg-white/50 hover:shadow-[0_0_10"
                     }`}
                   >
                     #{tag.name}

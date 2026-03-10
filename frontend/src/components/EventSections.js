@@ -27,7 +27,7 @@ function AnimatedSection({ children }) {
   return (
     <section
       ref={sectionRef}
-      className={`transition-all duration-700 ease-out ${
+      className={`transition-all duration-400 ease-out ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >

@@ -138,8 +138,9 @@ export default function FeaturedEvents() {
         });
       };
       img.onload = doSwap;
-      // If the image fails, still crossfade so the carousel keeps moving
-      img.onerror = doSwap;
+      // If the image fails, skip this cycle — swapping to a broken URL shows
+      // the bg-gray-900 fallback (appears black). Better to stay on current image.
+      img.onerror = () => {};
       img.src = nextImage;
     }, 5000);
 
@@ -151,7 +152,7 @@ export default function FeaturedEvents() {
   return (
     <div
       ref={sectionRef}
-      className={`mb-8 transition-all duration-1000 ease-out ${
+      className={`mb-8 transition-all duration-400 ease-out ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
@@ -196,7 +197,7 @@ export default function FeaturedEvents() {
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] bg-white/20 animate-pulse shrink-0"
+                className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-100 md:w-125 lg:w-150 bg-white/20 animate-pulse shrink-0"
               />
             ))}
           </div>
