@@ -411,6 +411,46 @@ public class TicketService {
     }
 
     // -------------------------------------------------------------------------
+    // RSVP cancellation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Cancels a user's RSVP for a free event ("I'm no longer going").
+     *
+     * Deletes the event_rsvp row and decrements current_attendance atomically.
+     * Attendance is floored at 0 via GREATEST() to guard against any edge-case
+     * double-cancel races — the second call would get a 404 before reaching this code anyway.
+     *
+     * @param callerId UUID of the authenticated user (ownership check via WHERE clause)
+     * @param eventId  The free event to cancel the RSVP for
+     * @throws ResponseStatusException 404 if no RSVP exists for this user+event pair
+     */
+    public void cancelRsvp(UUID callerId, UUID eventId) {
+        dsl.transaction(ctx -> {
+            DSLContext tx = org.jooq.impl.DSL.using(ctx);
+
+            // Delete the RSVP row — the WHERE clause doubles as an ownership check.
+            // Returns 0 if not found (user never RSVPed, or already cancelled).
+            int deleted = tx.deleteFrom(EVENT_RSVPS)
+                    .where(EVENT_RSVPS.USER_ID.eq(callerId))
+                    .and(EVENT_RSVPS.EVENT_ID.eq(eventId))
+                    .execute();
+
+            if (deleted == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSVP not found");
+            }
+
+            // Decrement attendance, floored at 0 to prevent negative counts from any edge cases.
+            tx.update(EVENTS)
+                    .set(EVENTS.CURRENT_ATTENDANCE,
+                            org.jooq.impl.DSL.greatest(EVENTS.CURRENT_ATTENDANCE.minus(1),
+                                    org.jooq.impl.DSL.val(0)))
+                    .where(EVENTS.ID.eq(eventId))
+                    .execute();
+        });
+    }
+
+    // -------------------------------------------------------------------------
     // Stripe cancellation
     // -------------------------------------------------------------------------
 

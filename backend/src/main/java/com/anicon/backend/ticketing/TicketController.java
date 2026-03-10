@@ -119,6 +119,25 @@ public class TicketController {
     }
 
     /**
+     * Cancels the authenticated user's RSVP for a free event ("I'm no longer going").
+     *
+     * Deletes the event_rsvp row and decrements current_attendance atomically.
+     * Returns 404 if the user never RSVPed (or already cancelled).
+     *
+     * @param eventId   The free event to cancel the RSVP for
+     * @param principal The authenticated user
+     */
+    @DeleteMapping("/rsvp/{eventId}")
+    public ResponseEntity<Void> cancelRsvp(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal SupabaseUserPrincipal principal) {
+
+        UUID callerId = Objects.requireNonNull(principal.getUserId());
+        ticketService.cancelRsvp(callerId, eventId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Cancels a pending Stripe checkout the user abandoned.
      *
      * Called fire-and-forget from the frontend when the user clicks "Leave" on the

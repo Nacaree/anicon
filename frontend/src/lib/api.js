@@ -214,6 +214,17 @@ export function getCachedEvents() {
   return [..._eventCache.values()];
 }
 
+// Applies a shallow patch to a single cached event.
+// Used for optimistic updates after RSVP — updates the raw backend-shaped object
+// in the cache before the next listEvents() poll confirms the real value.
+// Patch fields must use backend field names (e.g. currentAttendance, not wantToGoCount)
+// because the cache stores un-normalized API objects.
+export function updateCachedEvent(id, patch) {
+  const existing = _eventCache.get(String(id));
+  if (!existing) return;
+  _eventCache.set(String(id), { ...existing, ...patch });
+}
+
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
@@ -253,6 +264,8 @@ export const ticketApi = {
   // Cancel an abandoned Stripe checkout — marks the PaymentIntent cancelled on Stripe's side
   // and updates the transaction row in the DB. Called fire-and-forget; errors are swallowed.
   cancelStripe: (transactionId) => api.post(`/api/tickets/${transactionId}/cancel`),
+  // Cancel a free-event RSVP — deletes the event_rsvp row and decrements current_attendance.
+  cancelRsvp: (eventId) => api.delete(`/api/tickets/rsvp/${eventId}`),
   // Returns { ticketCount, hasRsvp } for the current user on a specific event.
   // Uses bestEffortAuth: sends the cached token if available (no getSession() call),
   // or no token if auth hasn't resolved yet. The backend handles both cases gracefully.

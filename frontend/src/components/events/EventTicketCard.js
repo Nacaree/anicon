@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
-import { ticketApi, ApiError } from "@/lib/api";
+import { ticketApi, ApiError, getCachedEvent, updateCachedEvent } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PaymentMethodModal from "@/components/payments/PaymentMethodModal";
 import StripePaymentModal from "@/components/payments/StripePaymentModal";
 import TicketQuantityModal from "@/components/payments/TicketQuantityModal";
@@ -19,6 +20,8 @@ export default function EventTicketCard({ event, loading = false }) {
   const [isVisible, setIsVisible] = useState(false);
   const [rsvpDone, setRsvpDone] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState(false);
+  const [cancelRsvpLoading, setCancelRsvpLoading] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [actionError, setActionError] = useState(null);
   // How many non-cancelled tickets this user holds for this event (paid events).
   // Fetched on mount when authenticated; stays 0 for guests or on fetch error.
@@ -114,6 +117,16 @@ export default function EventTicketCard({ event, loading = false }) {
     try {
       await ticketApi.rsvp(event.id);
       setRsvpDone(true);
+      // Optimistic cache update: increment cached attendance so the events page shows
+      // the updated "want to go" count when the user navigates back — even before the
+      // next poll fires. Reads from the raw cached object because the cache stores
+      // backend field names (currentAttendance), not the normalized wantToGoCount.
+      const cached = getCachedEvent(event.id);
+      if (cached) {
+        updateCachedEvent(event.id, {
+          currentAttendance: (cached.currentAttendance || 0) + 1,
+        });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setActionError("You're already going!");
@@ -122,6 +135,29 @@ export default function EventTicketCard({ event, loading = false }) {
       }
     } finally {
       setRsvpLoading(false);
+    }
+  };
+
+  // --- Free event: cancel RSVP (called from confirmation modal) ---
+  const handleCancelRsvp = async () => {
+    setActionError(null);
+    setCancelRsvpLoading(true);
+    try {
+      await ticketApi.cancelRsvp(event.id);
+      setCancelModalOpen(false);
+      setRsvpDone(false);
+      // Optimistic cache update: decrement attendance so the events list reflects the change
+      // before the next 30s poll fires.
+      const cached = getCachedEvent(event.id);
+      if (cached) {
+        updateCachedEvent(event.id, {
+          currentAttendance: Math.max((cached.currentAttendance || 0) - 1, 0),
+        });
+      }
+    } catch {
+      setActionError("Couldn't cancel RSVP. Please try again.");
+    } finally {
+      setCancelRsvpLoading(false);
     }
   };
 
@@ -252,22 +288,33 @@ export default function EventTicketCard({ event, loading = false }) {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleAction}
-            disabled={rsvpLoading || rsvpDone}
-            className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
-              transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
-              active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100
-              disabled:hover:shadow-none"
-          >
-            {rsvpLoading
-              ? "Processing..."
-              : rsvpDone
-                ? "You're Going! 🎉"
+          {/* When the user has RSVPed a free event, swap the primary button for a cancel button.
+              Uses muted gray styling with a red hover to signal the destructive action. */}
+          {event.isFree && rsvpDone ? (
+            <button
+              onClick={() => setCancelModalOpen(true)}
+              className="flex-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600
+                border border-gray-200 hover:border-red-200 font-semibold py-3 rounded-full
+                transition-all duration-300"
+            >
+              Cancel RSVP
+            </button>
+          ) : (
+            <button
+              onClick={handleAction}
+              disabled={rsvpLoading}
+              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
+                active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100
+                disabled:hover:shadow-none"
+            >
+              {rsvpLoading
+                ? "Processing..."
                 : event.isFree
                   ? "I'm Going"
                   : "Get Tickets"}
-          </button>
+            </button>
+          )}
 
           <button
             onClick={handleCopyLink}
@@ -317,7 +364,47 @@ export default function EventTicketCard({ event, loading = false }) {
             </span>
           </button>
         </div>
+
       </div>
+
+      {/* Cancel RSVP confirmation — opens when user clicks "Cancel RSVP" on a free event */}
+      <Dialog
+        open={cancelModalOpen}
+        onOpenChange={(open) => { if (!cancelRsvpLoading) setCancelModalOpen(open); }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Cancel RSVP?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            You&apos;ll be removed from the guest list for this event.
+          </p>
+          {actionError && (
+            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              {actionError}
+            </p>
+          )}
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setCancelModalOpen(false)}
+              disabled={cancelRsvpLoading}
+              className="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-full
+                hover:bg-gray-50 transition-all duration-300 disabled:opacity-50"
+            >
+              Keep my RSVP
+            </button>
+            <button
+              onClick={handleCancelRsvp}
+              disabled={cancelRsvpLoading}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {cancelRsvpLoading ? "Cancelling..." : "Yes, cancel"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Quantity selector — first step for paid events */}
       <TicketQuantityModal
