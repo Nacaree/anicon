@@ -48,8 +48,8 @@ export default function EventsPageCard({ event }) {
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-xl overflow-hidden shrink-0 w-56 sm:w-60 shadow-sm hover:shadow-md active:brightness-90 active:scale-95
-        transition-[box-shadow,opacity,translate] duration-300 ease-out
+      className={`bg-white rounded-xl overflow-hidden shrink-0 w-56 sm:w-60 shadow-sm hover:shadow-md
+        transition-[box-shadow,opacity,translate] duration-300 ease-out relative group/card
         ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
     >
       {/* Clickable area — image + info */}
@@ -136,19 +136,25 @@ export default function EventsPageCard({ event }) {
         </div>
       </Link>
 
-      {/* Actions — not part of the link */}
-      <div className="px-3 pb-3">
+      {/* Actions — not part of the link. relative z-20 keeps the button above the
+          press overlay so clicking it doesn't show the card-wide highlight. */}
+      <div className="px-3 pb-3 relative z-20">
         <button
           onClick={handleWantToGo}
           className={`w-full text-xs font-medium py-2 px-3 rounded-full transition-colors duration-200 ${
             wantToGo
-              ? "bg-green-500 text-white hover:bg-green-600"
-              : "bg-[#FF7927] text-white hover:bg-[#E66B1F]"
+              ? "bg-green-500 text-white hover:bg-green-600 active:bg-green-700"
+              : "bg-[#FF7927] text-white hover:bg-[#E66B1F] active:bg-[#CC5A18]"
           }`}
         >
           {wantToGo ? "Saved" : "Save Event"}
         </button>
       </div>
+
+      {/* Press overlay — covers the entire card (including button area) but only
+          activates when the Link is pressed. The button sits above it (z-20) so
+          clicking Save doesn't trigger the highlight. */}
+      <div className="absolute inset-0 bg-black/0 group-has-[a:active]/card:bg-black/8 transition-colors duration-150 pointer-events-none z-10" />
     </div>
   );
 }

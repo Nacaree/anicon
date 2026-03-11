@@ -11,6 +11,8 @@ import {
   eventApi,
   normalizeEvent,
   getCachedEvents,
+  getCachedTickets,
+  setCachedTickets,
 } from "@/lib/api";
 import { getSavedEventIds, unsaveEvent } from "@/lib/savedEvents";
 import {
@@ -992,13 +994,13 @@ function SavedEventCard({ event, onUnsave }) {
         <div className="flex items-center gap-2 border-t border-dashed border-gray-200 pt-3">
           <button
             onClick={() => router.push(`/events/${event.id}`)}
-            className="flex-1 text-xs font-bold py-2 px-3 rounded-full bg-[#FF7927] text-white hover:bg-[#E66B1F] transition-colors"
+            className="flex-1 text-xs font-bold py-2 px-3 rounded-full bg-[#FF7927] text-white hover:bg-[#E66B1F] hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             View Event
           </button>
           <button
             onClick={handleUnsave}
-            className="text-xs font-medium py-2 px-3 rounded-full border border-gray-200 text-gray-500 hover:border-rose-300 hover:text-rose-500 transition-colors"
+            className="text-xs font-medium py-2 px-3 rounded-full border border-gray-200 text-gray-500 hover:border-rose-300 hover:text-rose-500 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Remove
           </button>
@@ -1070,6 +1072,16 @@ export default function MyTicketsPage() {
 
   useEffect(() => {
     if (authLoading) return;
+
+    // Fast path: use cached tickets from a previous visit (instant render).
+    const cached = getCachedTickets();
+    if (cached) {
+      setItems(cached);
+      setLoading(false);
+      return;
+    }
+
+    // Cold path: fetch from API, merge, cache for next visit.
     Promise.all([ticketApi.myTickets(), ticketApi.myRsvps()])
       .then(([tickets, rsvps]) => {
         const ticketItems = tickets.map((t) => ({ ...t, kind: "ticket" }));
@@ -1081,6 +1093,7 @@ export default function MyTicketsPage() {
           return a.eventDate.localeCompare(b.eventDate);
         });
         setItems(merged);
+        setCachedTickets(merged);
       })
       .catch(() => setError("Failed to load tickets. Please try again."))
       .finally(() => setLoading(false));
@@ -1241,7 +1254,7 @@ export default function MyTicketsPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`w-24 pb-3 text-sm font-semibold capitalize transition-colors duration-400 ${
+                  className={`w-24 pb-3 text-sm font-semibold capitalize transition-colors duration-300 ${
                     activeTab === tab
                       ? "text-[#FF7927]"
                       : "text-gray-500 hover:text-gray-700"
@@ -1395,7 +1408,7 @@ export default function MyTicketsPage() {
               <div
                 key="saved-empty"
                 className="flex flex-col items-center justify-center py-24 text-center
-                  animate-in fade-in slide-in-from-bottom-2 duration-400"
+                  animate-in fade-in slide-in-from-bottom-2 duration-300"
               >
                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                   <svg
@@ -1423,7 +1436,7 @@ export default function MyTicketsPage() {
                   <a
                     href="/events"
                     className="bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-6 py-2.5 rounded-full
-                      transition-all duration-400 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
+                      transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
                       active:scale-[0.98] text-sm"
                   >
                     Browse Events
@@ -1434,7 +1447,7 @@ export default function MyTicketsPage() {
               <div
                 key="saved-grid"
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4
-                  animate-in fade-in slide-in-from-bottom-2 duration-400"
+                  animate-in fade-in slide-in-from-bottom-2 duration-300"
               >
                 {displayedSavedEvents.map((event) => (
                   <SavedEventCard
@@ -1457,7 +1470,7 @@ export default function MyTicketsPage() {
             <div
               key={`${activeTab}-${activeFilter}`}
               className="flex flex-col items-center justify-center py-24 text-center
-                animate-in fade-in slide-in-from-bottom-2 duration-400"
+                animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                 <svg
@@ -1491,7 +1504,7 @@ export default function MyTicketsPage() {
                 <a
                   href="/events"
                   className="bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-6 py-2.5 rounded-full
-                    transition-all duration-400 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
+                    transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
                     active:scale-[0.98] text-sm"
                 >
                   Browse Events
@@ -1502,7 +1515,7 @@ export default function MyTicketsPage() {
             // List view — horizontal Eventbrite-style rows, single column
             <div
               key={`${activeTab}-${activeFilter}-list`}
-              className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-400 max-w-4xl"
+              className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-4xl"
             >
               {displayedItems.map((item) => (
                 <TicketRow
@@ -1517,7 +1530,7 @@ export default function MyTicketsPage() {
             <div
               key={`${activeTab}-${activeFilter}-grid`}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4
-                animate-in fade-in slide-in-from-bottom-2 duration-400"
+                animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               {displayedItems.map((item) => (
                 <TicketCard

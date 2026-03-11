@@ -13,7 +13,7 @@ export default function FeaturedEventCard({
   const monthLabel = month ? month.split(" ")[0] : null;
 
   const card = (
-    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0 transition-[transform,filter] duration-150 active:scale-[0.97] active:brightness-90">
+    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0">
       {/* object-top keeps subjects visible on the wide/short landscape crop */}
       {imageUrl ? (
         <img
@@ -63,6 +63,10 @@ export default function FeaturedEventCard({
           {isFree ? "Free Entry" : "Get Ticket"}
         </span>
       </div>
+
+      {/* Press overlay — darkens the card on click. Uses after: pseudo-element
+          so it doesn't need pointer-events and still responds to parent :active. */}
+      <div className="absolute inset-0 bg-black/0 transition-colors duration-150 pointer-events-none z-10 group-active:bg-black/8" />
     </div>
   );
 

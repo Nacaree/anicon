@@ -9,13 +9,18 @@ export default function EventsCategorySection({
   emoji,
   events,
   loading = false,
-  hideGradients = false,
+  // hideGradients kept for API compat but no longer used after Embla migration.
+  // animate=false skips the scroll-reveal animation — use for sections that appear
+  // directly in response to user action (e.g. tag filter results) so the reveal
+  // doesn't compete visually with the carousel scroll animation.
+  animate = true,
 }) {
-  const [isVisible, setIsVisible] = useState(false);
+  // When animate=false, start visible immediately (no reveal needed).
+  const [isVisible, setIsVisible] = useState(!animate);
   const sectionRef = useRef(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (!animate || loading) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -29,7 +34,7 @@ export default function EventsCategorySection({
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
-  }, [loading]);
+  }, [loading, animate]);
 
   if (loading) {
     return (
@@ -62,7 +67,9 @@ export default function EventsCategorySection({
         </h2>
       </div>
 
-      <EventCarousel enableEnlarge hideGradients={hideGradients}>
+      {/* key tied to event IDs so the carousel remounts with fresh scroll position
+          when events change (e.g. tag filter switching A→B with same count). */}
+      <EventCarousel key={events.map((e) => e.id).join("-")}>
         {events.map((event) => (
           <EventsPageCard key={event.id} event={event} />
         ))}

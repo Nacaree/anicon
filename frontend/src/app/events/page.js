@@ -169,10 +169,13 @@ export default function EventsPage() {
           {/* Inline results row (B) — appears above category sections when tags are active.
               Shows events matching ANY selected tag, keeping sections fully intact below. */}
           {selectedTags.length > 0 && (
+            // animate=false: section appears on demand (tag selection), no reveal animation.
+            // Avoids the 400ms transition competing with the carousel scroll animation.
             <EventsCategorySection
               title={resultsTitle}
               events={tagFilteredEvents}
               loading={loading}
+              animate={false}
             />
           )}
 
@@ -181,7 +184,6 @@ export default function EventsPage() {
             title="Cosplay events"
             events={cosplayEvents}
             loading={loading}
-            hideGradients
           />
 
           {/* Convention Events — always visible, unaffected by tag selection */}

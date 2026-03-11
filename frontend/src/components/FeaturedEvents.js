@@ -206,7 +206,7 @@ export default function FeaturedEvents() {
         {/* Real events carousel */}
         {!loading && featuredCards.length > 0 && (
           <div className="relative z-10">
-            <EventCarousel hideGradients={true} autoPlay={true}>
+            <EventCarousel autoPlay={true}>
               {featuredCards.map((event) => (
                 <FeaturedEventCard key={event.id} {...event} />
               ))}

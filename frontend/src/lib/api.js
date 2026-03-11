@@ -248,24 +248,60 @@ export const eventApi = {
   },
 };
 
+// In-memory ticket/RSVP cache. Populated by the tickets page after its first
+// fetch. Lets repeat visits render instantly without a network round-trip —
+// same pattern as _eventCache above.
+let _ticketCache = null;
+
+// Returns the cached merged tickets+RSVPs array, or null if not yet populated.
+export function getCachedTickets() {
+  return _ticketCache;
+}
+
+// Called by the tickets page after merging tickets+RSVPs to populate the cache.
+export function setCachedTickets(items) {
+  _ticketCache = items;
+}
+
+// Clear cache when ticket state changes (purchase, RSVP, cancel) so the next
+// visit to /tickets fetches fresh data.
+export function invalidateTicketCache() {
+  _ticketCache = null;
+}
+
 // Ticket API calls
 export const ticketApi = {
   // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
   purchase: (eventId, paymentMethod = "aba_pay", quantity = 1) =>
-    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod, quantity }),
+    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod, quantity }).then((res) => {
+      invalidateTicketCache();
+      return res;
+    }),
   // Paid event: verifies PayWay payment and issues ticket
-  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
+  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Free event: RSVPs the user
-  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`),
+  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Returns all non-cancelled tickets for the current user
   myTickets: () => api.get("/api/tickets/my"),
   // Returns all RSVPs for the current user (free events)
   myRsvps: () => api.get("/api/tickets/my-rsvps"),
   // Cancel an abandoned Stripe checkout — marks the PaymentIntent cancelled on Stripe's side
   // and updates the transaction row in the DB. Called fire-and-forget; errors are swallowed.
-  cancelStripe: (transactionId) => api.post(`/api/tickets/${transactionId}/cancel`),
+  cancelStripe: (transactionId) => api.post(`/api/tickets/${transactionId}/cancel`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Cancel a free-event RSVP — deletes the event_rsvp row and decrements current_attendance.
-  cancelRsvp: (eventId) => api.delete(`/api/tickets/rsvp/${eventId}`),
+  cancelRsvp: (eventId) => api.delete(`/api/tickets/rsvp/${eventId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Returns { ticketCount, hasRsvp } for the current user on a specific event.
   // Uses bestEffortAuth: sends the cached token if available (no getSession() call),
   // or no token if auth hasn't resolved yet. The backend handles both cases gracefully.

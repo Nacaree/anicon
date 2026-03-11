@@ -260,11 +260,13 @@ export default function EventTimeline({ events = [], loading = false }) {
                     {/* Cards sit on top of the gradient */}
                     <div className="relative flex gap-4 pt-3 pb-4 px-4 sm:px-6 md:px-17">
                       {monthEvents.map((event) => (
-                        <EventsPageCard
+                        <div
                           key={event.id}
-                          event={event}
-                          isHoverEnlargeable
-                        />
+                          className="hover:scale-[1.05] hover:z-10 transition-transform duration-300 ease-out"
+                          style={{ transformOrigin: "center bottom" }}
+                        >
+                          <EventsPageCard event={event} />
+                        </div>
                       ))}
                     </div>
                   </div>
