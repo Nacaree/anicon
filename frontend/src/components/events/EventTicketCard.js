@@ -289,15 +289,14 @@ export default function EventTicketCard({ event, loading = false }) {
         {/* Actions */}
         <div className="flex items-center gap-3">
           {/* When the user has RSVPed a free event, swap the primary button for a cancel button.
-              Uses muted gray styling with a red hover to signal the destructive action. */}
+              Rose pill style matches the "Not Going" chip on the tickets page. */}
           {event.isFree && rsvpDone ? (
             <button
               onClick={() => setCancelModalOpen(true)}
-              className="flex-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600
-                border border-gray-200 hover:border-red-200 font-semibold py-3 rounded-full
-                transition-all duration-300"
+              className="flex-1 bg-rose-100 text-rose-600 hover:bg-rose-200 font-semibold py-3 rounded-full
+                hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              Cancel RSVP
+              Not Going
             </button>
           ) : (
             <button
@@ -374,10 +373,10 @@ export default function EventTicketCard({ event, loading = false }) {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Cancel RSVP?</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Not going ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            You&apos;ll be removed from the guest list for this event.
+            You&apos;ll be removed from the guest list for now. You can always return later.
           </p>
           {actionError && (
             <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
@@ -388,19 +387,22 @@ export default function EventTicketCard({ event, loading = false }) {
             <button
               onClick={() => setCancelModalOpen(false)}
               disabled={cancelRsvpLoading}
-              className="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-full
-                hover:bg-gray-50 transition-all duration-300 disabled:opacity-50"
+              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Keep my RSVP
+              Stay on the list
             </button>
             <button
               onClick={handleCancelRsvp}
               disabled={cancelRsvpLoading}
               className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
-                transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]
                 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {cancelRsvpLoading ? "Cancelling..." : "Yes, cancel"}
+              {cancelRsvpLoading ? "Removing..." : "I'm not going"}
             </button>
           </div>
         </DialogContent>

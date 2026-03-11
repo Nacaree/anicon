@@ -5,11 +5,7 @@ import Link from "next/link";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { isEventSaved, saveEvent, unsaveEvent } from "@/lib/savedEvents";
 
-export default function EventsPageCard({
-  event,
-  isEnlarged = false,
-  isHoverEnlargeable = false,
-}) {
+export default function EventsPageCard({ event }) {
   const { requireAuth } = useAuthGate();
   // Initialize from localStorage so the saved state survives page refreshes.
   // Runs after mount (client-only) to avoid SSR mismatch.
@@ -52,21 +48,20 @@ export default function EventsPageCard({
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-xl overflow-hidden shrink-0 shadow-sm transition-all duration-400 ease-out active:brightness-90 active:scale-95
-        ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
-        ${isEnlarged ? "w-72 sm:w-85 shadow-md hover:shadow-lg" : "w-56 sm:w-60 hover:shadow-md"}
-        ${isHoverEnlargeable ? "hover:scale-[1.06] hover:z-10 hover:shadow-lg" : ""}`}
+      className={`bg-white rounded-xl overflow-hidden shrink-0 w-56 sm:w-60 shadow-sm hover:shadow-md active:brightness-90 active:scale-95
+        transition-[box-shadow,opacity,translate] duration-300 ease-out
+        ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
     >
       {/* Clickable area — image + info */}
       {/* prefetch={true} pre-fetches the full RSC payload while the card is visible.
           Default Next.js prefetch only covers the loading boundary — prefetch=true
           caches the complete page so navigation is instant instead of ~400ms. */}
       <Link href={`/events/${event.id}`} prefetch={true} className="block">
-        {/* Image */}
+        {/* Image — rounded-t-xl here ensures the image corners stay rounded during hover:scale
+            transforms. Without this, parent overflow-hidden+border-radius can fail to clip
+            transformed children on some GPU rendering paths, causing sharp corners. */}
         <div
-          className={`relative bg-gray-200 overflow-hidden transition-all duration-500 ease-in-out ${
-            isEnlarged ? "h-37 sm:h-39" : "h-32 sm:h-36"
-          }`}
+          className="relative bg-gray-200 overflow-hidden rounded-t-xl h-32 sm:h-36"
         >
           {event.imageUrl ? (
             <img
@@ -119,12 +114,10 @@ export default function EventsPageCard({
             </svg>
             <span className="line-clamp-1">{event.location}</span>
           </p>
-          {/* Price line — green for free, rose for paid (distinct from the orange date text above).
-              mt-2 adds breathing room between location and price so it reads as a distinct section. */}
-          {/* Price line — relative+overflow-hidden contains the glint sweep.
-              text-shadow glow + animated diagonal glint mirror the promoted events card aesthetic. */}
-          {/* Price line — relative+overflow-hidden contains the glint sweep.
-              text-shadow glow on text + drop-shadow filter on icon + animated diagonal glint. */}
+          {/* Price line — relative+overflow-hidden contains the glint sweep animation.
+              text-shadow on the <p> provides the glow for both icon and text.
+              filter:drop-shadow intentionally omitted from the SVG — it creates a GPU compositing
+              layer that breaks overflow-hidden+border-radius clipping during CSS transforms. */}
           <p className={`relative overflow-hidden text-sm font-semibold mt-2 mb-1 flex items-center gap-1 rounded-sm ${
             event.isFree
               ? "text-green-500 [text-shadow:0_0_10px_rgba(74,222,128,0.7)]"
@@ -132,12 +125,7 @@ export default function EventsPageCard({
           }`}>
             {/* Glint sweep — z-10 so it passes over both icon and text */}
             <span className="price-glint absolute inset-0 w-1/2 bg-linear-to-r from-transparent via-white/30 to-transparent pointer-events-none z-10" />
-            {/* drop-shadow gives the icon the same glow as the text-shadow on the label */}
-            <svg className={`w-3.5 h-3.5 shrink-0 relative ${
-              event.isFree
-                ? "filter-[drop-shadow(0_0_4px_rgba(74,222,128,0.8))]"
-                : "filter-[drop-shadow(0_0_4px_rgba(251,113,133,0.8))]"
-            }`} fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-3.5 h-3.5 shrink-0 relative" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a1 1 0 01-1 1 1 1 0 100 2 1 1 0 011 1v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a1 1 0 011-1 1 1 0 100-2 1 1 0 01-1-1V6z" />
             </svg>
             <span>{event.isFree ? "Free Entry" : `$${Number(event.ticketPrice).toFixed(2)}`}</span>

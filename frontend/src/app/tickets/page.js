@@ -13,7 +13,12 @@ import {
   getCachedEvents,
 } from "@/lib/api";
 import { getSavedEventIds, unsaveEvent } from "@/lib/savedEvents";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -80,7 +85,6 @@ function PaidTicketCard({ item }) {
             </svg>
           </div>
         )}
-
       </div>
 
       {/* Event info */}
@@ -108,7 +112,10 @@ function PaidTicketCard({ item }) {
             </svg>
             <span>{formatDate(item.eventDate)}</span>
             {item.eventTime && (
-              <><span className="text-gray-400 font-bold">•</span><span>{formatTime(item.eventTime)}</span></>
+              <>
+                <span className="text-gray-400 font-bold">•</span>
+                <span>{formatTime(item.eventTime)}</span>
+              </>
             )}
           </div>
           {item.eventLocation && (
@@ -157,11 +164,21 @@ function PaidTicketCard({ item }) {
           </span>
           <button
             onClick={() => router.push(`/events/${item.eventId}`)}
-            className="ml-auto text-xs font-bold text-[#FF7927] hover:text-[#E66B1F] transition-colors flex items-center gap-1"
+            className="ml-auto text-xs font-semibold px-3 py-1 rounded-full bg-orange-100 text-[#FF7927] hover:bg-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1"
           >
             View Event
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -309,7 +326,10 @@ function RsvpCard({ item, onCancel }) {
             </svg>
             <span>{formatDate(item.eventDate)}</span>
             {item.eventTime && (
-              <><span className="text-gray-400 font-bold">•</span><span>{formatTime(item.eventTime)}</span></>
+              <>
+                <span className="text-gray-400 font-bold">•</span>
+                <span>{formatTime(item.eventTime)}</span>
+              </>
             )}
           </div>
           {item.eventLocation && (
@@ -337,15 +357,34 @@ function RsvpCard({ item, onCancel }) {
             </div>
           )}
         </div>
-        <button
-          onClick={() => router.push(`/events/${item.eventId}`)}
-          className="mt-3 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1"
-        >
-          View Event
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        {/* Action row — View Event chip on the left, Cancel RSVP chip on the right */}
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            onClick={() => router.push(`/events/${item.eventId}`)}
+            className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1"
+          >
+            View Event
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={() => setCancelModalOpen(true)}
+            className="text-xs font-semibold px-3 py-1 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            Not Going
+          </button>
+        </div>
       </div>
 
       {/* Confirmation stub — dashed top border is the tear line; notches bleed outside card */}
@@ -381,44 +420,43 @@ function RsvpCard({ item, onCancel }) {
             Show up and enjoy the event
           </p>
         </div>
-        {/* Cancel RSVP — small text button that opens a confirmation modal */}
-        <button
-          onClick={() => setCancelModalOpen(true)}
-          className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 shrink-0"
-        >
-          Cancel
-        </button>
       </div>
 
       {/* Cancel RSVP confirmation modal */}
       <Dialog
         open={cancelModalOpen}
-        onOpenChange={(open) => { if (!cancelLoading) setCancelModalOpen(open); }}
+        onOpenChange={(open) => {
+          if (!cancelLoading) setCancelModalOpen(open);
+        }}
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Cancel RSVP?</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Not going ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            You&apos;ll be removed from the guest list for this event.
+            You&apos;ll be removed from the guest list for now. You can always
+            return later.
           </p>
           <div className="flex gap-3 mt-2">
             <button
               onClick={() => setCancelModalOpen(false)}
               disabled={cancelLoading}
-              className="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-full
-                hover:bg-gray-50 transition-all duration-300 disabled:opacity-50"
+              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Keep my RSVP
+              Stay on the list
             </button>
             <button
               onClick={handleCancelRsvp}
               disabled={cancelLoading}
               className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
-                transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]
                 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {cancelLoading ? "Cancelling..." : "Yes, cancel"}
+              {cancelLoading ? "Removing..." : "I'm not going"}
             </button>
           </div>
         </DialogContent>
@@ -461,8 +499,16 @@ function PaidTicketRow({ item }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-7 h-7 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-7 h-7 text-orange-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
               />
             </svg>
@@ -471,7 +517,7 @@ function PaidTicketRow({ item }) {
       </div>
 
       {/* Main info — justify-between spreads content top-to-bottom, filling the card height */}
-      <div className="flex-1 p-5 min-w-0 flex flex-col justify-between">
+      <div className="flex-1 p-5 min-w-0 flex flex-col justify-center gap-3">
         <h3
           className="font-semibold text-gray-900 text-base leading-tight cursor-pointer hover:text-[#FF7927] transition-colors line-clamp-2"
           onClick={() => router.push(`/events/${item.eventId}`)}
@@ -480,21 +526,47 @@ function PaidTicketRow({ item }) {
         </h3>
         <div className="flex flex-col gap-1.5 text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-3.5 h-3.5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
             <span>{formatDate(item.eventDate)}</span>
-            {item.eventTime && <><span className="text-gray-400 font-bold">•</span><span>{formatTime(item.eventTime)}</span></>}
+            {item.eventTime && (
+              <>
+                <span className="text-gray-400 font-bold">•</span>
+                <span>{formatTime(item.eventTime)}</span>
+              </>
+            )}
           </div>
           {item.eventLocation && (
             <div className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              <svg
+                className="w-3.5 h-3.5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
                   d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                 />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span className="truncate">{item.eventLocation}</span>
             </div>
@@ -503,21 +575,39 @@ function PaidTicketRow({ item }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-600">
-              {item.isFree ? "Free" : item.ticketPrice ? `$${Number(item.ticketPrice).toFixed(2)}` : "Paid"}
+              {item.isFree
+                ? "Free"
+                : item.ticketPrice
+                  ? `$${Number(item.ticketPrice).toFixed(2)}`
+                  : "Paid"}
             </span>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-              item.status === "checked_in" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
-            }`}>
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                item.status === "checked_in"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-green-100 text-green-700"
+              }`}
+            >
               {item.status === "checked_in" ? "Checked In" : "Issued"}
             </span>
           </div>
           <button
             onClick={() => router.push(`/events/${item.eventId}`)}
-            className="text-xs font-bold text-[#FF7927] hover:text-[#E66B1F] transition-colors flex items-center gap-1"
+            className="text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-[#FF7927] hover:bg-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1"
           >
             View Event
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -543,7 +633,9 @@ function PaidTicketRow({ item }) {
       {/* Ticket stub — wide enough to show the full code without truncation */}
       {item.ticketCode && (
         <div className="bg-gray-50/60 rounded-r-xl px-4 py-4 flex flex-col justify-center items-center gap-2 w-28 sm:w-48 shrink-0">
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Ticket Code</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">
+            Ticket Code
+          </p>
           <code className="text-xs font-mono font-semibold text-gray-700 bg-white px-3 py-1.5 rounded-lg border border-gray-100 tracking-wide text-center w-full break-all">
             {item.ticketCode}
           </code>
@@ -589,8 +681,16 @@ function RsvpRow({ item, onCancel }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-7 h-7 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-7 h-7 text-emerald-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
@@ -608,37 +708,73 @@ function RsvpRow({ item, onCancel }) {
         </h3>
         <div className="flex flex-col gap-1.5 text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-3.5 h-3.5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
             <span>{formatDate(item.eventDate)}</span>
-            {item.eventTime && <><span className="text-gray-400 font-bold">•</span><span>{formatTime(item.eventTime)}</span></>}
+            {item.eventTime && (
+              <>
+                <span className="text-gray-400 font-bold">•</span>
+                <span>{formatTime(item.eventTime)}</span>
+              </>
+            )}
           </div>
           {item.eventLocation && (
             <div className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              <svg
+                className="w-3.5 h-3.5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
                   d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                 />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span className="truncate">{item.eventLocation}</span>
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
             Free Entry
           </span>
           <button
             onClick={() => router.push(`/events/${item.eventId}`)}
-            className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1"
+            className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1"
           >
             View Event
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -655,8 +791,18 @@ function RsvpRow({ item, onCancel }) {
           style={{ clipPath: "inset(0 0 46% 0)" }}
         />
         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          <svg
+            className="w-5 h-5 text-emerald-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </div>
         <p className="text-sm font-semibold text-emerald-700 text-center leading-tight">
@@ -665,41 +811,47 @@ function RsvpRow({ item, onCancel }) {
         {/* Cancel RSVP — opens confirmation modal */}
         <button
           onClick={() => setCancelModalOpen(true)}
-          className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200"
+          className="text-xs font-semibold px-3 py-1 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          Cancel RSVP
+          Not Going
         </button>
       </div>
 
       {/* Cancel RSVP confirmation modal */}
       <Dialog
         open={cancelModalOpen}
-        onOpenChange={(open) => { if (!cancelLoading) setCancelModalOpen(open); }}
+        onOpenChange={(open) => {
+          if (!cancelLoading) setCancelModalOpen(open);
+        }}
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Cancel RSVP?</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Not going?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            You&apos;ll be removed from the guest list for this event.
+            You&apos;ll be removed from the guest list. You can always RSVP
+            again later.
           </p>
           <div className="flex gap-3 mt-2">
             <button
               onClick={() => setCancelModalOpen(false)}
               disabled={cancelLoading}
-              className="flex-1 border border-gray-200 text-gray-700 font-semibold py-3 rounded-full
-                hover:bg-gray-50 transition-all duration-300 disabled:opacity-50"
+              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Keep my RSVP
+              Stay on the list
             </button>
             <button
               onClick={handleCancelRsvp}
               disabled={cancelLoading}
               className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
-                transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]
                 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {cancelLoading ? "Cancelling..." : "Yes, cancel"}
+              {cancelLoading ? "Removing..." : "I'm not going"}
             </button>
           </div>
         </DialogContent>
@@ -736,8 +888,16 @@ function SavedEventCard({ event, onUnsave }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-12 h-12 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-12 h-12 text-orange-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
@@ -756,23 +916,49 @@ function SavedEventCard({ event, onUnsave }) {
 
         <div className="space-y-1.5 mb-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
             {/* event.date and event.time come pre-formatted from normalizeEvent —
                 do NOT wrap in formatDate()/formatTime() again or they'll produce garbage */}
             <span>{event.date}</span>
-            {event.time && <><span className="text-gray-400 font-bold">•</span><span>{event.time}</span></>}
+            {event.time && (
+              <>
+                <span className="text-gray-400 font-bold">•</span>
+                <span>{event.time}</span>
+              </>
+            )}
           </div>
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
                   d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                 />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span className="truncate">{event.location}</span>
             </div>
@@ -781,10 +967,18 @@ function SavedEventCard({ event, onUnsave }) {
 
         {/* Price chip + saved badge */}
         <div className="flex items-center gap-2 mb-3">
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-            event.isFree ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-600"
-          }`}>
-            {event.isFree ? "Free Entry" : event.ticketPrice ? `$${Number(event.ticketPrice).toFixed(2)}` : "Paid"}
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+              event.isFree
+                ? "bg-green-100 text-green-700"
+                : "bg-rose-100 text-rose-600"
+            }`}
+          >
+            {event.isFree
+              ? "Free Entry"
+              : event.ticketPrice
+                ? `$${Number(event.ticketPrice).toFixed(2)}`
+                : "Paid"}
           </span>
           <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-[#FF7927]">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -847,17 +1041,15 @@ export default function MyTicketsPage() {
   const [error, setError] = useState(null);
   // "upcoming" shows eventDate >= today; "past" shows eventDate < today; "saved" shows bookmarks
   const [activeTab, setActiveTab] = useState("upcoming");
-  // "ticket" | "rsvp" — secondary filter within upcoming/past tabs only.
-  // Defaults to "ticket" so the user sees paid tickets first (no "All" option).
-  const [activeFilter, setActiveFilter] = useState("ticket");
+  // "all" | "ticket" | "rsvp" — secondary filter within upcoming/past tabs only.
+  // Defaults to "all" so search across both types works out of the box (e.g. typing "free").
+  const [activeFilter, setActiveFilter] = useState("all");
   // "grid" = card grid (default), "list" = horizontal Eventbrite-style rows
   const [viewMode, setViewMode] = useState("grid");
   // Search query — filters displayed items by title, location, or ticket code
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef(null);
 
-  // Reset search when switching tabs so stale results don't carry over
-  useEffect(() => { setSearchQuery(""); }, [activeTab]);
 
   // Cmd/Ctrl+K focuses the search input from anywhere on the page
   useEffect(() => {
@@ -939,6 +1131,52 @@ export default function MyTicketsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // matchesSearch — rich search across all available fields on a ticket/rsvp/saved-event item.
+  // Builds a haystack string from title, location, ticketCode, ticket status (normalized),
+  // a "free" token for free events, and full date parts (month name, year, day-of-week).
+  // Uses word-by-word matching: every space-separated word in q must appear somewhere in
+  // the haystack, making multi-word queries work and providing fuzzy tolerance for partial input.
+  function matchesSearch(item, q) {
+    if (!q) return true;
+
+    const parts = [
+      item.eventTitle,
+      item.eventLocation,
+      item.ticketCode,
+      item.title,    // saved events use `title` not `eventTitle`
+      item.location, // saved events use `location` not `eventLocation`
+    ];
+
+    // Normalize ticket status so "checked in" matches "checked_in"
+    if (item.status) parts.push(item.status.replace(/_/g, " "));
+
+    // Add "free" to haystack so typing "free" matches free tickets and all RSVPs
+    if (item.isFree || item.kind === "rsvp") parts.push("free");
+
+    // Date parts — eventDate is "2026-03-15" on both ticket/rsvp items and normalized saved events
+    if (item.eventDate) {
+      const d = new Date(item.eventDate + "T00:00:00");
+      parts.push(
+        d.toLocaleDateString("en-US", { month: "long" }),    // "March"
+        d.toLocaleDateString("en-US", { month: "short" }),   // "Mar"
+        String(d.getFullYear()),                              // "2026"
+        d.toLocaleDateString("en-US", { weekday: "long" }),  // "Saturday"
+        d.toLocaleDateString("en-US", { weekday: "short" }), // "Sat"
+        item.eventDate,                                       // "2026-03-15"
+      );
+    }
+
+    // Time — raw backend value is "10:10:00" so "10:10" is a natural substring match;
+    // also include the formatted display string (e.g. "10 AM", "10:10 AM") for saved events
+    if (item.eventTime) parts.push(item.eventTime); // "10:10:00"
+    if (item.time) parts.push(item.time);           // "10 AM" (normalized saved events)
+
+    const haystack = parts.filter(Boolean).join(" ").toLowerCase();
+
+    // Require every word in the query to appear somewhere in the combined haystack
+    return q.split(/\s+/).filter(Boolean).every((word) => haystack.includes(word));
+  }
+
   const q = searchQuery.toLowerCase().trim();
   const displayedItems = items.filter((item) => {
     const isUpcoming = !item.eventDate || item.eventDate >= today;
@@ -946,19 +1184,12 @@ export default function MyTicketsPage() {
     if (activeTab === "past" && isUpcoming) return false;
     if (activeFilter === "ticket" && item.kind !== "ticket") return false;
     if (activeFilter === "rsvp" && item.kind !== "rsvp") return false;
-    if (q && !item.eventTitle?.toLowerCase().includes(q)
-          && !item.eventLocation?.toLowerCase().includes(q)
-          && !item.ticketCode?.toLowerCase().includes(q)) return false;
+    if (!matchesSearch(item, q)) return false;
     return true;
   });
 
-  // Apply same search to saved events
-  const displayedSavedEvents = q
-    ? savedEvents.filter((e) =>
-        e.title?.toLowerCase().includes(q) ||
-        e.location?.toLowerCase().includes(q)
-      )
-    : savedEvents;
+  // Apply same rich search to saved events (matchesSearch handles both field name shapes)
+  const displayedSavedEvents = savedEvents.filter((e) => matchesSearch(e, q));
 
   const emptyMessage =
     activeTab === "saved"
@@ -966,7 +1197,7 @@ export default function MyTicketsPage() {
       : activeFilter === "ticket"
         ? "No tickets found."
         : activeFilter === "rsvp"
-          ? "No events found."
+          ? "No free events found."
           : activeTab === "past"
             ? "No past events."
             : "No upcoming events.";
@@ -1024,15 +1255,25 @@ export default function MyTicketsPage() {
 
           {/* Search bar — filters across title, location, ticket code. Cmd/Ctrl+K to focus. */}
           <div className="relative mb-4">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+              />
             </svg>
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by event name, location or ticket code… (⌘K)"
+              placeholder='Search events, dates, status, "free"… (⌘K)'
               className="w-full pl-9 pr-9 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927] transition-colors placeholder:text-gray-400"
             />
             {searchQuery && (
@@ -1041,8 +1282,18 @@ export default function MyTicketsPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 aria-label="Clear search"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             )}
@@ -1054,6 +1305,7 @@ export default function MyTicketsPage() {
               {/* Filter chips */}
               <div className="flex gap-2">
                 {[
+                  { value: "all", label: "All" },
                   { value: "ticket", label: "Tickets" },
                   { value: "rsvp", label: "Free" },
                 ].map((f) => (
@@ -1074,7 +1326,8 @@ export default function MyTicketsPage() {
               {/* Result count — only shown when a search query is active */}
               {q && (
                 <span className="text-xs text-gray-400 ml-1">
-                  {displayedItems.length} result{displayedItems.length !== 1 ? "s" : ""}
+                  {displayedItems.length} result
+                  {displayedItems.length !== 1 ? "s" : ""}
                 </span>
               )}
 
@@ -1084,11 +1337,19 @@ export default function MyTicketsPage() {
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-1.5 rounded-md transition-colors ${
-                    viewMode === "grid" ? "bg-white shadow-sm text-[#FF7927]" : "text-gray-400 hover:text-gray-600"
+                    viewMode === "grid"
+                      ? "bg-white shadow-sm text-[#FF7927]"
+                      : "text-gray-400 hover:text-gray-600"
                   }`}
                   aria-label="Grid view"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    viewBox="0 0 24 24"
+                  >
                     <rect x="3" y="3" width="7" height="7" rx="1.5" />
                     <rect x="14" y="3" width="7" height="7" rx="1.5" />
                     <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -1099,11 +1360,19 @@ export default function MyTicketsPage() {
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-1.5 rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white shadow-sm text-[#FF7927]" : "text-gray-400 hover:text-gray-600"
+                    viewMode === "list"
+                      ? "bg-white shadow-sm text-[#FF7927]"
+                      : "text-gray-400 hover:text-gray-600"
                   }`}
                   aria-label="List view"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    viewBox="0 0 24 24"
+                  >
                     <rect x="3" y="4" width="8" height="5" rx="1.5" />
                     <line x1="14" y1="6.5" x2="21" y2="6.5" />
                     <rect x="3" y="13" width="8" height="5" rx="1.5" />
@@ -1236,7 +1505,11 @@ export default function MyTicketsPage() {
               className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-400 max-w-4xl"
             >
               {displayedItems.map((item) => (
-                <TicketRow key={`${item.kind}-${item.id}`} item={item} onCancel={handleCancelRsvp} />
+                <TicketRow
+                  key={`${item.kind}-${item.id}`}
+                  item={item}
+                  onCancel={handleCancelRsvp}
+                />
               ))}
             </div>
           ) : (
@@ -1247,7 +1520,11 @@ export default function MyTicketsPage() {
                 animate-in fade-in slide-in-from-bottom-2 duration-400"
             >
               {displayedItems.map((item) => (
-                <TicketCard key={`${item.kind}-${item.id}`} item={item} onCancel={handleCancelRsvp} />
+                <TicketCard
+                  key={`${item.kind}-${item.id}`}
+                  item={item}
+                  onCancel={handleCancelRsvp}
+                />
               ))}
             </div>
           )}
