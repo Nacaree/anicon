@@ -43,6 +43,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/profiles/user/**").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
+                        // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.
+                        // The frontend sends a cached token if available (no getSession() call) so the fetch fires
+                        // immediately on page load without waiting for auth initialization.
+                        .requestMatchers(HttpMethod.GET, "/api/tickets/event-status/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

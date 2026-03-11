@@ -57,12 +57,13 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route. `callback/route.js` handles the Supabase OAuth callback.
 - **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`). Public routes: `/`, `/events`, `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/callback`, `/_next`.
 - **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle). Use the `useAuth()` hook to access `AuthContext`; it exposes: `user`, `profile`, `isLoading`, `isAuthenticated`, `emailVerified`, `signUp`, `signIn`, `signInWithMagicLink`, `signOut`, `resetPassword`, `updatePassword`, `refreshSession`, `fetchProfile`. Note: Supabase does not return an error for duplicate emails on signup — detect it by checking `authData.user?.identities?.length === 0`.
-- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`/`images`/`thumbnails`, `currentAttendance`→`wantToGoCount`, and also adds `timeRange`/`dateRange` aliases. Pass `noAuth: true` in the options object to skip the token fetch on public endpoints (avoids unnecessary `getSession()` calls).
+- **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`/`images`/`thumbnails`, `currentAttendance`→`wantToGoCount`, and also adds `timeRange`/`dateRange` aliases. Three auth modes on `request()`: `noAuth: true` skips token entirely (public endpoints), `bestEffortAuth: true` attaches the cached token synchronously if available but never calls `getSession()` (optionally-authenticated endpoints like `event-status`), default calls `getAuthHeaders()` which awaits the token (fully auth-required endpoints).
 - **Event cache:** `api.js` maintains a module-level `_eventCache` (Map). `eventApi.listEvents()` populates it; `eventApi.getEvent(id)` hits the cache first and only fetches Railway if the cache is empty (e.g. on a direct link to `/events/:id`). `getCachedEvent(id)` and `getCachedEvents()` are exported for synchronous reads — the event detail page uses these to render with real data on first paint, avoiding a skeleton flash when the user navigated from the events list.
 - **Token caching:** `api.js` maintains a `_cachedAccessToken` updated by `AuthContext`. This avoids concurrent `getSession()` calls that would deadlock via Supabase's `navigator.locks`. Do not call `supabase.auth.getSession()` directly inside page components — use the cached token path through `api.js` or read from `AuthContext`.
 - **UI components:** Shadcn/ui (New York style) with Radix UI primitives, Lucide icons, and Tailwind CSS 4. Custom components live in `src/components/`; shadcn-managed primitives live in `src/components/ui/`.
 - **Styling:** Tailwind CSS 4 (PostCSS-based, not config-file-based). Theme tokens are CSS custom properties in `globals.css` using OKLch color space. Dark mode uses the `.dark` class. Primary brand color is `#FF7927` (orange).
-- **Performance:** React Compiler is enabled (`reactCompiler: true` in `next.config.mjs`). Heavy components use `next/dynamic` with skeleton loaders.
+- **Interactive chip pattern:** All clickable chip/pill buttons must include scale animations — `hover:scale-[1.02] active:scale-[0.98] transition-all`. Never add a chip without these. For modal action buttons, also add glow shadows: primary (orange) uses `hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]`, destructive (red) uses `hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)]`.
+- **Performance:** React Compiler is enabled (`reactCompiler: true` in `next.config.mjs`). Heavy components use `next/dynamic` with skeleton loaders. Event cards use `<Link prefetch={true}>` so the RSC payload for each detail page is pre-fetched while cards are visible — navigation is instant with no skeleton. Do not add a `loading.js` to `app/events/[id]/` — it was deliberately removed because `prefetch={true}` eliminates the RSC wait that made it necessary.
 - **Mock data:** `src/data/mockEvents.js` exists but is **deprecated and unused** — `app/events/page.js` already calls `eventApi.listEvents()` with the real backend API.
 - **Testing:** No test framework is configured in the frontend.
 
@@ -92,6 +93,8 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `POST` | `/api/tickets/rsvp/{eventId}` | Required | RSVP for free event |
 | `GET` | `/api/tickets/my` | Required | User's non-cancelled tickets |
 | `GET` | `/api/tickets/my-rsvps` | Required | User's free event RSVPs |
+| `GET` | `/api/tickets/event-status/{eventId}` | Optional | Returns `{ ticketCount, hasRsvp }` for current user; 0/false for guests |
+| `POST` | `/api/tickets/{transactionId}/cancel` | Required | Cancel abandoned Stripe PaymentIntent and mark transaction cancelled |
 | `POST` | `/api/stripe/webhook` | Public (HMAC) | Stripe webhook — issues ticket on `payment_intent.succeeded` |
 
 ### Key Design Patterns
@@ -100,6 +103,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Atomic capacity enforcement:** Uses `UPDATE events SET current_attendance = current_attendance + 1 WHERE id = ? AND (max_capacity IS NULL OR current_attendance < max_capacity)`. If 0 rows affected → throw 409 CONFLICT (sold out). Prevents overselling without locking.
 - **Deferred attendance increment (paid events):** `current_attendance` is only incremented after payment is confirmed — not on initiation. PayWay: confirmed in `verifyAndIssueTicket()`. Stripe: confirmed in `handleStripePaymentSucceeded()` (called by webhook).
 - **Payment provider routing:** `TicketService.initiatePurchase()` routes to `StripeService` when `paymentMethod == "card"`, and to `PayWayService` for all other values (`aba_pay`, `khqr`, `wechat`, `alipay`). Both providers write to the same `transactions` table with a `payment_provider` column ("stripe" or "payway"). The `PurchaseResponse` includes `paymentProvider` + either `stripeClientSecret` (Stripe) or `checkoutUrl` + `paywayTranId` + `qrImage` + `qrString` + `abapayDeeplink` (PayWay) — check `paymentProvider` on the frontend before deciding which field to use.
+- **Paid event purchase UI flow (3 steps):** (1) `TicketQuantityModal` — user picks quantity; (2) `PaymentMethodModal` — user picks payment method and the purchase API is called; (3) method-specific checkout — PayWay redirects to external URL or `payment/checkout/`, Stripe opens `StripePaymentModal` in-page. All three components live in `src/components/payments/` and are orchestrated by `EventTicketCard`.
 - **Dual payment UI flow:** PayWay (`aba_pay`, `khqr`, `wechat`, `alipay`) redirects the user to an external checkout URL; the frontend's `payment/checkout/` and `payment/verify/` pages handle the return flow, with state (QR image, tran ID, amount) passed via `sessionStorage`. Stripe (`card`) stays on-site: `StripePaymentModal` uses Stripe Elements, the backend returns a `stripeClientSecret`, and the ticket is issued asynchronously via webhook — no verify page needed.
 - **Payment state between pages:** PayWay checkout/verify pages pass state via `sessionStorage`, not URL params. Both `payment/verify/` and `payment/success/` use `useSearchParams()` wrapped in `<Suspense>` — required by Next.js App Router; omitting it causes a build error.
 - **JOOQ multiset for tags:** Tags are loaded in one SQL round-trip (no N+1) using JOOQ's `multiset()` function.
@@ -161,17 +165,21 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 - RSVP for free events (unique constraint handles duplicates)
 - Paid ticket purchase flow: PayWay (Unirest, HMAC-SHA512 signing) + Stripe (`StripeService`, `StripeWebhookController`)
 - Payment UI pages: `app/payment/checkout/`, `app/payment/verify/`, `app/payment/success/`
+- My Tickets page (`app/tickets/page.js`): merges paid tickets + free RSVPs sorted by event date, with per-user ticket status badge on the event detail card (`EventTicketCard` → `ticketApi.eventStatus()`)
 
 **TODO (Deferred to Month 2-3):**
 - Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
-## CDN Caching — Important for Event Creation
+## Event Detail Page — Performance Architecture
 
-`GET /api/events` and `GET /api/events/{id}` return `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=3600`. This means:
-- Vercel's CDN edge caches the events list for **5 minutes**
-- When a user creates/publishes a new event via `POST /api/events`, it will **not appear immediately** for other users — they'll see the stale cached list for up to 5 minutes
+Event API calls (`GET /api/events`, `GET /api/events/{id}`) go **directly to Railway** — there is no Vercel proxy in the path. This is intentional: Railway responds in ~7ms and a proxy adds latency, not removes it. See `docs/DETAIL_PAGE_PERF_FIX.md` for the full investigation.
 
-If instant visibility after event creation becomes a requirement (e.g. the hosting user expects to see their event appear right away), the fix is to call Vercel's Cache Purge API after a successful `POST /api/events` to invalidate the cached list. See [Vercel Cache API docs](https://vercel.com/docs/edge-network/caching).
+The `app/events/[id]/page.js` server component is intentionally thin (no data fetch). The event detail flow:
+1. User is on `/events` → `listEvents()` populates the in-memory `_eventCache`
+2. Event cards render with `<Link prefetch={true}>` → Next.js pre-fetches each RSC payload in the background
+3. User clicks → RSC payload already cached → `EventDetailClient` mounts → reads event from `_eventCache` → renders instantly with zero network calls
+
+**Important for event creation:** `GET /api/events` returns `Cache-Control: public, max-age=60`. Users who just loaded the events page will see a cached list for up to 60 seconds. The `_eventCache` in-memory map is also only refreshed on `listEvents()` calls — a page reload will show the new event.
 
 ## Important Rules
 
@@ -184,3 +192,4 @@ If instant visibility after event creation becomes a requirement (e.g. the hosti
 <!-- * this is for feature 1: Event Ticketing -->
 - Database design: @docs/ticketing_schema_design_guide.md
 - SQL schema: @docs/ANICONNECT_TICKETING_SCHEMA_V2.sql
+- Event detail page perf: @docs/DETAIL_PAGE_PERF_FIX.md

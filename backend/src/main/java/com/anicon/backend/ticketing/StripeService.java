@@ -97,6 +97,21 @@ public class StripeService {
     }
 
     /**
+     * Cancels a Stripe PaymentIntent. Called when the user abandons checkout.
+     *
+     * The caller should catch StripeException and log a warning rather than propagating —
+     * a failed cancel is non-critical since Stripe auto-expires uncompleted PIs after 24h.
+     *
+     * @param paymentIntentId The pi_xxx ID stored in transactions.stripe_payment_intent_id
+     * @throws StripeException if Stripe rejects the cancel (e.g. PI already succeeded)
+     */
+    public void cancelPaymentIntent(String paymentIntentId) throws StripeException {
+        PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+        intent.cancel();
+        log.debug("[Stripe] Cancelled PaymentIntent id={}", paymentIntentId);
+    }
+
+    /**
      * Validates a Stripe webhook signature and returns the parsed Event.
      *
      * Called by StripeWebhookController — NOT by TicketService.

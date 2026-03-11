@@ -4,12 +4,23 @@ import { useState, useEffect, useRef } from "react";
 import EventsPageCard from "./EventsPageCard";
 import EventCarousel from "@/components/EventCarousel";
 
-export default function EventsCategorySection({ title, emoji, events, loading = false, hideGradients = false }) {
-  const [isVisible, setIsVisible] = useState(false);
+export default function EventsCategorySection({
+  title,
+  emoji,
+  events,
+  loading = false,
+  // hideGradients kept for API compat but no longer used after Embla migration.
+  // animate=false skips the scroll-reveal animation — use for sections that appear
+  // directly in response to user action (e.g. tag filter results) so the reveal
+  // doesn't compete visually with the carousel scroll animation.
+  animate = true,
+}) {
+  // When animate=false, start visible immediately (no reveal needed).
+  const [isVisible, setIsVisible] = useState(!animate);
   const sectionRef = useRef(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (!animate || loading) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -18,12 +29,12 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
-  }, [loading]);
+  }, [loading, animate]);
 
   if (loading) {
     return (
@@ -45,20 +56,20 @@ export default function EventsCategorySection({ title, emoji, events, loading = 
   return (
     <section
       ref={sectionRef}
-      className={`transition-all duration-700 ease-out ${
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-6"
+      className={`transition-all duration-400 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           {emoji && <span>{emoji}</span>}
           {title}
         </h2>
       </div>
 
-      <EventCarousel enableEnlarge hideGradients={hideGradients}>
+      {/* key tied to event IDs so the carousel remounts with fresh scroll position
+          when events change (e.g. tag filter switching A→B with same count). */}
+      <EventCarousel key={events.map((e) => e.id).join("-")}>
         {events.map((event) => (
           <EventsPageCard key={event.id} event={event} />
         ))}

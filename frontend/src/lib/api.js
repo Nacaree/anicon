@@ -69,11 +69,24 @@ async function request(endpoint, options = {}, retries = 3) {
   // the session from cookies / refresh an expired token. Public endpoints
   // (e.g. GET /api/events) don't need a bearer token, so there's no reason
   // to wait for auth initialization before sending the request.
-  const { noAuth, ...fetchOptions } = options;
+  const { noAuth, bestEffortAuth, ...fetchOptions } = options;
   const baseUrl = API_URL;
-  const headers = noAuth
-    ? { "Content-Type": "application/json" }
-    : await getAuthHeaders();
+
+  let headers;
+  if (noAuth) {
+    // Public endpoint — no token needed at all.
+    headers = { "Content-Type": "application/json" };
+  } else if (bestEffortAuth) {
+    // Optionally-authenticated endpoint: use the cached token synchronously if available,
+    // otherwise send no Authorization header (never call getSession()).
+    // This lets the request fire instantly on page load without waiting for auth init.
+    // The backend treats a missing token as a guest request and returns safe defaults.
+    headers = _cachedAccessToken
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${_cachedAccessToken}` }
+      : { "Content-Type": "application/json" };
+  } else {
+    headers = await getAuthHeaders();
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -201,6 +214,17 @@ export function getCachedEvents() {
   return [..._eventCache.values()];
 }
 
+// Applies a shallow patch to a single cached event.
+// Used for optimistic updates after RSVP — updates the raw backend-shaped object
+// in the cache before the next listEvents() poll confirms the real value.
+// Patch fields must use backend field names (e.g. currentAttendance, not wantToGoCount)
+// because the cache stores un-normalized API objects.
+export function updateCachedEvent(id, patch) {
+  const existing = _eventCache.get(String(id));
+  if (!existing) return;
+  _eventCache.set(String(id), { ...existing, ...patch });
+}
+
 // Event API calls — both endpoints are public (no auth required to browse events).
 // noAuth: true bypasses getSession() so the request fires immediately on page load
 // without waiting for auth initialization, which prevents infinite skeleton states.
@@ -224,19 +248,65 @@ export const eventApi = {
   },
 };
 
+// In-memory ticket/RSVP cache. Populated by the tickets page after its first
+// fetch. Lets repeat visits render instantly without a network round-trip —
+// same pattern as _eventCache above.
+let _ticketCache = null;
+
+// Returns the cached merged tickets+RSVPs array, or null if not yet populated.
+export function getCachedTickets() {
+  return _ticketCache;
+}
+
+// Called by the tickets page after merging tickets+RSVPs to populate the cache.
+export function setCachedTickets(items) {
+  _ticketCache = items;
+}
+
+// Clear cache when ticket state changes (purchase, RSVP, cancel) so the next
+// visit to /tickets fetches fresh data.
+export function invalidateTicketCache() {
+  _ticketCache = null;
+}
+
 // Ticket API calls
 export const ticketApi = {
   // Paid event: initiates PayWay payment, returns { checkoutUrl, paywayTranId, ... }
   purchase: (eventId, paymentMethod = "aba_pay", quantity = 1) =>
-    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod, quantity }),
+    api.post(`/api/tickets/purchase/${eventId}`, { paymentMethod, quantity }).then((res) => {
+      invalidateTicketCache();
+      return res;
+    }),
   // Paid event: verifies PayWay payment and issues ticket
-  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`),
+  verify: (paywayTranId) => api.post(`/api/tickets/verify/${paywayTranId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Free event: RSVPs the user
-  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`),
+  rsvp: (eventId) => api.post(`/api/tickets/rsvp/${eventId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
   // Returns all non-cancelled tickets for the current user
   myTickets: () => api.get("/api/tickets/my"),
   // Returns all RSVPs for the current user (free events)
   myRsvps: () => api.get("/api/tickets/my-rsvps"),
+  // Cancel an abandoned Stripe checkout — marks the PaymentIntent cancelled on Stripe's side
+  // and updates the transaction row in the DB. Called fire-and-forget; errors are swallowed.
+  cancelStripe: (transactionId) => api.post(`/api/tickets/${transactionId}/cancel`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
+  // Cancel a free-event RSVP — deletes the event_rsvp row and decrements current_attendance.
+  cancelRsvp: (eventId) => api.delete(`/api/tickets/rsvp/${eventId}`).then((res) => {
+    invalidateTicketCache();
+    return res;
+  }),
+  // Returns { ticketCount, hasRsvp } for the current user on a specific event.
+  // Uses bestEffortAuth: sends the cached token if available (no getSession() call),
+  // or no token if auth hasn't resolved yet. The backend handles both cases gracefully.
+  // Called on event detail page mount — fires instantly without waiting for auth init.
+  eventStatus: (eventId) => api.get(`/api/tickets/event-status/${eventId}`, { bestEffortAuth: true }),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

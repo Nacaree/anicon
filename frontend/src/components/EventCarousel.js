@@ -1,198 +1,106 @@
 "use client";
 
-import {
-  useRef,
-  useState,
-  useEffect,
-  Children,
-  cloneElement,
-  isValidElement,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import { useState, useEffect, useRef, Children } from "react";
 
-const EventCarousel = forwardRef(function EventCarousel({
+// Native-scroll carousel with hover-scale cards and show-on-hover arrows.
+// Uses browser-native overflow-x scroll (GPU compositor thread) for the smoothest
+// possible scroll physics — drag, trackpad, and wheel all handled natively.
+// Arrow clicks use scrollBy({ behavior: "smooth" }) with a targetScrollRef to
+// handle rapid clicks without reading stale scrollLeft mid-animation.
+export default function EventCarousel({
   children,
-  hideGradients = false,
-  enableEnlarge = false,
   // autoPlay: advances the carousel automatically on an interval, pauses on hover
   autoPlay = false,
   autoPlayInterval = 4000,
-}, ref) {
-  const scrollContainerRef = useRef(null);
+}) {
+  const scrollRef = useRef(null);
+  // Tracks the intended scroll position so rapid arrow clicks accumulate correctly
+  // without reading scrollLeft mid-animation (which causes jerkiness).
+  const targetScrollRef = useRef(0);
   const [showButtons, setShowButtons] = useState(false);
-  const [showLeftGradient, setShowLeftGradient] = useState(false);
-  const [showRightGradient, setShowRightGradient] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
-  const [firstVisibleIndex, setFirstVisibleIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
-  const itemRefs = useRef([]);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef(null);
+  // How far each arrow click scrolls (roughly 2 cards + gaps).
+  const SCROLL_AMOUNT = 500;
 
-  useImperativeHandle(ref, () => ({
-    scrollToItem: (index) => {
-      const item = itemRefs.current[index];
-      const container = scrollContainerRef.current;
-      if (!item || !container) return;
-      container.scrollTo({ left: item.offsetLeft - 16, behavior: "smooth" });
-    },
-  }));
-
-  const childCount = Children.count(children);
-
-  const handleScroll = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-
-    setShowLeftGradient(scrollLeft > 5);
-    setShowRightGradient(scrollLeft < scrollWidth - clientWidth - 5);
-
-    // Debounce enlargement updates
-    isScrollingRef.current = true;
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-
-    scrollTimeoutRef.current = setTimeout(() => {
-      isScrollingRef.current = false;
-
-      if (!enableEnlarge) return;
-
-      // Calculate the closest item to the left edge ("snap point")
-      const containerRect = container.getBoundingClientRect();
-      const snapPoint = containerRect.left + 24; // bias towards the start of the visible area (padding)
-
-      let minDiff = Infinity;
-      let closestIndex = 0;
-
-      itemRefs.current.forEach((el, index) => {
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        // We want the item whose left edge is closest to our snap point
-        const diff = Math.abs(rect.left - snapPoint);
-
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIndex = index;
-        }
-      });
-
-      setFirstVisibleIndex(closestIndex);
-    }, 150);
+  // Sync boundary state (hide arrows at start/end of scroll range).
+  const updateBoundaries = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollPrev(el.scrollLeft > 1);
+    // 1px tolerance for sub-pixel rounding at the end.
+    setCanScrollNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   };
 
+  // Initial boundary check + re-check when children change (content remount).
   useEffect(() => {
-    setIsMounted(true);
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    // Small delay so the DOM has rendered the new children before measuring.
+    const id = requestAnimationFrame(updateBoundaries);
+    return () => cancelAnimationFrame(id);
+  }, [children]);
 
-    handleScroll();
+  // Sync targetScrollRef after any scroll settles (manual drag, trackpad, wheel).
+  // scrollend fires once when scroll animation completes — no debounce needed.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
 
-    container.addEventListener("scroll", handleScroll);
+    const onScrollEnd = () => {
+      targetScrollRef.current = el.scrollLeft;
+      updateBoundaries();
+    };
 
+    // Also update boundaries during scroll for responsive arrow visibility.
+    const onScroll = () => updateBoundaries();
+
+    el.addEventListener("scrollend", onScrollEnd);
+    el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      container.removeEventListener("scroll", handleScroll);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      el.removeEventListener("scrollend", onScrollEnd);
+      el.removeEventListener("scroll", onScroll);
     };
   }, []);
 
-  // Auto-play: advance one page on each interval tick, loop back to start at the end.
-  // Re-runs whenever showButtons changes so hover pauses/resumes the timer cleanly.
+  const scroll = (direction) => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const delta = direction === "left" ? -SCROLL_AMOUNT : SCROLL_AMOUNT;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+
+    // Accumulate onto target and clamp to valid range.
+    targetScrollRef.current = Math.max(
+      0,
+      Math.min(targetScrollRef.current + delta, maxScroll),
+    );
+
+    el.scrollTo({
+      left: targetScrollRef.current,
+      behavior: "smooth",
+    });
+  };
+
+  // Auto-play: scroll right every interval, loop back at start when at end.
+  // Pauses on hover (showButtons === true means mouse is over the carousel).
   useEffect(() => {
     if (!autoPlay || showButtons) return;
+    const el = scrollRef.current;
+    if (!el) return;
 
     const id = setInterval(() => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const atEnd = scrollLeft >= scrollWidth - clientWidth - 5;
-
-      if (atEnd) {
-        // Loop: jump back to the start
-        container.scrollTo({ left: 0, behavior: "smooth" });
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft >= maxScroll - 1) {
+        // At the end — loop back to start.
+        targetScrollRef.current = 0;
+        el.scrollTo({ left: 0, behavior: "smooth" });
       } else {
-        // Advance exactly 1 card at a time so 2 cards are always visible during the transition
-        const sampleItem = itemRefs.current[0];
-        const scrollAmount = sampleItem
-          ? sampleItem.offsetWidth + 20 // 20px = gap-5
-          : clientWidth * 0.5;
-        container.scrollTo({ left: scrollLeft + scrollAmount, behavior: "smooth" });
+        scroll("right");
       }
     }, autoPlayInterval);
 
     return () => clearInterval(id);
   }, [autoPlay, autoPlayInterval, showButtons]);
-
-  // Reset when children change (e.g. EventTimeline filtering)
-  const prevChildCount = useRef(childCount);
-  useEffect(() => {
-    if (prevChildCount.current !== childCount) {
-      setFirstVisibleIndex(0);
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ left: 0 });
-      }
-      prevChildCount.current = childCount;
-    }
-  }, [childCount]);
-
-  const scroll = (direction) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    // Estimate item width + gap (20px from gap-5)
-    // Prefer the second item for "standard" width if enlarged, as first might be enlarged
-    const sampleItem = itemRefs.current[1] || itemRefs.current[0];
-    
-    let scrollAmount;
-    
-    if (sampleItem) {
-      const itemWidth = sampleItem.offsetWidth;
-      const gap = 20; // Tailwind gap-5
-      const stride = itemWidth + gap;
-      
-      // Calculate how many items fit fully in the viewport
-      const visibleItems = Math.floor(container.clientWidth / stride);
-      // Ensure we scroll at least 1 item
-      const itemsToScroll = Math.max(1, visibleItems);
-      
-      scrollAmount = itemsToScroll * stride;
-    } else {
-      // Fallback if no items found
-      scrollAmount = container.offsetWidth * 0.8;
-    }
-
-    const newScrollPosition =
-      direction === "left"
-        ? container.scrollLeft - scrollAmount
-        : container.scrollLeft + scrollAmount;
-
-    container.scrollTo({
-      left: newScrollPosition,
-      behavior: "smooth",
-    });
-  };
-
-  const renderChildren = () => {
-    if (!enableEnlarge) return children;
-
-    return Children.map(children, (child, index) => (
-      <div
-        key={index}
-        ref={(el) => (itemRefs.current[index] = el)}
-        data-carousel-index={index}
-        className="shrink-0"
-      >
-        {isValidElement(child)
-          ? cloneElement(child, {
-              isEnlarged: index === firstVisibleIndex,
-              isHoverEnlargeable: index !== firstVisibleIndex,
-            })
-          : child}
-      </div>
-    ));
-  };
 
   return (
     <div
@@ -200,97 +108,80 @@ const EventCarousel = forwardRef(function EventCarousel({
       onMouseEnter={() => setShowButtons(true)}
       onMouseLeave={() => setShowButtons(false)}
     >
-      {!hideGradients && isMounted && (
-        <>
-          {/* Mask gradient on left edge */}
-          <div
-            className={`absolute left-0 top-0 bottom-0 w-20 z-[5] pointer-events-none transition-opacity duration-300 ${
-              showLeftGradient ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              background:
-                "linear-gradient(to right, rgba(249, 250, 251, 0.85) 0%, transparent 100%)",
-            }}
-          ></div>
-
-          {/* Mask gradient on right edge */}
-          <div
-            className={`absolute right-0 top-0 bottom-0 w-20 z-[5] pointer-events-none transition-opacity duration-300 ${
-              showRightGradient ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              background:
-                "linear-gradient(to left, rgba(249, 250, 251, 0.85) 0%, transparent 100%)",
-            }}
-          ></div>
-        </>
-      )}
-
-      {/* Carousel Container */}
+      {/* Scroll container — native overflow for GPU-accelerated scroll physics.
+          py-4 gives vertical breathing room so hover:scale doesn't get clipped. */}
       <div
-        ref={scrollContainerRef}
-        className={`flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth rounded-xl z-0 ${
-          enableEnlarge ? "items-end px-4 pb-4 pt-6 h-[22rem]" : "p-4"
-        }`}
-        style={{
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
+        ref={scrollRef}
+        className="overflow-x-auto flex gap-7 py-4 px-4"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {renderChildren()}
+        {Children.map(children, (child, index) => (
+          <div
+            key={index}
+            className="shrink-0"
+          >
+            {/* Inner wrapper owns the hover scale so it doesn't interfere with
+                the scroll container's layout or the card's own shadow/opacity transitions.
+                transformOrigin center-bottom so cards scale upward from their base. */}
+            <div
+              className="hover:scale-[1.05] hover:z-10 transition-transform duration-300 ease-out"
+              style={{ transformOrigin: "center bottom" }}
+            >
+              {child}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Left Navigation Button */}
-      {isMounted && (
-        <button
-          onClick={() => scroll("left")}
-          className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
-            showButtons ? "opacity-100" : "opacity-0"
-          }`}
-          aria-label="Scroll left"
+      {/* Left navigation button — fades in on hover, hidden at scroll start */}
+      <button
+        onClick={() => scroll("left")}
+        className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
+          showButtons && canScrollPrev
+            ? "opacity-100"
+            : "opacity-0 pointer-events-none"
+        }`}
+        aria-label="Scroll left"
+      >
+        <svg
+          className="w-5 h-5 text-orange-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg
-            className="w-5 h-5 text-orange-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-      )}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
 
-      {/* Right Navigation Button */}
-      {isMounted && (
-        <button
-          onClick={() => scroll("right")}
-          className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
-            showButtons ? "opacity-100" : "opacity-0"
-          }`}
-          aria-label="Scroll right"
+      {/* Right navigation button — fades in on hover, hidden at scroll end */}
+      <button
+        onClick={() => scroll("right")}
+        className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
+          showButtons && canScrollNext
+            ? "opacity-100"
+            : "opacity-0 pointer-events-none"
+        }`}
+        aria-label="Scroll right"
+      >
+        <svg
+          className="w-5 h-5 text-orange-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg
-            className="w-5 h-5 text-orange-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-      )}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
     </div>
   );
-});
-
-export default EventCarousel;
+}

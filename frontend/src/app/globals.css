@@ -101,6 +101,14 @@
   animation-fill-mode: backwards;
 }
 
+/* Price pill glint — same sweep as promoted-shimmer but faster (3s) so it feels snappy on small text.
+   Lighter via-white/15 so it doesn't wash out the green/rose text color underneath. */
+.price-glint {
+  animation: card-shimmer 3s ease-in-out infinite;
+  animation-delay: 2s;
+  animation-fill-mode: backwards;
+}
+
 /* Ki charge pulse — expanding ring bursts outward and fades, like a DBZ energy release.
    Repeats every 2s with a 1s rest gap so it feels like a deliberate charge, not a loop. */
 @keyframes ki-pulse {

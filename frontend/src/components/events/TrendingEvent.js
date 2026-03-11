@@ -20,7 +20,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
     return () => observer.disconnect();
   }, []);
 
-  const visibilityClasses = `transition-all duration-500 ease-in-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`;
+  const visibilityClasses = `transition-all duration-400 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`;
 
   // Skeleton
   if (loading || !event) {

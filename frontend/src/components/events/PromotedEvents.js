@@ -30,7 +30,7 @@ function PromotedEventCard({ event }) {
     // conflict with the inner `group` used for the image zoom).
     <div
       ref={cardRef}
-      className={`relative flex-1 min-w-0 py-3 mb-[-15] group/card transition-all duration-500 ease-in-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+      className={`relative flex-1 min-w-0 py-3 mb-[-15] group/card transition-all duration-400 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
     >
       {/* Aura bleed — no overflow-hidden so the blurred image bleeds freely past the card edges, mirroring TrendingEvent. */}
       {event.imageUrl && (
