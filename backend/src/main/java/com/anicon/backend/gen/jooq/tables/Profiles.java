@@ -150,6 +150,31 @@ public class Profiles extends TableImpl<ProfilesRecord> {
      */
     public final TableField<ProfilesRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
+    /**
+     * The column <code>public.profiles.banner_image_url</code>.
+     */
+    public final TableField<ProfilesRecord, String> BANNER_IMAGE_URL = createField(DSL.name("banner_image_url"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>public.profiles.creator_type</code>.
+     */
+    public final TableField<ProfilesRecord, String> CREATOR_TYPE = createField(DSL.name("creator_type"), SQLDataType.VARCHAR(50), this, "");
+
+    /**
+     * The column <code>public.profiles.commission_status</code>.
+     */
+    public final TableField<ProfilesRecord, String> COMMISSION_STATUS = createField(DSL.name("commission_status"), SQLDataType.VARCHAR(20).defaultValue(DSL.field(DSL.raw("'closed'::character varying"), SQLDataType.VARCHAR)), this, "");
+
+    /**
+     * The column <code>public.profiles.commission_info</code>.
+     */
+    public final TableField<ProfilesRecord, JSONB> COMMISSION_INFO = createField(DSL.name("commission_info"), SQLDataType.JSONB.defaultValue(DSL.field(DSL.raw("'{}'::jsonb"), SQLDataType.JSONB)), this, "");
+
+    /**
+     * The column <code>public.profiles.support_links</code>.
+     */
+    public final TableField<ProfilesRecord, JSONB> SUPPORT_LINKS = createField(DSL.name("support_links"), SQLDataType.JSONB.defaultValue(DSL.field(DSL.raw("'[]'::jsonb"), SQLDataType.JSONB)), this, "");
+
     private Profiles(Name alias, Table<ProfilesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
