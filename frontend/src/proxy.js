@@ -11,6 +11,7 @@ const publicRoutes = [
   "/reset-password",
   "/callback",
   "/events",
+  "/profiles",
 ];
 
 // Auth pages that authenticated users should be redirected away from

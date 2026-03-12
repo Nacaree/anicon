@@ -248,6 +248,76 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         return (OffsetDateTime) get(15);
     }
 
+    /**
+     * Setter for <code>public.profiles.banner_image_url</code>.
+     */
+    public void setBannerImageUrl(String value) {
+        set(16, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.banner_image_url</code>.
+     */
+    public String getBannerImageUrl() {
+        return (String) get(16);
+    }
+
+    /**
+     * Setter for <code>public.profiles.creator_type</code>.
+     */
+    public void setCreatorType(String value) {
+        set(17, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.creator_type</code>.
+     */
+    public String getCreatorType() {
+        return (String) get(17);
+    }
+
+    /**
+     * Setter for <code>public.profiles.commission_status</code>.
+     */
+    public void setCommissionStatus(String value) {
+        set(18, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.commission_status</code>.
+     */
+    public String getCommissionStatus() {
+        return (String) get(18);
+    }
+
+    /**
+     * Setter for <code>public.profiles.commission_info</code>.
+     */
+    public void setCommissionInfo(JSONB value) {
+        set(19, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.commission_info</code>.
+     */
+    public JSONB getCommissionInfo() {
+        return (JSONB) get(19);
+    }
+
+    /**
+     * Setter for <code>public.profiles.support_links</code>.
+     */
+    public void setSupportLinks(JSONB value) {
+        set(20, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.support_links</code>.
+     */
+    public JSONB getSupportLinks() {
+        return (JSONB) get(20);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -271,7 +341,7 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
     /**
      * Create a detached, initialised ProfilesRecord
      */
-    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, String bannerImageUrl, String creatorType, String commissionStatus, JSONB commissionInfo, JSONB supportLinks) {
         super(Profiles.PROFILES);
 
         setId(id);
@@ -290,6 +360,11 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         setFollowingCount(followingCount);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setBannerImageUrl(bannerImageUrl);
+        setCreatorType(creatorType);
+        setCommissionStatus(commissionStatus);
+        setCommissionInfo(commissionInfo);
+        setSupportLinks(supportLinks);
         resetTouchedOnNotNull();
     }
 }

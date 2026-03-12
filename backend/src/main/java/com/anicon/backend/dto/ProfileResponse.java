@@ -1,8 +1,9 @@
 package com.anicon.backend.dto;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonRawValue;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +22,22 @@ public class ProfileResponse {
     private String bio;
     private String[] roles;
     private String giftLink;
+    private String bannerImageUrl;
+    private String creatorType;
+    private String commissionStatus;
+
+    // JSONB fields stored as raw JSON strings so JOOQ's fetchOptionalInto() can
+    // map them (JOOQ returns JSONB as String, not Map/List). @JsonRawValue tells
+    // Jackson to output the string as-is (not double-escaped) in the API response.
+    @JsonRawValue
+    private String commissionInfo;
+    @JsonRawValue
+    private String supportLinks;
+
     private String organizationName;
     private Boolean isVerifiedOrganizer;
-    private Map<String, String> socialLinks;
+    @JsonRawValue
+    private String socialLinks;
     private Long followerCount;
     private Long followingCount;
     private OffsetDateTime createdAt;

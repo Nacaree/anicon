@@ -1,0 +1,100 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { creatorApi } from '@/lib/api';
+import { PortfolioCard } from './PortfolioCard';
+import { PortfolioUploadModal } from './PortfolioUploadModal';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+// Displays a user's portfolio as a responsive grid with optional upload/delete for owners
+export function PortfolioGrid({ userId, isOwner = false }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const loadPortfolio = async () => {
+    try {
+      const data = await creatorApi.getPortfolio(userId);
+      setItems(data);
+    } catch (err) {
+      console.error('Failed to load portfolio:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPortfolio();
+  }, [userId]);
+
+  const handleDelete = async (id) => {
+    try {
+      await creatorApi.deletePortfolioItem(id);
+      setItems(items.filter(item => item.id !== id));
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    }
+  };
+
+  const handleUploadSuccess = () => {
+    setShowUpload(false);
+    loadPortfolio();
+  };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header with Add button */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Portfolio</h2>
+        {isOwner && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUpload(true)}
+            className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add
+          </Button>
+        )}
+      </div>
+
+      {/* Grid */}
+      {items.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          {isOwner ? 'Add your first portfolio item!' : 'No portfolio items yet.'}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {items.map(item => (
+            <PortfolioCard
+              key={item.id}
+              item={item}
+              isOwner={isOwner}
+              onDelete={() => handleDelete(item.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUpload && (
+        <PortfolioUploadModal
+          userId={userId}
+          onClose={() => setShowUpload(false)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
+    </div>
+  );
+}

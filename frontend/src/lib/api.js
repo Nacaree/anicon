@@ -309,6 +309,25 @@ export const ticketApi = {
   eventStatus: (eventId) => api.get(`/api/tickets/event-status/${eventId}`, { bestEffortAuth: true }),
 };
 
+// Creator API calls — portfolio CRUD and creator profile updates
+export const creatorApi = {
+  // Update creator-specific profile fields (banner, type, commission info, support links)
+  updateCreatorProfile: (data) => api.patch("/api/creator/profile", data),
+
+  // Get portfolio items for a user (public — no auth needed)
+  getPortfolio: (userId) =>
+    request(`/api/creator/${userId}/portfolio`, { method: "GET", noAuth: true }),
+
+  // Add new portfolio item
+  addPortfolioItem: (data) => api.post("/api/creator/portfolio", data),
+
+  // Update portfolio item
+  updatePortfolioItem: (id, data) => api.put(`/api/creator/portfolio/${id}`, data),
+
+  // Delete portfolio item
+  deletePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}`),
+};
+
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.
 // The API returns eventDate/eventTime/coverImageUrl; components expect date/time/imageUrl etc.
 function formatEventDate(isoDate) {

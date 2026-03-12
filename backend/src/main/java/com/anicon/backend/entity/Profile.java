@@ -1,6 +1,7 @@
 package com.anicon.backend.entity;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,6 +52,28 @@ public class Profile {
     // Creator fields
     @Column(name = "gift_link")
     private String giftLink;
+
+    @Column(name = "banner_image_url")
+    private String bannerImageUrl;
+
+    @Column(name = "creator_type")
+    private String creatorType;
+
+    @Column(name = "commission_status")
+    @Builder.Default
+    private String commissionStatus = "closed";
+
+    // Commission details: menu items, turnaround, terms, contact method
+    @Column(name = "commission_info", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Builder.Default
+    private Map<String, Object> commissionInfo = Map.of();
+
+    // Multiple support/tip links (replaces single gift_link)
+    @Column(name = "support_links", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Builder.Default
+    private List<Map<String, String>> supportLinks = List.of();
 
     // Influencer fields
     @Enumerated(EnumType.STRING)

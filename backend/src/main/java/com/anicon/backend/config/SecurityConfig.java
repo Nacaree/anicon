@@ -39,8 +39,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/check-email").permitAll()
                         // Event listing and detail viewing are public — no login required to browse
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
-                        // Profile lookups by ID/username are public — needed for event organizer display
-                        .requestMatchers(HttpMethod.GET, "/api/profiles/user/**").permitAll()
+                        // Profile lookups are public — anyone can view profiles without logging in
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/**").permitAll()
+                        // Portfolio viewing is public — anyone can browse a creator's work
+                        .requestMatchers(HttpMethod.GET, "/api/creator/*/portfolio").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.
