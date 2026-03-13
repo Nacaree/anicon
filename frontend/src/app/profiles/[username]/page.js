@@ -12,6 +12,9 @@ import { CreatorTypeBadge } from '@/components/creator/CreatorTypeBadge';
 import { SupportLinksDisplay } from '@/components/creator/SupportLinksDisplay';
 import { PortfolioGrid } from '@/components/creator/PortfolioGrid';
 import { CommissionMenu } from '@/components/creator/CommissionMenu';
+import { RoleBadge } from '@/components/profile/RoleBadge';
+import { ProfileTabs } from '@/components/profile/ProfileTabs';
+import { canHavePortfolio, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
 import { MapPin, Calendar, Link as LinkIcon, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -153,12 +156,13 @@ export default function ProfilePage() {
             {/* Profile content below the divider */}
             <div className="py-4 space-y-6">
 
-              {/* Creator badges */}
-              {profile.creatorType && (
-                <div className="flex items-center gap-2">
+              {/* Role + creator type badges */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <RoleBadge roles={profile.roles} />
+                {profile.creatorType && (
                   <CreatorTypeBadge type={profile.creatorType} />
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Bio + meta info */}
               <div className="space-y-3">
@@ -185,18 +189,18 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Support Links */}
-              {profile.supportLinks?.length > 0 && (
+              {/* Support Links — everyone except organizers */}
+              {canHaveSupportLinks(profile.roles) && profile.supportLinks?.length > 0 && (
                 <SupportLinksDisplay links={profile.supportLinks} />
               )}
 
-              {/* Portfolio Section — only shown for creators */}
-              {profile.creatorType && (
+              {/* Portfolio Section — creator only */}
+              {canHavePortfolio(profile.roles) && (
                 <PortfolioGrid userId={profile.id} isOwner={isOwner} />
               )}
 
-              {/* Commission Menu — only shown if creator has menu items */}
-              {profile.commissionInfo?.menu?.length > 0 && (
+              {/* Commission Menu — creator + influencer only */}
+              {canHaveCommissions(profile.roles) && profile.commissionInfo?.menu?.length > 0 && (
                 <CommissionMenu
                   info={profile.commissionInfo}
                   status={profile.commissionStatus}
@@ -204,6 +208,9 @@ export default function ProfilePage() {
               )}
 
             </div>
+
+            {/* Tab section — Home (placeholder) + Events (role-based) */}
+            <ProfileTabs profile={profile} isOwner={isOwner} />
           </div>
 
         </div>
