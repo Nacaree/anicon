@@ -43,6 +43,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/profiles/**").permitAll()
                         // Portfolio viewing is public — anyone can browse a creator's work
                         .requestMatchers(HttpMethod.GET, "/api/creator/*/portfolio").permitAll()
+                        // Profile event tabs are public — shows events a user is going to or hosting
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/events/**").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.

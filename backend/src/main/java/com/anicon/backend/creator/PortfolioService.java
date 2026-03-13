@@ -9,21 +9,52 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.anicon.backend.creator.dto.PortfolioItemRequest;
 import com.anicon.backend.creator.dto.PortfolioItemResponse;
+import com.anicon.backend.gen.jooq.enums.UserRole;
+
+import org.jooq.DSLContext;
+
+import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
 
 @Service
 public class PortfolioService {
 
     private final PortfolioItemRepository portfolioItemRepository;
+    private final DSLContext dsl;
 
-    public PortfolioService(PortfolioItemRepository portfolioItemRepository) {
+    public PortfolioService(PortfolioItemRepository portfolioItemRepository, DSLContext dsl) {
         this.portfolioItemRepository = portfolioItemRepository;
+        this.dsl = dsl;
+    }
+
+    /**
+     * Fetch the user's roles from the profiles table.
+     * Throws 404 if no profile exists.
+     */
+    private UserRole[] fetchRoles(UUID userId) {
+        UserRole[] roles = dsl.select(PROFILES.ROLES)
+                .from(PROFILES)
+                .where(PROFILES.ID.eq(userId))
+                .fetchOne(PROFILES.ROLES);
+        if (roles == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found");
+        }
+        return roles;
     }
 
     /**
      * Get all portfolio items for a user, ordered by display_order.
-     * Public — no auth needed.
+     * Public — no auth needed. Returns empty list if user is not a creator.
      */
     public List<PortfolioItemResponse> getPortfolio(UUID userId) {
+        // Only return portfolio for creators — non-creators have no portfolio
+        UserRole[] roles = dsl.select(PROFILES.ROLES)
+                .from(PROFILES)
+                .where(PROFILES.ID.eq(userId))
+                .fetchOne(PROFILES.ROLES);
+        if (roles == null || !RoleChecker.canHavePortfolio(roles)) {
+            return List.of();
+        }
+
         return portfolioItemRepository.findByUserIdOrderByDisplayOrderAsc(userId)
                 .stream()
                 .map(this::toResponse)
@@ -32,8 +63,14 @@ public class PortfolioService {
 
     /**
      * Add a new portfolio item for the authenticated user.
+     * Requires creator role — portfolio is creator-only.
      */
     public PortfolioItemResponse addItem(UUID userId, PortfolioItemRequest request) {
+        UserRole[] roles = fetchRoles(userId);
+        if (!RoleChecker.canHavePortfolio(roles)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Creator role required for portfolio");
+        }
+
         PortfolioItem item = PortfolioItem.builder()
                 .userId(userId)
                 .imageUrl(request.imageUrl())
@@ -51,9 +88,14 @@ public class PortfolioService {
     }
 
     /**
-     * Update a portfolio item. Only the owner can update their own items.
+     * Update a portfolio item. Requires creator role + ownership.
      */
     public PortfolioItemResponse updateItem(UUID userId, UUID itemId, PortfolioItemRequest request) {
+        UserRole[] roles = fetchRoles(userId);
+        if (!RoleChecker.canHavePortfolio(roles)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Creator role required for portfolio");
+        }
+
         PortfolioItem item = portfolioItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio item not found"));
 
@@ -76,9 +118,14 @@ public class PortfolioService {
     }
 
     /**
-     * Delete a portfolio item. Only the owner can delete their own items.
+     * Delete a portfolio item. Requires creator role + ownership.
      */
     public void deleteItem(UUID userId, UUID itemId) {
+        UserRole[] roles = fetchRoles(userId);
+        if (!RoleChecker.canHavePortfolio(roles)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Creator role required for portfolio");
+        }
+
         PortfolioItem item = portfolioItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio item not found"));
 

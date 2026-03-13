@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
+import { isCreator, isOrganizer, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
 import { Loader2, Plus, Trash2, Upload, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -173,6 +174,12 @@ export default function CreatorSettingsPage() {
 
   if (authLoading) return null;
 
+  // Role checks — determines which sections are visible
+  const roles = profile?.roles || [];
+  const showCreatorType = isCreator(roles);
+  const showCommissions = canHaveCommissions(roles);
+  const showSupportLinks = canHaveSupportLinks(roles);
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -180,14 +187,14 @@ export default function CreatorSettingsPage() {
         <Header />
         <div className="max-w-2xl mx-auto px-6 pt-16 pb-6 space-y-8">
 
-          {/* Header */}
+          {/* Header — title adapts to user's role */}
           <div className="flex items-center gap-3">
             <Link href={`/profiles/${profile?.username}`}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">Creator Settings</h1>
+            <h1 className="text-2xl font-bold">Edit Profile</h1>
           </div>
 
           {/* Display Name */}
@@ -241,21 +248,24 @@ export default function CreatorSettingsPage() {
             </div>
           </section>
 
-          {/* Creator Type */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Creator Type</h2>
-            <select
-              value={creatorType}
-              onChange={(e) => setCreatorType(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              {creatorTypes.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </section>
+          {/* Creator Type — only visible to creators */}
+          {showCreatorType && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Creator Type</h2>
+              <select
+                value={creatorType}
+                onChange={(e) => setCreatorType(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                {creatorTypes.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </section>
+          )}
 
-          {/* Commission Settings */}
+          {/* Commission Settings — creators and influencers only */}
+          {showCommissions && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Commission Settings</h2>
 
@@ -348,8 +358,10 @@ export default function CreatorSettingsPage() {
               ))}
             </div>
           </section>
+          )}
 
-          {/* Support Links */}
+          {/* Support Links — everyone except organizers */}
+          {showSupportLinks && (
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Support / Tip Links</h2>
@@ -396,6 +408,7 @@ export default function CreatorSettingsPage() {
               </div>
             ))}
           </section>
+          )}
 
           {/* Save */}
           {message && (

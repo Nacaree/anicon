@@ -36,7 +36,12 @@ create table profiles (
     ),
   
   -- Creator fields
-  gift_link text,
+  gift_link text,                                         -- DEPRECATED: use support_links instead
+  banner_image_url text,                                  -- Cover/banner image (all roles)
+  creator_type varchar(50),                               -- e.g. 'cosplayer', 'digital_artist' (creator only)
+  commission_status varchar(20) default 'closed',         -- 'open', 'waitlist', 'closed' (creator + influencer)
+  commission_info jsonb default '{}',                     -- Commission menu, turnaround, terms (creator + influencer)
+  support_links jsonb default '[]',                       -- Multiple tip/support payment links (all except organizer)
   
   -- Influencer fields
   influencer_status application_status,
@@ -94,6 +99,30 @@ create table influencer_applications (
   updated_at timestamptz default now()
 );
 
+-- Portfolio Items (creator only — display gallery on profile)
+create table portfolio_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+
+  -- Image (required)
+  image_url text not null,
+
+  -- Metadata (optional)
+  title varchar(200),
+  description text,
+  category varchar(50),          -- 'cosplay', 'digital_art', 'traditional', 'craft', 'commission_sample'
+  character_name varchar(100),   -- e.g. "Miku Hatsune"
+  series_name varchar(100),      -- e.g. "Vocaloid"
+
+  -- Ordering
+  display_order int default 0,
+  is_featured boolean default false,
+
+  -- Timestamps
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- ============================================
 -- INDEXES
 -- ============================================
@@ -104,6 +133,7 @@ create index idx_follows_follower on follows(follower_id);
 create index idx_follows_following on follows(following_id);
 create index idx_applications_profile on influencer_applications(profile_id);
 create index idx_applications_status on influencer_applications(status);
+create index idx_portfolio_user_id on portfolio_items(user_id);
 
 -- ============================================
 -- FUNCTIONS & TRIGGERS
@@ -126,6 +156,11 @@ create trigger profiles_updated_at
 
 create trigger applications_updated_at
   before update on influencer_applications
+  for each row
+  execute function update_updated_at();
+
+create trigger portfolio_items_updated_at
+  before update on portfolio_items
   for each row
   execute function update_updated_at();
 
@@ -191,3 +226,22 @@ create policy "Users can view own applications"
 create policy "Users can create applications"
   on influencer_applications for insert
   with check (auth.uid() = profile_id);
+
+-- Portfolio Items: Public read, owner-only write
+alter table portfolio_items enable row level security;
+
+create policy "Portfolio items are viewable by everyone"
+  on portfolio_items for select
+  using (true);
+
+create policy "Users can manage own portfolio items"
+  on portfolio_items for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own portfolio items"
+  on portfolio_items for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own portfolio items"
+  on portfolio_items for delete
+  using (auth.uid() = user_id);

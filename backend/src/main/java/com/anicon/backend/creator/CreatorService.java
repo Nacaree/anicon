@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.anicon.backend.creator.dto.CreatorProfileUpdateRequest;
+import com.anicon.backend.gen.jooq.enums.UserRole;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -32,26 +33,53 @@ public class CreatorService {
 
     /**
      * Update creator-specific fields on the profile.
-     * Any user can set these — setting creatorType effectively "enables" creator mode.
+     * Role-gated: creatorType requires creator role, commission fields require
+     * creator or influencer, support links are blocked for organizers.
      * Evicts the profile cache so subsequent GETs return fresh data.
      */
     @CacheEvict(value = "profiles", key = "#userId")
     public void updateCreatorProfile(UUID userId, CreatorProfileUpdateRequest request) {
+        // Fetch the user's roles to enforce permission checks
+        UserRole[] roles = dsl.select(PROFILES.ROLES)
+                .from(PROFILES)
+                .where(PROFILES.ID.eq(userId))
+                .fetchOne(PROFILES.ROLES);
+
+        if (roles == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found");
+        }
+
         try {
-            int updated = dsl.update(PROFILES)
+            var update = dsl.update(PROFILES)
+                    // General fields — any role can update these
                     .set(PROFILES.DISPLAY_NAME, request.displayName())
                     .set(PROFILES.BIO, request.bio())
-                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl())
-                    .set(PROFILES.CREATOR_TYPE, request.creatorType())
-                    .set(PROFILES.COMMISSION_STATUS, request.commissionStatus())
-                    .set(PROFILES.COMMISSION_INFO,
-                            request.commissionInfo() != null
-                                    ? JSONB.jsonb(objectMapper.writeValueAsString(request.commissionInfo()))
-                                    : JSONB.jsonb("{}"))
-                    .set(PROFILES.SUPPORT_LINKS,
-                            request.supportLinks() != null
-                                    ? JSONB.jsonb(objectMapper.writeValueAsString(request.supportLinks()))
-                                    : JSONB.jsonb("[]"))
+                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl());
+
+            // Creator type — only creators can set this
+            if (RoleChecker.isCreator(roles)) {
+                update = update.set(PROFILES.CREATOR_TYPE, request.creatorType());
+            }
+
+            // Commission fields — creators and influencers only
+            if (RoleChecker.canHaveCommissions(roles)) {
+                update = update
+                        .set(PROFILES.COMMISSION_STATUS, request.commissionStatus())
+                        .set(PROFILES.COMMISSION_INFO,
+                                request.commissionInfo() != null
+                                        ? JSONB.jsonb(objectMapper.writeValueAsString(request.commissionInfo()))
+                                        : JSONB.jsonb("{}"));
+            }
+
+            // Support links — everyone except organizers
+            if (RoleChecker.canHaveSupportLinks(roles)) {
+                update = update.set(PROFILES.SUPPORT_LINKS,
+                        request.supportLinks() != null
+                                ? JSONB.jsonb(objectMapper.writeValueAsString(request.supportLinks()))
+                                : JSONB.jsonb("[]"));
+            }
+
+            int updated = update
                     .where(PROFILES.ID.eq(userId))
                     .execute();
 

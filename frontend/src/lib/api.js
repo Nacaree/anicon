@@ -328,6 +328,20 @@ export const creatorApi = {
   deletePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}`),
 };
 
+// User Events API — for profile event tabs (Going/Hosted)
+export const userEventsApi = {
+  // Get events user is going to (RSVP + tickets) — public endpoint
+  getGoingEvents: (userId) =>
+    request(`/api/users/${userId}/events/going`, { method: "GET", noAuth: true }),
+
+  // Get events user has hosted — public endpoint
+  // miniOnly: if true, only return mini-events (for influencer profiles)
+  getHostedEvents: (userId, miniOnly = false) => {
+    const query = miniOnly ? "?miniOnly=true" : "";
+    return request(`/api/users/${userId}/events/hosted${query}`, { method: "GET", noAuth: true });
+  },
+};
+
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.
 // The API returns eventDate/eventTime/coverImageUrl; components expect date/time/imageUrl etc.
 function formatEventDate(isoDate) {
