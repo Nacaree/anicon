@@ -175,6 +175,11 @@ public class Profiles extends TableImpl<ProfilesRecord> {
      */
     public final TableField<ProfilesRecord, JSONB> SUPPORT_LINKS = createField(DSL.name("support_links"), SQLDataType.JSONB.defaultValue(DSL.field(DSL.raw("'[]'::jsonb"), SQLDataType.JSONB)), this, "");
 
+    /**
+     * The column <code>public.profiles.banner_position_y</code>.
+     */
+    public final TableField<ProfilesRecord, Integer> BANNER_POSITION_Y = createField(DSL.name("banner_position_y"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("50"), SQLDataType.INTEGER)), this, "");
+
     private Profiles(Name alias, Table<ProfilesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

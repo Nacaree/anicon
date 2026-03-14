@@ -54,7 +54,9 @@ public class CreatorService {
                     // General fields — any role can update these
                     .set(PROFILES.DISPLAY_NAME, request.displayName())
                     .set(PROFILES.BIO, request.bio())
-                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl());
+                    .set(PROFILES.AVATAR_URL, request.avatarUrl())
+                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl())
+                    .set(PROFILES.BANNER_POSITION_Y, request.bannerPositionY() != null ? request.bannerPositionY() : 50);
 
             // Creator type — only creators can set this
             if (RoleChecker.isCreator(roles)) {

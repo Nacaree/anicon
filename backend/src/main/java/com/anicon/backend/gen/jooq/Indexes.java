@@ -10,6 +10,7 @@ import com.anicon.backend.gen.jooq.tables.Events;
 import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
+import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
@@ -41,6 +42,8 @@ public class Indexes {
     public static final Index IDX_EVENTS_TYPE = Internal.createIndex(DSL.name("idx_events_type"), Events.EVENTS, new OrderField[] { Events.EVENTS.EVENT_TYPE }, false);
     public static final Index IDX_FOLLOWS_FOLLOWER = Internal.createIndex(DSL.name("idx_follows_follower"), Follows.FOLLOWS, new OrderField[] { Follows.FOLLOWS.FOLLOWER_ID }, false);
     public static final Index IDX_FOLLOWS_FOLLOWING = Internal.createIndex(DSL.name("idx_follows_following"), Follows.FOLLOWS, new OrderField[] { Follows.FOLLOWS.FOLLOWING_ID }, false);
+    public static final Index IDX_PORTFOLIO_LIKES_ITEM = Internal.createIndex(DSL.name("idx_portfolio_likes_item"), PortfolioLikes.PORTFOLIO_LIKES, new OrderField[] { PortfolioLikes.PORTFOLIO_LIKES.PORTFOLIO_ITEM_ID }, false);
+    public static final Index IDX_PORTFOLIO_LIKES_USER = Internal.createIndex(DSL.name("idx_portfolio_likes_user"), PortfolioLikes.PORTFOLIO_LIKES, new OrderField[] { PortfolioLikes.PORTFOLIO_LIKES.USER_ID }, false);
     public static final Index IDX_PORTFOLIO_USER_ID = Internal.createIndex(DSL.name("idx_portfolio_user_id"), PortfolioItems.PORTFOLIO_ITEMS, new OrderField[] { PortfolioItems.PORTFOLIO_ITEMS.USER_ID }, false);
     public static final Index IDX_PROFILES_ROLES = Internal.createIndex(DSL.name("idx_profiles_roles"), Profiles.PROFILES, new OrderField[] { Profiles.PROFILES.ROLES }, false);
     public static final Index IDX_PROFILES_USERNAME = Internal.createIndex(DSL.name("idx_profiles_username"), Profiles.PROFILES, new OrderField[] { Profiles.PROFILES.USERNAME }, true);

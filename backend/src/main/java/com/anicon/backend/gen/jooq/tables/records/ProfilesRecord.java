@@ -318,6 +318,20 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         return (JSONB) get(20);
     }
 
+    /**
+     * Setter for <code>public.profiles.banner_position_y</code>.
+     */
+    public void setBannerPositionY(Integer value) {
+        set(21, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.banner_position_y</code>.
+     */
+    public Integer getBannerPositionY() {
+        return (Integer) get(21);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -341,7 +355,7 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
     /**
      * Create a detached, initialised ProfilesRecord
      */
-    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, String bannerImageUrl, String creatorType, String commissionStatus, JSONB commissionInfo, JSONB supportLinks) {
+    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, String bannerImageUrl, String creatorType, String commissionStatus, JSONB commissionInfo, JSONB supportLinks, Integer bannerPositionY) {
         super(Profiles.PROFILES);
 
         setId(id);
@@ -365,6 +379,7 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         setCommissionStatus(commissionStatus);
         setCommissionInfo(commissionInfo);
         setSupportLinks(supportLinks);
+        setBannerPositionY(bannerPositionY);
         resetTouchedOnNotNull();
     }
 }

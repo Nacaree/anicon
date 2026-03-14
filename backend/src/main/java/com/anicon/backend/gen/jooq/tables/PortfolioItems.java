@@ -7,6 +7,7 @@ package com.anicon.backend.gen.jooq.tables;
 import com.anicon.backend.gen.jooq.Indexes;
 import com.anicon.backend.gen.jooq.Keys;
 import com.anicon.backend.gen.jooq.Public;
+import com.anicon.backend.gen.jooq.tables.PortfolioLikes.PortfolioLikesPath;
 import com.anicon.backend.gen.jooq.tables.records.PortfolioItemsRecord;
 
 import java.time.OffsetDateTime;
@@ -17,10 +18,14 @@ import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.ForeignKey;
 import org.jooq.Index;
+import org.jooq.InverseForeignKey;
 import org.jooq.Name;
+import org.jooq.Path;
 import org.jooq.PlainSQL;
 import org.jooq.QueryPart;
+import org.jooq.Record;
 import org.jooq.SQL;
 import org.jooq.Schema;
 import org.jooq.Select;
@@ -83,7 +88,7 @@ public class PortfolioItems extends TableImpl<PortfolioItemsRecord> {
     /**
      * The column <code>public.portfolio_items.category</code>.
      */
-    public final TableField<PortfolioItemsRecord, String> CATEGORY = createField(DSL.name("category"), SQLDataType.VARCHAR(50), this, "");
+    public final TableField<PortfolioItemsRecord, String> CATEGORY = createField(DSL.name("category"), SQLDataType.VARCHAR(500), this, "");
 
     /**
      * The column <code>public.portfolio_items.character_name</code>.
@@ -115,6 +120,11 @@ public class PortfolioItems extends TableImpl<PortfolioItemsRecord> {
      */
     public final TableField<PortfolioItemsRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
+    /**
+     * The column <code>public.portfolio_items.like_count</code>.
+     */
+    public final TableField<PortfolioItemsRecord, Long> LIKE_COUNT = createField(DSL.name("like_count"), SQLDataType.BIGINT.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.BIGINT)), this, "");
+
     private PortfolioItems(Name alias, Table<PortfolioItemsRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -144,6 +154,39 @@ public class PortfolioItems extends TableImpl<PortfolioItemsRecord> {
         this(DSL.name("portfolio_items"), null);
     }
 
+    public <O extends Record> PortfolioItems(Table<O> path, ForeignKey<O, PortfolioItemsRecord> childPath, InverseForeignKey<O, PortfolioItemsRecord> parentPath) {
+        super(path, childPath, parentPath, PORTFOLIO_ITEMS);
+    }
+
+    /**
+     * A subtype implementing {@link Path} for simplified path-based joins.
+     */
+    public static class PortfolioItemsPath extends PortfolioItems implements Path<PortfolioItemsRecord> {
+
+        private static final long serialVersionUID = 1L;
+        public <O extends Record> PortfolioItemsPath(Table<O> path, ForeignKey<O, PortfolioItemsRecord> childPath, InverseForeignKey<O, PortfolioItemsRecord> parentPath) {
+            super(path, childPath, parentPath);
+        }
+        private PortfolioItemsPath(Name alias, Table<PortfolioItemsRecord> aliased) {
+            super(alias, aliased);
+        }
+
+        @Override
+        public PortfolioItemsPath as(String alias) {
+            return new PortfolioItemsPath(DSL.name(alias), this);
+        }
+
+        @Override
+        public PortfolioItemsPath as(Name alias) {
+            return new PortfolioItemsPath(alias, this);
+        }
+
+        @Override
+        public PortfolioItemsPath as(Table<?> alias) {
+            return new PortfolioItemsPath(alias.getQualifiedName(), this);
+        }
+    }
+
     @Override
     public Schema getSchema() {
         return aliased() ? null : Public.PUBLIC;
@@ -157,6 +200,19 @@ public class PortfolioItems extends TableImpl<PortfolioItemsRecord> {
     @Override
     public UniqueKey<PortfolioItemsRecord> getPrimaryKey() {
         return Keys.PORTFOLIO_ITEMS_PKEY;
+    }
+
+    private transient PortfolioLikesPath _portfolioLikes;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.portfolio_likes</code> table
+     */
+    public PortfolioLikesPath portfolioLikes() {
+        if (_portfolioLikes == null)
+            _portfolioLikes = new PortfolioLikesPath(this, null, Keys.PORTFOLIO_LIKES__PORTFOLIO_LIKES_PORTFOLIO_ITEM_ID_FKEY.getInverseKey());
+
+        return _portfolioLikes;
     }
 
     @Override

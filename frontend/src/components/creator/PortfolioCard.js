@@ -24,7 +24,7 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
   }, [menuOpen]);
 
   return (
-    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer" onClick={onClick}>
+    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer" onClick={onClick} onMouseLeave={() => { setMenuOpen(false); setConfirmDelete(false); }}>
       <Image
         src={item.imageUrl}
         alt={item.title || 'Portfolio item'}

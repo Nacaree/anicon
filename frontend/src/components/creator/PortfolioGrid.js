@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { creatorApi } from '@/lib/api';
 import { PortfolioCard } from './PortfolioCard';
 import { PortfolioLightbox } from './PortfolioLightbox';
+import { PortfolioEditModal } from './PortfolioEditModal';
 import { PortfolioUploadModal } from './PortfolioUploadModal';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,8 @@ export function PortfolioGrid({ userId, isOwner = false }) {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
-  const [editOnOpen, setEditOnOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   const loadPortfolio = async () => {
     try {
@@ -40,20 +42,23 @@ export function PortfolioGrid({ userId, isOwner = false }) {
     }
   };
 
-  // Update portfolio item metadata from the lightbox edit form
+  // Update portfolio item metadata from the edit modal
   const handleUpdate = async (id, data) => {
-    try {
-      await creatorApi.updatePortfolioItem(id, data);
-      // Update local state so the lightbox reflects the change immediately
-      setItems(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
-    } catch (err) {
-      console.error('Failed to update:', err);
-    }
+    await creatorApi.updatePortfolioItem(id, data);
+    // Update local state so changes are reflected immediately
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
   };
 
   const handleUploadSuccess = () => {
     setShowUpload(false);
     loadPortfolio();
+  };
+
+  // Sync like state from lightbox back to items array so reopening shows correct state
+  const handleLikeChange = (itemId, liked, newCount) => {
+    setItems(prev => prev.map(i =>
+      i.id === itemId ? { ...i, likedByCurrentUser: liked, likeCount: newCount } : i
+    ));
   };
 
   if (loading) {
@@ -89,18 +94,31 @@ export function PortfolioGrid({ userId, isOwner = false }) {
           {isOwner ? 'Add your first portfolio item!' : 'No portfolio items yet.'}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map((item, index) => (
-            <PortfolioCard
-              key={item.id}
-              item={item}
-              isOwner={isOwner}
-              onDelete={() => handleDelete(item.id)}
-              onEdit={() => { setEditOnOpen(true); setLightboxIndex(index); }}
-              onClick={() => { setEditOnOpen(false); setLightboxIndex(index); }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {(expanded ? items : items.slice(0, 8)).map((item, index) => (
+              <PortfolioCard
+                key={item.id}
+                item={item}
+                isOwner={isOwner}
+                onDelete={() => handleDelete(item.id)}
+                onEdit={() => setEditItem(item)}
+                onClick={() => setLightboxIndex(index)}
+              />
+            ))}
+          </div>
+          {/* Show more / Show less toggle when there are more than 8 items (2 rows on desktop) */}
+          {items.length > 8 && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {expanded ? 'Show less' : `Show all ${items.length} items`}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Lightbox — fullscreen image viewer with prev/next navigation */}
@@ -108,11 +126,18 @@ export function PortfolioGrid({ userId, isOwner = false }) {
         <PortfolioLightbox
           items={items}
           currentIndex={lightboxIndex}
-          onClose={() => { setLightboxIndex(null); setEditOnOpen(false); }}
-          onChange={(i) => { setLightboxIndex(i); setEditOnOpen(false); }}
-          isOwner={isOwner}
-          onUpdate={handleUpdate}
-          initialEditing={editOnOpen}
+          onClose={() => setLightboxIndex(null)}
+          onChange={(i) => setLightboxIndex(i)}
+          onLikeChange={handleLikeChange}
+        />
+      )}
+
+      {/* Edit Modal — standalone modal for editing item metadata */}
+      {editItem && (
+        <PortfolioEditModal
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSave={handleUpdate}
         />
       )}
 

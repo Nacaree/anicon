@@ -9,13 +9,13 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
-import { isCreator, isOrganizer, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
+import { canHaveSupportLinks } from '@/lib/roles';
 import { Loader2, Plus, Trash2, Upload, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// Settings page for editing creator-specific profile fields:
-// banner image, creator type, commission status/info, and support links
+// Settings page for editing profile fields:
+// avatar, banner image, display name, bio, and support links
 export default function CreatorSettingsPage() {
   const { profile, isLoading: authLoading, fetchProfile } = useAuth();
   const { isSidebarCollapsed } = useSidebar();
@@ -25,26 +25,14 @@ export default function CreatorSettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
-  const [creatorType, setCreatorType] = useState('');
-  const [commissionStatus, setCommissionStatus] = useState('closed');
-  const [turnaround, setTurnaround] = useState('');
-  const [terms, setTerms] = useState('');
-  const [contactMethod, setContactMethod] = useState('');
-  const [menuItems, setMenuItems] = useState([]);
   const [supportLinks, setSupportLinks] = useState([]);
+
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [message, setMessage] = useState(null);
-
-  const creatorTypes = [
-    { value: '', label: 'Not a creator' },
-    { value: 'cosplayer', label: 'Cosplayer' },
-    { value: 'digital_artist', label: 'Digital Artist' },
-    { value: 'traditional_artist', label: 'Traditional Artist' },
-    { value: 'crafter', label: 'Crafter' },
-    { value: 'writer', label: 'Writer' },
-  ];
 
   const supportLinkTypes = [
     { value: 'aba', label: 'ABA' },
@@ -60,13 +48,8 @@ export default function CreatorSettingsPage() {
     if (!profile) return;
     setDisplayName(profile.displayName || '');
     setBio(profile.bio || '');
+    setAvatarUrl(profile.avatarUrl || '');
     setBannerImageUrl(profile.bannerImageUrl || '');
-    setCreatorType(profile.creatorType || '');
-    setCommissionStatus(profile.commissionStatus || 'closed');
-    setTurnaround(profile.commissionInfo?.turnaround || '');
-    setTerms(profile.commissionInfo?.terms || '');
-    setContactMethod(profile.commissionInfo?.contactMethod || '');
-    setMenuItems(profile.commissionInfo?.menu || []);
     setSupportLinks(profile.supportLinks || []);
   }, [profile]);
 
@@ -111,19 +94,38 @@ export default function CreatorSettingsPage() {
     }
   };
 
-  // Commission menu item helpers
-  const addMenuItem = () => {
-    setMenuItems([...menuItems, { name: '', price: '', description: '' }]);
-  };
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const updateMenuItem = (index, field, value) => {
-    const updated = [...menuItems];
-    updated[index] = { ...updated[index], [field]: value };
-    setMenuItems(updated);
-  };
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Avatar must be under 5MB' });
+      return;
+    }
 
-  const removeMenuItem = (index) => {
-    setMenuItems(menuItems.filter((_, i) => i !== index));
+    setUploadingAvatar(true);
+    try {
+      const filename = `avatar-${Date.now()}.${file.name.split('.').pop()}`;
+      const path = `${profile.id}/${filename}`;
+
+      const { error } = await supabase.storage
+        .from('portfolio')
+        .upload(path, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('portfolio')
+        .getPublicUrl(path);
+
+      setAvatarUrl(publicUrl);
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      setMessage({ type: 'error', text: 'Failed to upload avatar' });
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   // Support link helpers
@@ -149,15 +151,12 @@ export default function CreatorSettingsPage() {
       await creatorApi.updateCreatorProfile({
         displayName: displayName || null,
         bio: bio || null,
+        avatarUrl: avatarUrl || null,
         bannerImageUrl: bannerImageUrl || null,
-        creatorType: creatorType || null,
-        commissionStatus,
-        commissionInfo: {
-          menu: menuItems.filter((m) => m.name && m.price),
-          turnaround: turnaround || null,
-          terms: terms || null,
-          contactMethod: contactMethod || null,
-        },
+        bannerPositionY: profile.bannerPositionY ?? 50,
+        creatorType: profile.creatorType || null,
+        commissionStatus: profile.commissionStatus || 'closed',
+        commissionInfo: profile.commissionInfo || {},
         supportLinks: supportLinks.filter((l) => l.url),
       });
 
@@ -176,8 +175,6 @@ export default function CreatorSettingsPage() {
 
   // Role checks — determines which sections are visible
   const roles = profile?.roles || [];
-  const showCreatorType = isCreator(roles);
-  const showCommissions = canHaveCommissions(roles);
   const showSupportLinks = canHaveSupportLinks(roles);
 
   return (
@@ -221,17 +218,46 @@ export default function CreatorSettingsPage() {
             />
           </section>
 
+          {/* Profile Picture */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Profile Picture</h2>
+            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-muted group">
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-2xl font-bold">
+                  {profile?.displayName?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+              {/* Upload overlay */}
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                {uploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Upload className="w-6 h-6 text-white" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                />
+              </label>
+            </div>
+          </section>
+
           {/* Banner Image */}
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Banner Image</h2>
-            <div className="relative h-40 rounded-xl overflow-hidden bg-muted">
+            <div className="relative h-40 rounded-xl overflow-hidden bg-muted group">
               {bannerImageUrl ? (
                 <Image src={bannerImageUrl} alt="Banner" fill className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5" />
               )}
               {/* Upload overlay */}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+              <label className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
                 {uploadingBanner ? (
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                 ) : (
@@ -247,118 +273,6 @@ export default function CreatorSettingsPage() {
               </label>
             </div>
           </section>
-
-          {/* Creator Type — only visible to creators */}
-          {showCreatorType && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Creator Type</h2>
-              <select
-                value={creatorType}
-                onChange={(e) => setCreatorType(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {creatorTypes.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </section>
-          )}
-
-          {/* Commission Settings — creators and influencers only */}
-          {showCommissions && (
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Commission Settings</h2>
-
-            {/* Status */}
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Status</label>
-              <select
-                value={commissionStatus}
-                onChange={(e) => setCommissionStatus(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="open">Open</option>
-                <option value="waitlist">Waitlist</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-
-            {/* Turnaround */}
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Turnaround time</label>
-              <input
-                type="text"
-                placeholder="e.g. 1-2 weeks"
-                value={turnaround}
-                onChange={(e) => setTurnaround(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            {/* Contact method */}
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Contact method</label>
-              <input
-                type="text"
-                placeholder="e.g. DM on Instagram"
-                value={contactMethod}
-                onChange={(e) => setContactMethod(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            {/* Terms */}
-            <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">Terms</label>
-              <textarea
-                placeholder="e.g. 50% upfront payment required"
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 rounded-lg border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            {/* Commission Menu Items */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">Price menu</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addMenuItem}
-                  className="hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Plus className="w-3 h-3 mr-1" /> Add item
-                </Button>
-              </div>
-              {menuItems.map((item, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={item.name}
-                    onChange={(e) => updateMenuItem(i, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Price"
-                    value={item.price}
-                    onChange={(e) => updateMenuItem(i, 'price', e.target.value)}
-                    className="w-24 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                  <button
-                    onClick={() => removeMenuItem(i)}
-                    className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-          )}
 
           {/* Support Links — everyone except organizers */}
           {showSupportLinks && (

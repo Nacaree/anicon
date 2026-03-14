@@ -40,7 +40,7 @@ export default function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <button className="w-8 h-8 rounded-full overflow-hidden focus:outline-none hover:opacity-80 transition-opacity">
           <Avatar className="w-8 h-8">
-            <AvatarImage src={avatarUrl} alt={displayName} />
+            <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
             <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
               {initials}
             </AvatarFallback>
@@ -52,7 +52,7 @@ export default function ProfileDropdown() {
         {/* Profile Header */}
         <div className="flex items-center gap-3 px-2 py-2">
           <Avatar className="w-10 h-10">
-            <AvatarImage src={avatarUrl} alt={displayName} />
+            <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
             <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
               {initials}
             </AvatarFallback>

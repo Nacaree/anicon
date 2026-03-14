@@ -33,10 +33,14 @@ public class PortfolioController {
 
     /**
      * Get portfolio items for any user (public).
+     * If the caller is authenticated, likedByCurrentUser is populated per item.
      */
     @GetMapping("/{userId}/portfolio")
-    public ResponseEntity<List<PortfolioItemResponse>> getPortfolio(@PathVariable UUID userId) {
-        return ResponseEntity.ok(portfolioService.getPortfolio(userId));
+    public ResponseEntity<List<PortfolioItemResponse>> getPortfolio(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal SupabaseUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getUserId() : null;
+        return ResponseEntity.ok(portfolioService.getPortfolio(userId, currentUserId));
     }
 
     /**
@@ -70,6 +74,30 @@ public class PortfolioController {
             @AuthenticationPrincipal SupabaseUserPrincipal principal,
             @PathVariable UUID id) {
         portfolioService.deleteItem(principal.getUserId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Like a portfolio item (authenticated).
+     * Idempotent — liking twice returns 200 without error.
+     */
+    @PostMapping("/portfolio/{id}/like")
+    public ResponseEntity<Void> likeItem(
+            @AuthenticationPrincipal SupabaseUserPrincipal principal,
+            @PathVariable UUID id) {
+        portfolioService.likeItem(principal.getUserId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Unlike a portfolio item (authenticated).
+     * Idempotent — unliking when not liked returns 204 without error.
+     */
+    @DeleteMapping("/portfolio/{id}/like")
+    public ResponseEntity<Void> unlikeItem(
+            @AuthenticationPrincipal SupabaseUserPrincipal principal,
+            @PathVariable UUID id) {
+        portfolioService.unlikeItem(principal.getUserId(), id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -5,8 +5,7 @@ import { X, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { creatorApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-
-const TAGS = ['cosplay', 'digital_art', 'traditional', 'craft', 'commission_sample'];
+import { TagInput, tagsToCategory } from './TagInput';
 
 // Modal for uploading a new portfolio item with image + metadata
 export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
@@ -14,7 +13,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
   const [preview, setPreview] = useState(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [tags, setTags] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -69,7 +68,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
         imageUrl: publicUrl,
         title: title || null,
         description: description || null,
-        category: category || null,
+        category: tagsToCategory(tags),
       });
 
       onSuccess();
@@ -95,7 +94,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Image upload area */}
           {preview ? (
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+            <div className="relative h-48 rounded-lg overflow-hidden bg-muted">
               <img src={preview} alt="Preview" className="w-full h-full object-cover" />
               <button
                 type="button"
@@ -106,7 +105,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
+            <label className="flex flex-col items-center justify-center h-48 rounded-lg border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground">Click to upload image</span>
               <span className="text-xs text-muted-foreground mt-1">Max 10MB</span>
@@ -129,26 +128,8 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
             className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
 
-          {/* Tag chips — select one category */}
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Tag (optional)</p>
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setCategory(category === tag ? '' : tag)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                    category === tag
-                      ? 'bg-[#FF7927] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tag.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Custom tag input — type a tag and press Enter to add */}
+          <TagInput tags={tags} onChange={setTags} />
 
           {/* Description */}
           <textarea

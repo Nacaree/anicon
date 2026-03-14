@@ -23,6 +23,7 @@ public class ProfileResponse {
     private String[] roles;
     private String giftLink;
     private String bannerImageUrl;
+    private Integer bannerPositionY;
     private String creatorType;
     private String commissionStatus;
 

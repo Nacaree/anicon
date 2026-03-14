@@ -7,7 +7,9 @@ import java.util.Map;
 public record CreatorProfileUpdateRequest(
     String displayName,
     String bio,
+    String avatarUrl,
     String bannerImageUrl,
+    Integer bannerPositionY,
     String creatorType,
     String commissionStatus,
     Map<String, Object> commissionInfo,

@@ -314,9 +314,9 @@ export const creatorApi = {
   // Update creator-specific profile fields (banner, type, commission info, support links)
   updateCreatorProfile: (data) => api.patch("/api/creator/profile", data),
 
-  // Get portfolio items for a user (public — no auth needed)
+  // Get portfolio items for a user — sends token if available so backend can populate likedByCurrentUser
   getPortfolio: (userId) =>
-    request(`/api/creator/${userId}/portfolio`, { method: "GET", noAuth: true }),
+    request(`/api/creator/${userId}/portfolio`, { method: "GET", bestEffortAuth: true }),
 
   // Add new portfolio item
   addPortfolioItem: (data) => api.post("/api/creator/portfolio", data),
@@ -326,6 +326,12 @@ export const creatorApi = {
 
   // Delete portfolio item
   deletePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}`),
+
+  // Like a portfolio item (requires auth)
+  likePortfolioItem: (id) => api.post(`/api/creator/portfolio/${id}/like`),
+
+  // Unlike a portfolio item (requires auth)
+  unlikePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}/like`),
 };
 
 // User Events API — for profile event tabs (Going/Hosted)

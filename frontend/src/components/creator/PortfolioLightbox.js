@@ -1,34 +1,80 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuthGate } from '@/context/AuthGateContext';
+import { creatorApi } from '@/lib/api';
 import Image from 'next/image';
 
 /**
  * Facebook-style lightbox for portfolio images.
  * Layout: centered modal with dark image area on the left, info panel on the right.
- * Owner can edit title, description, character, series, and category inline.
+ * Header has like (heart) + share buttons instead of image counter.
  * Supports keyboard navigation (left/right arrows, Escape to close).
  */
-export function PortfolioLightbox({ items, currentIndex, onClose, onChange, isOwner = false, onUpdate, initialEditing = false }) {
+export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLikeChange }) {
   const item = items[currentIndex];
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
+  const { requireAuth } = useAuthGate();
 
-  const [editing, setEditing] = useState(initialEditing);
-  const [form, setForm] = useState({});
+  // Like state — reset when navigating between items
+  const [liked, setLiked] = useState(item?.likedByCurrentUser ?? false);
+  const [likeCount, setLikeCount] = useState(item?.likeCount ?? 0);
+  // Brief heart animation on double-click (Instagram-style)
+  const [showHeartAnim, setShowHeartAnim] = useState(false);
 
-  // Reset edit state when switching images
+  // Sync like state when switching items
   useEffect(() => {
-    setEditing(false);
-    setForm({
-      title: item.title || '',
-      description: item.description || '',
-      characterName: item.characterName || '',
-      seriesName: item.seriesName || '',
-      category: item.category || '',
+    setLiked(item?.likedByCurrentUser ?? false);
+    setLikeCount(item?.likeCount ?? 0);
+  }, [item?.id]);
+
+  // Toggle like (used by heart button — toggles on/off)
+  const handleLike = () => {
+    requireAuth(async () => {
+      const newLiked = !liked;
+      const newCount = newLiked ? likeCount + 1 : likeCount - 1;
+      setLiked(newLiked);
+      setLikeCount(newCount);
+
+      try {
+        if (newLiked) {
+          await creatorApi.likePortfolioItem(item.id);
+        } else {
+          await creatorApi.unlikePortfolioItem(item.id);
+        }
+        onLikeChange?.(item.id, newLiked, newCount);
+      } catch (err) {
+        console.error('Like failed:', err);
+        setLiked(!newLiked);
+        setLikeCount(newLiked ? newCount - 1 : newCount + 1);
+      }
     });
-  }, [currentIndex, item]);
+  };
+
+  // Instagram-style double-click on image — only likes, never unlikes
+  const handleDoubleClick = () => {
+    // Show heart animation regardless (even if already liked)
+    setShowHeartAnim(true);
+    setTimeout(() => setShowHeartAnim(false), 800);
+
+    if (liked) return; // Already liked — just show the animation
+    requireAuth(async () => {
+      const newCount = likeCount + 1;
+      setLiked(true);
+      setLikeCount(newCount);
+
+      try {
+        await creatorApi.likePortfolioItem(item.id);
+        onLikeChange?.(item.id, true, newCount);
+      } catch (err) {
+        console.error('Like failed:', err);
+        setLiked(false);
+        setLikeCount(newCount - 1);
+      }
+    });
+  };
 
   const goNext = useCallback(() => {
     if (hasNext) onChange(currentIndex + 1);
@@ -38,17 +84,9 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, isOw
     if (hasPrev) onChange(currentIndex - 1);
   }, [hasPrev, currentIndex, onChange]);
 
-  const handleSave = async () => {
-    if (onUpdate) {
-      await onUpdate(item.id, form);
-    }
-    setEditing(false);
-  };
-
-  // Keyboard navigation and body scroll lock (disabled when editing to allow typing)
+  // Keyboard navigation and body scroll lock
   useEffect(() => {
     const handleKey = (e) => {
-      if (editing) return;
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
@@ -59,7 +97,7 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, isOw
       document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
     };
-  }, [onClose, goNext, goPrev, editing]);
+  }, [onClose, goNext, goPrev]);
 
   return (
     /* Backdrop — clicking closes the lightbox */
@@ -67,13 +105,13 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, isOw
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6"
       onClick={onClose}
     >
-      {/* Modal container */}
+      {/* Modal container — fixed height so layout is consistent regardless of image aspect ratio */}
       <div
-        className="relative flex w-full max-w-5xl max-h-[85vh] rounded-xl overflow-hidden shadow-2xl"
+        className="relative flex w-full max-w-5xl h-[80vh] rounded-xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: dark image area */}
-        <div className="relative flex-1 bg-black flex items-center justify-center min-w-0">
+        <div className="relative flex-1 bg-black flex items-center justify-center min-w-0 overflow-hidden">
           {/* Close button — visible on mobile only (desktop has it in the right panel) */}
           <button
             onClick={onClose}
@@ -102,126 +140,99 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, isOw
             </button>
           )}
 
-          {/* Image */}
+          {/* Image — double-click to like (Instagram-style) */}
           <Image
             src={item.imageUrl}
             alt={item.title || 'Portfolio item'}
             width={1200}
             height={1200}
-            className="max-w-full max-h-[85vh] object-contain"
+            className="max-w-full max-h-full object-contain select-none"
+            onDoubleClick={handleDoubleClick}
+            draggable={false}
             priority
           />
+
+          {/* Heart burst animation on double-click — orange gradient to red */}
+          {showHeartAnim && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+              <svg className="w-20 h-20 drop-shadow-lg animate-heart-burst" viewBox="0 0 24 24" fill="none">
+                <defs>
+                  <linearGradient id="heart-burst-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FF7927" />
+                    <stop offset="100%" stopColor="#ef4444" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                  fill="url(#heart-burst-gradient)"
+                  stroke="url(#heart-burst-gradient)"
+                  strokeWidth="1"
+                />
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* Right: info panel */}
         <div className="hidden md:flex flex-col w-72 bg-white border-l border-gray-200 shrink-0">
-          {/* Header — counter, edit/save button, close button */}
+          {/* Header — like, share, and close buttons */}
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm text-gray-400">
-              {currentIndex + 1} / {items.length}
-            </span>
-            <div className="flex items-center gap-1">
-              {isOwner && editing && (
-                <button
-                  onClick={handleSave}
-                  className="text-green-600 hover:text-green-700 p-1.5 rounded-full hover:bg-green-50 transition-colors"
-                  title="Save"
-                >
-                  <Check className="w-4 h-4" />
-                </button>
-              )}
+            <div className="flex items-center gap-3">
+              {/* Like / heart button */}
               <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={handleLike}
+                className="flex items-center gap-1.5 text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content — view or edit mode */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            {editing ? (
-              /* Edit mode */
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Title</label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927]"
-                    placeholder="Title"
+                <svg className="w-5 h-5 transition-colors" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path
+                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                    fill={liked ? '#ef4444' : 'none'}
+                    stroke={liked ? '#ef4444' : '#9ca3af'}
                   />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Character</label>
-                  <input
-                    type="text"
-                    value={form.characterName}
-                    onChange={(e) => setForm({ ...form, characterName: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927]"
-                    placeholder="Character name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Series</label>
-                  <input
-                    type="text"
-                    value={form.seriesName}
-                    onChange={(e) => setForm({ ...form, seriesName: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927]"
-                    placeholder="Series name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Category</label>
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927]"
-                    placeholder="e.g. cosplay, digital_art"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">Description</label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    rows={3}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF7927]/30 focus:border-[#FF7927] resize-none"
-                    placeholder="Description"
-                  />
-                </div>
-              </div>
-            ) : (
-              /* View mode */
-              <>
-                {item.title && (
-                  <h3 className="font-semibold text-base text-gray-900 mb-2">{item.title}</h3>
-                )}
-                {item.characterName && (
-                  <p className="text-gray-500 text-sm">
-                    {item.characterName}
-                    {item.seriesName && ` — ${item.seriesName}`}
-                  </p>
-                )}
-                {item.description && (
-                  <p className="text-gray-600 text-sm mt-3 leading-relaxed">{item.description}</p>
-                )}
-                {item.category && (
-                  <span className="inline-block mt-3 text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
-                    {item.category}
+                </svg>
+                {likeCount > 0 && (
+                  <span className={`text-xs font-medium ${liked ? 'text-red-500' : 'text-gray-400'}`}>
+                    {likeCount}
                   </span>
                 )}
+              </button>
 
-                {!item.title && !item.characterName && !item.description && (
-                  <p className="text-gray-400 text-sm">
-                    {isOwner ? 'Click the pencil to add details.' : 'No details added.'}
-                  </p>
-                )}
-              </>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Content — view only */}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {item.title && (
+              <h3 className="font-semibold text-base text-gray-900 mb-2">{item.title}</h3>
+            )}
+            {item.characterName && (
+              <p className="text-gray-500 text-sm">
+                {item.characterName}
+                {item.seriesName && ` — ${item.seriesName}`}
+              </p>
+            )}
+            {item.description && (
+              <p className="text-gray-600 text-sm mt-3 leading-relaxed">{item.description}</p>
+            )}
+            {item.category && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {item.category.split(',').map(tag => (
+                  <span key={tag} className="inline-block text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                    {tag.trim().replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {!item.title && !item.characterName && !item.description && (
+              <p className="text-gray-400 text-sm">No details added.</p>
             )}
           </div>
         </div>

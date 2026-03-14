@@ -56,6 +56,11 @@ public class Profile {
     @Column(name = "banner_image_url")
     private String bannerImageUrl;
 
+    // Y-position percentage for banner image cropping (0=top, 50=center, 100=bottom)
+    @Column(name = "banner_position_y")
+    @Builder.Default
+    private Integer bannerPositionY = 50;
+
     @Column(name = "creator_type")
     private String creatorType;
 
