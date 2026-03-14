@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { creatorApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
+const TAGS = ['cosplay', 'digital_art', 'traditional', 'craft', 'commission_sample'];
+
 // Modal for uploading a new portfolio item with image + metadata
 export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
   const [file, setFile] = useState(null);
@@ -13,19 +15,8 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [characterName, setCharacterName] = useState('');
-  const [seriesName, setSeriesName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
-
-  const categories = [
-    { value: '', label: 'Select category...' },
-    { value: 'cosplay', label: 'Cosplay' },
-    { value: 'digital_art', label: 'Digital Art' },
-    { value: 'traditional', label: 'Traditional Art' },
-    { value: 'craft', label: 'Craft' },
-    { value: 'commission_sample', label: 'Commission Sample' },
-  ];
 
   const handleFileChange = (e) => {
     const selected = e.target.files?.[0];
@@ -79,8 +70,6 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
         title: title || null,
         description: description || null,
         category: category || null,
-        characterName: characterName || null,
-        seriesName: seriesName || null,
       });
 
       onSuccess();
@@ -140,35 +129,25 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
             className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
 
-          {/* Category */}
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            {categories.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
-          </select>
-
-          {/* Character + Series (for cosplay/fanart) */}
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              placeholder="Character name"
-              value={characterName}
-              onChange={(e) => setCharacterName(e.target.value)}
-              maxLength={100}
-              className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <input
-              type="text"
-              placeholder="Series name"
-              value={seriesName}
-              onChange={(e) => setSeriesName(e.target.value)}
-              maxLength={100}
-              className="px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+          {/* Tag chips — select one category */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Tag (optional)</p>
+            <div className="flex flex-wrap gap-2">
+              {TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setCategory(category === tag ? '' : tag)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                    category === tag
+                      ? 'bg-[#FF7927] text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {tag.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Description */}

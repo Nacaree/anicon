@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { creatorApi } from '@/lib/api';
 import { PortfolioCard } from './PortfolioCard';
+import { PortfolioLightbox } from './PortfolioLightbox';
 import { PortfolioUploadModal } from './PortfolioUploadModal';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ export function PortfolioGrid({ userId, isOwner = false }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [editOnOpen, setEditOnOpen] = useState(false);
 
   const loadPortfolio = async () => {
     try {
@@ -34,6 +37,17 @@ export function PortfolioGrid({ userId, isOwner = false }) {
       setItems(items.filter(item => item.id !== id));
     } catch (err) {
       console.error('Failed to delete:', err);
+    }
+  };
+
+  // Update portfolio item metadata from the lightbox edit form
+  const handleUpdate = async (id, data) => {
+    try {
+      await creatorApi.updatePortfolioItem(id, data);
+      // Update local state so the lightbox reflects the change immediately
+      setItems(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+    } catch (err) {
+      console.error('Failed to update:', err);
     }
   };
 
@@ -76,15 +90,30 @@ export function PortfolioGrid({ userId, isOwner = false }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map(item => (
+          {items.map((item, index) => (
             <PortfolioCard
               key={item.id}
               item={item}
               isOwner={isOwner}
               onDelete={() => handleDelete(item.id)}
+              onEdit={() => { setEditOnOpen(true); setLightboxIndex(index); }}
+              onClick={() => { setEditOnOpen(false); setLightboxIndex(index); }}
             />
           ))}
         </div>
+      )}
+
+      {/* Lightbox — fullscreen image viewer with prev/next navigation */}
+      {lightboxIndex !== null && (
+        <PortfolioLightbox
+          items={items}
+          currentIndex={lightboxIndex}
+          onClose={() => { setLightboxIndex(null); setEditOnOpen(false); }}
+          onChange={(i) => { setLightboxIndex(i); setEditOnOpen(false); }}
+          isOwner={isOwner}
+          onUpdate={handleUpdate}
+          initialEditing={editOnOpen}
+        />
       )}
 
       {/* Upload Modal */}

@@ -104,7 +104,7 @@ export default function EventDetailClient({ id }) {
             avatarUrl: eventData.organizer.avatarUrl,
             displayName: eventData.organizer.displayName,
             username: eventData.organizer.username,
-            role: eventData.organizer.roles?.[0] || "organizer",
+            roles: eventData.organizer.roles || ["organizer"],
             followers: eventData.organizer.followerCount || 0,
             following: eventData.organizer.followingCount || 0,
           });
@@ -118,7 +118,7 @@ export default function EventDetailClient({ id }) {
                 avatarUrl: profile.avatarUrl,
                 displayName: profile.displayName,
                 username: profile.username,
-                role: profile.roles?.[0] || "organizer",
+                roles: profile.roles || ["organizer"],
                 followers: profile.followerCount || 0,
                 following: profile.followingCount || 0,
               }),

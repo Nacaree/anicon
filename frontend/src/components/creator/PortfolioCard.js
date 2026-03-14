@@ -1,15 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { MoreVertical, Trash2, Pencil } from 'lucide-react';
 import Image from 'next/image';
 
-// Single portfolio gallery item with optional delete for the owner
-export function PortfolioCard({ item, isOwner = false, onDelete }) {
+// Single portfolio gallery item with hover menu for owner actions
+export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   return (
-    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
+    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer" onClick={onClick}>
       <Image
         src={item.imageUrl}
         alt={item.title || 'Portfolio item'}
@@ -38,31 +53,56 @@ export function PortfolioCard({ item, isOwner = false, onDelete }) {
         </div>
       )}
 
-      {/* Delete button for owner */}
+      {/* 3-dot menu for owner — stopPropagation prevents opening the lightbox */}
       {isOwner && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          {confirmDelete ? (
-            <div className="flex gap-1">
-              <button
-                onClick={onDelete}
-                className="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="bg-muted text-foreground text-xs px-2 py-1 rounded hover:bg-muted/80 transition-colors"
-              >
-                Cancel
-              </button>
+        <div
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          ref={menuRef}
+        >
+          <button
+            onClick={() => { setMenuOpen(!menuOpen); setConfirmDelete(false); }}
+            className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70 transition-colors"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+
+          {/* Dropdown menu */}
+          {menuOpen && (
+            <div className="absolute top-9 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[120px] z-10">
+              {confirmDelete ? (
+                <>
+                  <p className="px-3 py-1.5 text-xs text-gray-500">Are you sure?</p>
+                  <button
+                    onClick={() => { onDelete(); setMenuOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Confirm delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="w-full text-left px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { onEdit?.(); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="bg-black/50 text-white p-1.5 rounded-full hover:bg-red-500 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
           )}
         </div>
       )}

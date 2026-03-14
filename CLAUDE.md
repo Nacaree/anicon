@@ -73,6 +73,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Security:** Stateless JWT auth (no sessions). `JwtAuthenticationFilter` → `SupabaseJwtValidator` → `SupabaseUserPrincipal`. Rate limiting via Bucket4j (`RateLimitFilter`). Caching via Caffeine. CORS origins are read from the `CORS_ALLOWED_ORIGINS` env var (comma-separated) in `SecurityConfig` — set this to `http://localhost:3000` locally and `https://anicon.online` in production.
 - **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSLContext.
 - **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, `StripeService`, `StripeWebhookController`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
+- **Creator sub-package:** `com.anicon.backend.creator` — `CreatorController`, `CreatorService`, `PortfolioController`, `PortfolioService`, `UserEventsController`, `UserEventsService`, `RoleChecker`, and `dto/`. Portfolio uses JPA; user events uses JOOQ. `RoleChecker` is a static utility that gates field updates and portfolio access by role.
 
 ### Key API Endpoints
 
@@ -96,6 +97,13 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `GET` | `/api/tickets/event-status/{eventId}` | Optional | Returns `{ ticketCount, hasRsvp }` for current user; 0/false for guests |
 | `POST` | `/api/tickets/{transactionId}/cancel` | Required | Cancel abandoned Stripe PaymentIntent and mark transaction cancelled |
 | `POST` | `/api/stripe/webhook` | Public (HMAC) | Stripe webhook — issues ticket on `payment_intent.succeeded` |
+| `PATCH` | `/api/creator/profile` | Required | Update creator profile fields (role-gated) |
+| `GET` | `/api/portfolio/{userId}` | Public | Get user's portfolio items |
+| `POST` | `/api/portfolio` | Required | Add portfolio item (creator only) |
+| `PUT` | `/api/portfolio/{id}` | Required | Update portfolio item (owner only) |
+| `DELETE` | `/api/portfolio/{id}` | Required | Delete portfolio item (owner only) |
+| `GET` | `/api/users/{userId}/events/going` | Public | Events user RSVP'd or bought tickets for |
+| `GET` | `/api/users/{userId}/events/hosted` | Public | Events user organized (`?miniOnly=true` for influencers) |
 
 ### Key Design Patterns
 
@@ -125,6 +133,7 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `tickets` | Issued tickets (free or paid events) |
 | `event_rsvps` | "I'm going" for free events |
 | `tags` / `event_tags` | Tag definitions and many-to-many junction |
+| `portfolio_items` | Creator gallery items (images, metadata, ordering) |
 
 ### Role System
 
@@ -140,6 +149,14 @@ Valid combinations only:
 Event creation permissions (enforced in `EventService`, backed up by DB constraints):
 - `influencer` → `mini_event` only, always free
 - `creator` / `organizer` → all event types, free or paid
+
+Profile feature visibility (enforced by `RoleChecker` backend + `lib/roles.js` frontend):
+- Portfolio gallery: creator only
+- Creator type setting: creator only
+- Commission settings: creator or influencer
+- Support/tip links: everyone except organizer
+- Events "Going" tab: everyone except organizer
+- Events "Hosted" tab: organizer only (includes creator+organizer combo)
 
 ### Constraints & Conventions
 
@@ -167,6 +184,14 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 - Payment UI pages: `app/payment/checkout/`, `app/payment/verify/`, `app/payment/success/`
 - My Tickets page (`app/tickets/page.js`): merges paid tickets + free RSVPs sorted by event date, with per-user ticket status badge on the event detail card (`EventTicketCard` → `ticketApi.eventStatus()`)
 
+**Working (Creator/Profile features):**
+- Creator portfolio: `PortfolioController` CRUD endpoints, `PortfolioGrid`/`PortfolioCard`/`PortfolioUploadModal` frontend components
+- Creator settings: `PATCH /api/creator/profile` updates display name, bio, banner, creator type, commissions, support links — role-gated by `RoleChecker` in `CreatorService`
+- Role-based profile sections: portfolio (creator only), commissions (creator/influencer), support links (not organizer), events hosted tab (organizer only), events going tab (not organizer)
+- Profile tabs: `ProfileTabs` → `HomeTab` (placeholder) + `EventsTab` with role-based sub-tabs (`EventsGoingSection`, `EventsHostedSection`)
+- Role badges: `RoleBadge` component shows all non-fan roles; multi-role users (creator+organizer) see multiple badges
+- Frontend role utilities: `lib/roles.js` mirrors backend `RoleChecker.java`
+
 **TODO (Deferred to Month 2-3):**
 - Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
 
@@ -193,3 +218,6 @@ The `app/events/[id]/page.js` server component is intentionally thin (no data fe
 - Database design: @docs/ticketing_schema_design_guide.md
 - SQL schema: @docs/ANICONNECT_TICKETING_SCHEMA_V2.sql
 - Event detail page perf: @docs/DETAIL_PAGE_PERF_FIX.md
+<!-- * this is for feature 3: Creator Portfolio -->
+- Creator portfolio spec: @docs/FEATURE3_COMPLETE.md
+- Profile progress: @docs/PROFILE_PROGRESS.md
