@@ -154,7 +154,7 @@ Profile feature visibility (enforced by `RoleChecker` backend + `lib/roles.js` f
 - Portfolio gallery: creator only
 - Creator type setting: creator only
 - Commission settings: creator or influencer
-- Support/tip links: everyone except organizer
+- Support/tip links: everyone except pure organizer (creator+organizer combo keeps them)
 - Events "Going" tab: everyone except organizer
 - Events "Hosted" tab: organizer only (includes creator+organizer combo)
 

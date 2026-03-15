@@ -80,6 +80,11 @@ public class Profile {
     @Builder.Default
     private List<Map<String, String>> supportLinks = List.of();
 
+    // Toggle to show/hide support links on the public profile
+    @Column(name = "show_support_links")
+    @Builder.Default
+    private Boolean showSupportLinks = true;
+
     // Influencer fields
     @Enumerated(EnumType.STRING)
     @Column(name = "influencer_status", columnDefinition = "application_status")

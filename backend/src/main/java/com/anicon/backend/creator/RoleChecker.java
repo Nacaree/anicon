@@ -40,6 +40,7 @@ public class RoleChecker {
 
     /** Support/tip links available to everyone except organizers */
     public static boolean canHaveSupportLinks(UserRole[] roles) {
-        return !isOrganizer(roles);
+        // Creator+Organizer combo keeps support links (they're also a creator)
+        return !isOrganizer(roles) || isCreator(roles);
     }
 }

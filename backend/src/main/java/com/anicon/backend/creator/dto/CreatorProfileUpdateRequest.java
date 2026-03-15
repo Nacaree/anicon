@@ -13,5 +13,6 @@ public record CreatorProfileUpdateRequest(
     String creatorType,
     String commissionStatus,
     Map<String, Object> commissionInfo,
-    List<Map<String, String>> supportLinks
+    List<Map<String, String>> supportLinks,
+    Boolean showSupportLinks
 ) {}

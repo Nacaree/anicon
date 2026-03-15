@@ -73,12 +73,15 @@ public class CreatorService {
                                         : JSONB.jsonb("{}"));
             }
 
-            // Support links — everyone except organizers
+            // Support links — everyone except pure organizers
             if (RoleChecker.canHaveSupportLinks(roles)) {
                 update = update.set(PROFILES.SUPPORT_LINKS,
                         request.supportLinks() != null
                                 ? JSONB.jsonb(objectMapper.writeValueAsString(request.supportLinks()))
-                                : JSONB.jsonb("[]"));
+                                : JSONB.jsonb("[]"))
+                        // Toggle to show/hide support links on the public profile
+                        .set(PROFILES.SHOW_SUPPORT_LINKS,
+                                request.showSupportLinks() != null ? request.showSupportLinks() : true);
             }
 
             int updated = update

@@ -180,6 +180,11 @@ public class Profiles extends TableImpl<ProfilesRecord> {
      */
     public final TableField<ProfilesRecord, Integer> BANNER_POSITION_Y = createField(DSL.name("banner_position_y"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("50"), SQLDataType.INTEGER)), this, "");
 
+    /**
+     * The column <code>public.profiles.show_support_links</code>.
+     */
+    public final TableField<ProfilesRecord, Boolean> SHOW_SUPPORT_LINKS = createField(DSL.name("show_support_links"), SQLDataType.BOOLEAN.defaultValue(DSL.field(DSL.raw("true"), SQLDataType.BOOLEAN)), this, "");
+
     private Profiles(Name alias, Table<ProfilesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

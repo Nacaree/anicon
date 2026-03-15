@@ -372,8 +372,8 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Support Links — everyone except organizers */}
-              {canHaveSupportLinks(profile.roles) && profile.supportLinks?.length > 0 && (
+              {/* Support Links — everyone except pure organizers, hidden when toggled off */}
+              {canHaveSupportLinks(profile.roles) && profile.showSupportLinks !== false && profile.supportLinks?.length > 0 && (
                 <SupportLinksDisplay links={profile.supportLinks} />
               )}
 

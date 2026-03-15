@@ -34,6 +34,7 @@ public class ProfileResponse {
     private String commissionInfo;
     @JsonRawValue
     private String supportLinks;
+    private Boolean showSupportLinks;
 
     private String organizationName;
     private Boolean isVerifiedOrganizer;

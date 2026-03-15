@@ -332,6 +332,20 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         return (Integer) get(21);
     }
 
+    /**
+     * Setter for <code>public.profiles.show_support_links</code>.
+     */
+    public void setShowSupportLinks(Boolean value) {
+        set(22, value);
+    }
+
+    /**
+     * Getter for <code>public.profiles.show_support_links</code>.
+     */
+    public Boolean getShowSupportLinks() {
+        return (Boolean) get(22);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -355,7 +369,7 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
     /**
      * Create a detached, initialised ProfilesRecord
      */
-    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, String bannerImageUrl, String creatorType, String commissionStatus, JSONB commissionInfo, JSONB supportLinks, Integer bannerPositionY) {
+    public ProfilesRecord(UUID id, String username, String displayName, String avatarUrl, String bio, UserRole[] roles, String giftLink, ApplicationStatus influencerStatus, OffsetDateTime influencerVerifiedAt, String organizationName, Boolean isVerifiedOrganizer, JSONB socialLinks, Long followerCount, Long followingCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, String bannerImageUrl, String creatorType, String commissionStatus, JSONB commissionInfo, JSONB supportLinks, Integer bannerPositionY, Boolean showSupportLinks) {
         super(Profiles.PROFILES);
 
         setId(id);
@@ -380,6 +394,7 @@ public class ProfilesRecord extends UpdatableRecordImpl<ProfilesRecord> {
         setCommissionInfo(commissionInfo);
         setSupportLinks(supportLinks);
         setBannerPositionY(bannerPositionY);
+        setShowSupportLinks(showSupportLinks);
         resetTouchedOnNotNull();
     }
 }

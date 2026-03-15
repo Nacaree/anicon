@@ -26,6 +26,7 @@ export default function CreatorSettingsPage() {
   const [bio, setBio] = useState('');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [supportLinks, setSupportLinks] = useState([]);
+  const [showSupportLinksToggle, setShowSupportLinksToggle] = useState(true);
 
   const [avatarUrl, setAvatarUrl] = useState('');
 
@@ -51,6 +52,7 @@ export default function CreatorSettingsPage() {
     setAvatarUrl(profile.avatarUrl || '');
     setBannerImageUrl(profile.bannerImageUrl || '');
     setSupportLinks(profile.supportLinks || []);
+    setShowSupportLinksToggle(profile.showSupportLinks ?? true);
   }, [profile]);
 
   // Redirect to login if not authenticated
@@ -158,6 +160,7 @@ export default function CreatorSettingsPage() {
         commissionStatus: profile.commissionStatus || 'closed',
         commissionInfo: profile.commissionInfo || {},
         supportLinks: supportLinks.filter((l) => l.url),
+        showSupportLinks: showSupportLinksToggle,
       });
 
       // Re-fetch profile from backend so AuthContext has the updated data
@@ -274,11 +277,32 @@ export default function CreatorSettingsPage() {
             </div>
           </section>
 
-          {/* Support Links — everyone except organizers */}
+          {/* Support Links — everyone except pure organizers */}
           {showSupportLinks && (
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Support / Tip Links</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Support / Tip Links</h2>
+                {/* Toggle to show/hide support links on the public profile */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showSupportLinksToggle}
+                  onClick={() => setShowSupportLinksToggle(!showSupportLinksToggle)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    showSupportLinksToggle ? 'bg-primary' : 'bg-muted-foreground/30'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                      showSupportLinksToggle ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {showSupportLinksToggle ? 'Visible' : 'Hidden'}
+                </span>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -289,7 +313,7 @@ export default function CreatorSettingsPage() {
               </Button>
             </div>
             {supportLinks.map((link, i) => (
-              <div key={i} className="flex gap-2 items-start">
+              <div key={i} className={`flex gap-2 items-start ${!showSupportLinksToggle ? 'opacity-50' : ''}`}>
                 <select
                   value={link.type}
                   onChange={(e) => updateSupportLink(i, 'type', e.target.value)}
