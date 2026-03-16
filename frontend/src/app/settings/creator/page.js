@@ -37,6 +37,7 @@ export default function CreatorSettingsPage() {
 
   const supportLinkTypes = [
     { value: 'aba', label: 'ABA' },
+    { value: 'acleda', label: 'ACLEDA' },
     { value: 'wing', label: 'Wing' },
     { value: 'kofi', label: 'Ko-fi' },
     { value: 'paypal', label: 'PayPal' },
@@ -138,6 +139,12 @@ export default function CreatorSettingsPage() {
   const updateSupportLink = (index, field, value) => {
     const updated = [...supportLinks];
     updated[index] = { ...updated[index], [field]: value };
+    // Auto-fill label from the type name when the user changes the type dropdown,
+    // but only if the label is currently empty — avoids overwriting custom labels
+    if (field === 'type' && !updated[index].label) {
+      const match = supportLinkTypes.find((t) => t.value === value);
+      if (match) updated[index].label = match.label;
+    }
     setSupportLinks(updated);
   };
 
@@ -165,7 +172,8 @@ export default function CreatorSettingsPage() {
 
       // Re-fetch profile from backend so AuthContext has the updated data
       await fetchProfile();
-      setMessage({ type: 'success', text: 'Profile updated!' });
+      // Navigate back to the user's profile page after a successful save
+      router.push(`/profiles/${profile.username}`);
     } catch (err) {
       console.error('Save failed:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to save' });
