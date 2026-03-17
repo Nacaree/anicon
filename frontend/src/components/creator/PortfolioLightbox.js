@@ -102,12 +102,12 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
   return (
     /* Backdrop — clicking closes the lightbox */
     <div
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6"
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 animate-in fade-in-0 duration-200"
       onClick={onClose}
     >
       {/* Modal container — fixed height so layout is consistent regardless of image aspect ratio */}
       <div
-        className="relative flex w-full max-w-5xl h-[80vh] rounded-xl overflow-hidden shadow-2xl"
+        className="relative flex w-full max-w-5xl h-[80vh] rounded-xl overflow-hidden shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: dark image area */}
@@ -201,7 +201,7 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
 
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

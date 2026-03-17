@@ -334,6 +334,26 @@ export const creatorApi = {
   unlikePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}/like`),
 };
 
+// Follow API — follow/unfollow users and fetch follower/following lists
+export const followApi = {
+  // Follow a user (requires auth)
+  follow: (userId) => api.post(`/api/follows/${userId}`),
+
+  // Unfollow a user (requires auth)
+  unfollow: (userId) => api.delete(`/api/follows/${userId}`),
+
+  // Check if current user follows the given user (requires auth)
+  getStatus: (userId) => api.get(`/api/follows/${userId}/status`),
+
+  // Get list of users who follow the given user — sends token if available so backend includes isFollowing
+  getFollowers: (userId) =>
+    request(`/api/follows/${userId}/followers`, { method: "GET", bestEffortAuth: true }),
+
+  // Get list of users the given user follows — sends token if available so backend includes isFollowing
+  getFollowing: (userId) =>
+    request(`/api/follows/${userId}/following`, { method: "GET", bestEffortAuth: true }),
+};
+
 // User Events API — for profile event tabs (Going/Hosted)
 export const userEventsApi = {
   // Get events user is going to (RSVP + tickets) — public endpoint
@@ -345,6 +365,73 @@ export const userEventsApi = {
   getHostedEvents: (userId, miniOnly = false) => {
     const query = miniOnly ? "?miniOnly=true" : "";
     return request(`/api/users/${userId}/events/hosted${query}`, { method: "GET", noAuth: true });
+  },
+};
+
+// Posts API — social feed CRUD, likes, reposts, comments
+export const postsApi = {
+  // Create a new post (requires auth)
+  createPost: (textContent, imageUrls = []) =>
+    api.post("/api/posts", { textContent, imageUrls }),
+
+  // Get public feed — cursor-paginated, newest first.
+  // bestEffortAuth: sends cached token if available for liked/reposted state.
+  getFeed: (cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/posts/feed?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+
+  // Get a specific user's posts for their profile HomeTab
+  getUserPosts: (userId, cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/posts/user/${userId}?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+
+  // Get single post detail (for /posts/[id] page and modal)
+  getPost: (postId) =>
+    request(`/api/posts/${postId}`, { method: "GET", bestEffortAuth: true }),
+
+  // Edit post text (owner only)
+  updatePost: (postId, textContent) =>
+    api.patch(`/api/posts/${postId}`, { textContent }),
+
+  // Delete post (owner only)
+  deletePost: (postId) => api.delete(`/api/posts/${postId}`),
+
+  // Like / Unlike (idempotent)
+  likePost: (postId) => api.post(`/api/posts/${postId}/like`),
+  unlikePost: (postId) => api.delete(`/api/posts/${postId}/like`),
+
+  // Repost / Undo repost
+  repost: (postId) => api.post(`/api/posts/${postId}/repost`),
+  undoRepost: (postId) => api.delete(`/api/posts/${postId}/repost`),
+
+  // Comments
+  getComments: (postId) =>
+    request(`/api/posts/${postId}/comments`, { method: "GET", bestEffortAuth: true }),
+
+  addComment: (postId, textContent, parentId = null) =>
+    api.post(`/api/posts/${postId}/comments`, { textContent, parentId }),
+
+  deleteComment: (commentId) => api.delete(`/api/comments/${commentId}`),
+
+  // Comment likes
+  likeComment: (commentId) => api.post(`/api/comments/${commentId}/like`),
+  unlikeComment: (commentId) => api.delete(`/api/comments/${commentId}/like`),
+
+  // Upload post images to Supabase Storage (client-side, same pattern as portfolio)
+  uploadImage: async (file, userId) => {
+    const ext = file.name.split(".").pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const path = `${userId}/${filename}`;
+
+    const { error } = await supabase.storage.from("posts").upload(path, file);
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(path);
+    return publicUrl;
   },
 };
 

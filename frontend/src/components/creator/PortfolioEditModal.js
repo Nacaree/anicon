@@ -36,13 +36,13 @@ export function PortfolioEditModal({ item, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-background rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in-0 duration-200" onClick={onClose}>
+      <div className="bg-background rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 transition-[height] duration-300 ease-out" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Edit Portfolio Item</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -88,7 +88,7 @@ export function PortfolioEditModal({ item, onClose, onSave }) {
           <Button
             type="submit"
             disabled={saving}
-            className="w-full hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]"
+            className="w-full rounded-full hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]"
           >
             {saving ? (
               <>

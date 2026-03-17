@@ -46,7 +46,7 @@ export default function AuthGateModal() {
         <div className="flex flex-col gap-3 mt-2">
           <button
             onClick={handleLogin}
-            className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white py-2.5 rounded-full font-medium transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-full font-medium transition-colors"
           >
             Log in
           </button>

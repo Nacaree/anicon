@@ -14,7 +14,7 @@ const ROLE_CONFIG = {
     className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-blue-500/25',
   },
   [ROLES.CREATOR]: {
-    label: 'Creator',
+    label: 'Creator', 
     className: 'bg-[#2ED1E4]/15 text-[#18b3c4] shadow-[#2ED1E4]/25',
   },
   [ROLES.ORGANIZER]: {

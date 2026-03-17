@@ -24,7 +24,7 @@ function PaymentSuccessContent() {
         </p>
         <button
           onClick={() => router.push("/events")}
-          className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
             transition-all duration-300 hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] mb-3"
         >
           Browse More Events

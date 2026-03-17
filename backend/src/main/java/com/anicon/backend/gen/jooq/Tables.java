@@ -4,6 +4,7 @@
 package com.anicon.backend.gen.jooq;
 
 
+import com.anicon.backend.gen.jooq.tables.CommentLikes;
 import com.anicon.backend.gen.jooq.tables.EventRsvps;
 import com.anicon.backend.gen.jooq.tables.EventTags;
 import com.anicon.backend.gen.jooq.tables.Events;
@@ -11,6 +12,10 @@ import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
 import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
+import com.anicon.backend.gen.jooq.tables.PostComments;
+import com.anicon.backend.gen.jooq.tables.PostImages;
+import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tags;
 import com.anicon.backend.gen.jooq.tables.Tickets;
@@ -22,6 +27,11 @@ import com.anicon.backend.gen.jooq.tables.Transactions;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
+
+    /**
+     * The table <code>public.comment_likes</code>.
+     */
+    public static final CommentLikes COMMENT_LIKES = CommentLikes.COMMENT_LIKES;
 
     /**
      * The table <code>public.event_rsvps</code>.
@@ -57,6 +67,26 @@ public class Tables {
      * The table <code>public.portfolio_likes</code>.
      */
     public static final PortfolioLikes PORTFOLIO_LIKES = PortfolioLikes.PORTFOLIO_LIKES;
+
+    /**
+     * The table <code>public.post_comments</code>.
+     */
+    public static final PostComments POST_COMMENTS = PostComments.POST_COMMENTS;
+
+    /**
+     * The table <code>public.post_images</code>.
+     */
+    public static final PostImages POST_IMAGES = PostImages.POST_IMAGES;
+
+    /**
+     * The table <code>public.post_likes</code>.
+     */
+    public static final PostLikes POST_LIKES = PostLikes.POST_LIKES;
+
+    /**
+     * The table <code>public.posts</code>.
+     */
+    public static final Posts POSTS = Posts.POSTS;
 
     /**
      * The table <code>public.profiles</code>.

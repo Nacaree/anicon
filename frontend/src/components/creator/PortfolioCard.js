@@ -48,7 +48,7 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
 
       {/* Featured indicator */}
       {item.isFeatured && (
-        <div className="absolute top-2 left-2 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
           Featured
         </div>
       )}
@@ -69,19 +69,19 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
 
           {/* Dropdown menu */}
           {menuOpen && (
-            <div className="absolute top-9 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[120px] z-10">
+            <div className="absolute top-9 right-0 bg-popover rounded-lg shadow-lg overflow-hidden min-w-[120px] z-10">
               {confirmDelete ? (
                 <>
-                  <p className="px-3 py-1.5 text-xs text-gray-500">Are you sure?</p>
+                  <p className="px-3 py-1.5 text-xs text-muted-foreground">Are you sure?</p>
                   <button
                     onClick={() => { onDelete(); setMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                   >
-                    Confirm delete
+                    Yes, delete
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    className="w-full text-left px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
                   >
                     Cancel
                   </button>
@@ -90,13 +90,13 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
                 <>
                   <button
                     onClick={() => { onEdit?.(); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Edit
                   </button>
                   <button
                     onClick={() => setConfirmDelete(true)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>

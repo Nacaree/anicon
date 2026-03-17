@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
+import { postsApi } from "@/lib/api";
+import PostComposer from "@/components/posts/PostComposer";
+import PostComposerModal from "@/components/posts/PostComposerModal";
+import PostFeed from "@/components/posts/PostFeed";
+import PostDetailModal from "@/components/posts/PostDetailModal";
 
 const FeaturedEvents = dynamic(
   () => import("@/components/FeaturedEvents"),
@@ -48,40 +54,6 @@ const EventSections = dynamic(
             </div>
           </section>
         ))}
-      </div>
-    ),
-  }
-);
-
-const PostCard = dynamic(
-  () => import("@/components/PostCard"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="bg-white rounded-xl border border-gray-200 p-3 mb-3 w-full max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto animate-pulse">
-        {/* User Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <Skeleton className="w-10 h-10 rounded-full" />
-          <div>
-            <Skeleton className="h-4 w-24 rounded mb-1" />
-            <Skeleton className="h-3 w-20 rounded" />
-          </div>
-        </div>
-        {/* Text */}
-        <div className="p-1 mb-2 space-y-2">
-          <Skeleton className="h-4 w-full rounded" />
-          <Skeleton className="h-4 w-3/4 rounded" />
-        </div>
-        {/* Image */}
-        <Skeleton className="rounded-lg mb-3 h-80 sm:h-96 lg:h-128" />
-        {/* Action Buttons */}
-        <div className="flex justify-between gap-3">
-          <Skeleton className="w-10 h-10 rounded-lg" />
-          <div className="flex gap-3">
-            <Skeleton className="w-10 h-10 rounded-lg" />
-            <Skeleton className="w-10 h-10 rounded-lg" />
-          </div>
-        </div>
       </div>
     ),
   }
@@ -152,17 +124,32 @@ const RightPanel = dynamic(
 
 export default function Home() {
   const { isSidebarCollapsed } = useSidebar();
+  const { isAuthenticated } = useAuth();
   // Incremented by the "anicon-home-refresh" custom event dispatched from Header
   // when the user clicks the logo while already on the homepage.
   // Passing this as `key` to FeaturedEvents and EventSections forces React to
   // unmount + remount them, re-running their useEffect data fetches.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Separate key for the feed so new posts prepend without remounting the whole feed
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  // Post detail modal state — opened when clicking a post in the feed
+  const [detailPost, setDetailPost] = useState(null);
+  // Composer modal state — opened when clicking the compact composer trigger
+  const [composerOpen, setComposerOpen] = useState(false);
+  // Files pre-selected from the composer's image button
+  const [composerInitialFiles, setComposerInitialFiles] = useState(null);
 
   useEffect(() => {
-    const handler = () => setRefreshKey((k) => k + 1);
+    const handler = () => {
+      setRefreshKey((k) => k + 1);
+      setFeedRefreshKey((k) => k + 1);
+    };
     window.addEventListener("anicon-home-refresh", handler);
     return () => window.removeEventListener("anicon-home-refresh", handler);
   }, []);
+
+  // Fetch function for the public feed — passed to PostFeed
+  const fetchFeed = useCallback((cursor) => postsApi.getFeed(cursor), []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -186,43 +173,19 @@ export default function Home() {
           <main className="flex-1 min-w-0">
             <EventSections key={refreshKey} />
 
-            {/* Social Feed */}
-            <div className="mt-8">
-              {/* <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Posts</h2> */}
-              <PostCard
-                username="Anime Power"
-                handle="AniPower"
-                text="Just finished watching the latest episode! The animation quality was absolutely stunning. What did everyone think about that plot twist at the end? 🔥"
-                imageUrl="https://kotaku.com/app/uploads/2024/10/1df1fae5c38114dc21e6d062b62dd270.jpg"
-                avatarUrl="https://media.istockphoto.com/id/1470987836/photo/portrait-of-a-beautiful-young-woman-game-cosplay-with-samurai-dress-costume-on-japanese-garden.jpg?s=612x612&w=0&k=20&c=NGfgu3Ti5DH1o7ZNLq1Jj069HyZ-hlprCbrbRP7JDNI="
-              />
-              <PostCard
-                username="Otaku Dreams"
-                handle="OtakuDreams"
-                text="Can't wait for the next convention! Already planning my cosplay. Who else is going? Let's meet up! 🎭✨"
-                imageUrl="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800"
-                avatarUrl="https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=400&h=400&fit=crop"
-              />
-              <PostCard
-                username="Manga Fanatic"
-                handle="MangaFan"
-                text="Just picked up the latest volume! The character development in this arc is incredible. Highly recommend checking it out! 📚"
-                imageUrl="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800"
-                avatarUrl="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&h=400&fit=crop"
-              />
-              <PostCard
-                username="Cosplay Queen"
-                handle="CosplayQueen"
-                text="Finished my new cosplay just in time for the weekend event! So excited to debut it. What do you all think? 👑💫"
-                imageUrl="https://images.unsplash.com/photo-1613376023733-0a73315d9b06?w=800"
-                avatarUrl="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&h=400&fit=crop"
-              />
-              <PostCard
-                username="Anime Critic"
-                handle="AnimeCritic"
-                text="This season's lineup is absolutely fire! So many great shows to watch. What's everyone's top 3 this season? 🌟"
-                imageUrl="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800"
-                avatarUrl="https://kotaku.com/app/uploads/2024/10/1df1fae5c38114dc21e6d062b62dd270.jpg"
+            {/* Social Feed — real posts from all users, capped width to match design */}
+            <div className="mt-8 max-w-3xl mx-auto">
+              {isAuthenticated && (
+                <PostComposer
+                  onOpenComposer={() => { setComposerInitialFiles(null); setComposerOpen(true); }}
+                  onOpenWithImages={(files) => { setComposerInitialFiles(files); setComposerOpen(true); }}
+                />
+              )}
+              <PostFeed
+                fetchFn={fetchFeed}
+                emptyMessage="No posts yet. Be the first to share!"
+                refreshKey={feedRefreshKey}
+                onOpenDetail={(post) => setDetailPost(post)}
               />
             </div>
           </main>
@@ -233,6 +196,27 @@ export default function Home() {
           </aside>
         </div>
       </div>
+      {/* Composer modal — opens when clicking the compact composer trigger */}
+      <PostComposerModal
+        isOpen={composerOpen}
+        onClose={() => { setComposerOpen(false); setComposerInitialFiles(null); }}
+        onPostCreated={() => {
+          setComposerOpen(false);
+          setComposerInitialFiles(null);
+          setFeedRefreshKey((k) => k + 1);
+        }}
+        initialFiles={composerInitialFiles}
+      />
+      {/* Post detail modal — opens when clicking a post in the feed */}
+      <PostDetailModal
+        post={detailPost}
+        isOpen={!!detailPost}
+        onClose={() => setDetailPost(null)}
+        onPostDeleted={(id) => {
+          setDetailPost(null);
+          setFeedRefreshKey((k) => k + 1);
+        }}
+      />
     </div>
   );
 }

@@ -443,7 +443,7 @@ function RsvpCard({ item, onCancel }) {
             <button
               onClick={() => setCancelModalOpen(false)}
               disabled={cancelLoading}
-              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
                 transition-all duration-300 hover:scale-[1.02]
                 hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -838,7 +838,7 @@ function RsvpRow({ item, onCancel }) {
             <button
               onClick={() => setCancelModalOpen(false)}
               disabled={cancelLoading}
-              className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
                 transition-all duration-300 hover:scale-[1.02]
                 hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -994,7 +994,7 @@ function SavedEventCard({ event, onUnsave }) {
         <div className="flex items-center gap-2 border-t border-dashed border-gray-200 pt-3">
           <button
             onClick={() => router.push(`/events/${event.id}`)}
-            className="flex-1 text-xs font-bold py-2 px-3 rounded-full bg-[#FF7927] text-white hover:bg-[#E66B1F] hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex-1 text-xs font-bold py-2 px-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             View Event
           </button>
@@ -1314,39 +1314,31 @@ export default function MyTicketsPage() {
 
           {/* Tickets / Free chip filters + grid/list view toggle — hidden on the Saved tab. */}
           {activeTab !== "saved" && (
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3 mb-6">
               {/* Filter chips */}
-              <div className="flex gap-2">
-                {[
-                  { value: "all", label: "All" },
-                  { value: "ticket", label: "Tickets" },
-                  { value: "rsvp", label: "Free" },
-                ].map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => setActiveFilter(f.value)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      activeFilter === f.value
-                        ? "bg-[#FF7927] text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+              {[
+                { value: "all", label: "All" },
+                { value: "ticket", label: "Tickets" },
+                { value: "rsvp", label: "Free" },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setActiveFilter(f.value)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    activeFilter === f.value
+                      ? "bg-[#FF7927] text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
 
-              {/* Result count — only shown when a search query is active */}
-              {q && (
-                <span className="text-xs text-gray-400 ml-1">
-                  {displayedItems.length} result
-                  {displayedItems.length !== 1 ? "s" : ""}
-                </span>
-              )}
+              {/* Divider between filter chips and view toggle */}
+              <div className="w-px h-5 bg-gray-200" />
 
               {/* View mode toggle — grid icon / list icon */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                {/* Grid view */}
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-1.5 rounded-md transition-colors ${
@@ -1369,7 +1361,6 @@ export default function MyTicketsPage() {
                     <rect x="14" y="14" width="7" height="7" rx="1.5" />
                   </svg>
                 </button>
-                {/* List view */}
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-1.5 rounded-md transition-colors ${
@@ -1393,6 +1384,14 @@ export default function MyTicketsPage() {
                   </svg>
                 </button>
               </div>
+
+              {/* Result count — only shown when a search query is active */}
+              {q && (
+                <span className="text-xs text-gray-400">
+                  {displayedItems.length} result
+                  {displayedItems.length !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           )}
 
@@ -1435,7 +1434,7 @@ export default function MyTicketsPage() {
                 ) : (
                   <a
                     href="/events"
-                    className="bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-6 py-2.5 rounded-full
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-2.5 rounded-full
                       transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
                       active:scale-[0.98] text-sm"
                   >
@@ -1503,7 +1502,7 @@ export default function MyTicketsPage() {
               ) : (
                 <a
                   href="/events"
-                  className="bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-6 py-2.5 rounded-full
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-2.5 rounded-full
                     transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
                     active:scale-[0.98] text-sm"
                 >
@@ -1515,7 +1514,7 @@ export default function MyTicketsPage() {
             // List view — horizontal Eventbrite-style rows, single column
             <div
               key={`${activeTab}-${activeFilter}-list`}
-              className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-4xl"
+              className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-4xl mx-auto"
             >
               {displayedItems.map((item) => (
                 <TicketRow

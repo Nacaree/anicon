@@ -147,7 +147,7 @@ export default function Header() {
         {/* Post Button */}
         <button
           onClick={() => requireAuth(() => {})}
-          className="flex items-center gap-2 bg-[#FF7927] text-white px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-[#E66B1F] transition-colors"
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -189,7 +189,7 @@ export default function Header() {
             </Link>
             <Link
               href="/signup"
-              className="text-sm bg-[#FF7927] text-white px-4 py-2 rounded-full font-medium hover:bg-[#E66B1F] transition-colors"
+              className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-full font-medium hover:bg-primary/90 transition-colors"
             >
               Sign up
             </Link>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 
+
 export default function EventOrganizer({ organizer, loading = false }) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
@@ -49,7 +50,7 @@ export default function EventOrganizer({ organizer, loading = false }) {
               <div className="h-3 w-16 bg-gray-200 rounded" />
             </div>
           </div>
-          <div className="border-t border-gray-100 pt-3 mt-4 flex justify-center">
+          <div className="border-t border-gray-100 pt-2.5 mt-3 flex justify-center">
             <div className="h-4 w-24 bg-gray-200 rounded" />
           </div>
         </div>
@@ -108,11 +109,11 @@ export default function EventOrganizer({ organizer, loading = false }) {
           </div>
         </div>
 
-        {/* Visit Profile Link */}
-        <div className="text-center pt-3 mt-4 border-t border-gray-100">
-          <Link href={`/profiles/${organizer.username}`} className="group inline-block text-sm text-[#FF7927] font-medium transition-all duration-300 hover:tracking-wider active:scale-95 active:text-[#cc6020]">
+        {/* Visit Profile link */}
+        <div className="border-t border-gray-100 pt-3.5 mt-3 flex justify-center">
+          <Link href={`/profiles/${organizer.username}`} className="group inline-flex flex-col items-center text-sm text-[#FF7927] font-medium transition-all duration-300 hover:tracking-wider active:scale-95 active:text-[#cc6020]">
             Visit Profile
-            <span className="block h-0.5 bg-[#FF7927] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center mt-0.5" />
+            <span className="block h-0.5 w-full bg-[#FF7927] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center mt-0.5" />
           </Link>
         </div>
       </div>

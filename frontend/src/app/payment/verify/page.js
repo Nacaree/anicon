@@ -69,7 +69,7 @@ function PaymentVerifyContent() {
             {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
             <button
               onClick={() => router.push("/events")}
-              className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full transition-all duration-300"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full transition-all duration-300"
             >
               Back to Events
             </button>

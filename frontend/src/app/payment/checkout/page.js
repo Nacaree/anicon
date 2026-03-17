@@ -80,7 +80,7 @@ export default function PaymentCheckoutPage() {
         {checkout.abapayDeeplink && (
           <a
             href={checkout.abapayDeeplink}
-            className="block w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3 rounded-full
+            className="block w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
               transition-all duration-300 mb-3"
           >
             Open ABA Mobile

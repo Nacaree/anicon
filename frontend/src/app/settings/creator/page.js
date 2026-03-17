@@ -198,7 +198,7 @@ export default function CreatorSettingsPage() {
           {/* Header — title adapts to user's role */}
           <div className="flex items-center gap-3">
             <Link href={`/profiles/${profile?.username}`}>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -229,59 +229,67 @@ export default function CreatorSettingsPage() {
             />
           </section>
 
-          {/* Profile Picture */}
+          {/* Profile Picture + Banner Image — side by side to save vertical space */}
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Profile Picture</h2>
-            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-muted group">
-              {avatarUrl ? (
-                <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-2xl font-bold">
-                  {profile?.displayName?.[0]?.toUpperCase() || '?'}
+            <div className="flex gap-6">
+              {/* Profile Picture */}
+              <div className="space-y-2 shrink-0">
+                <h2 className="text-lg font-semibold">Profile Picture</h2>
+                <div className="relative w-32 h-32 rounded-full overflow-hidden bg-muted group">
+                  {avatarUrl ? (
+                    <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-2xl font-bold">
+                      {profile?.displayName?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                  {/* Upload overlay */}
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-white" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                    />
+                  </label>
                 </div>
-              )}
-              {/* Upload overlay */}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
-                {uploadingAvatar ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <Upload className="w-6 h-6 text-white" />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={uploadingAvatar}
-                />
-              </label>
-            </div>
-          </section>
+              </div>
 
-          {/* Banner Image */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Banner Image</h2>
-            <div className="relative h-40 rounded-xl overflow-hidden bg-muted group">
-              {bannerImageUrl ? (
-                <Image src={bannerImageUrl} alt="Banner" fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5" />
-              )}
-              {/* Upload overlay */}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
-                {uploadingBanner ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <Upload className="w-6 h-6 text-white" />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBannerUpload}
-                  className="hidden"
-                  disabled={uploadingBanner}
-                />
-              </label>
+              {/* Banner Image */}
+              <div className="space-y-2 flex-1 min-w-0">
+                <h2 className="text-lg font-semibold">Banner Image</h2>
+                <div className={`relative h-32 rounded-xl overflow-hidden group ${bannerImageUrl ? 'bg-muted' : 'border-2 border-dashed border-muted-foreground/30 bg-muted/50'}`}>
+                  {bannerImageUrl ? (
+                    <Image src={bannerImageUrl} alt="Banner" fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/50">
+                      <Upload className="w-6 h-6 mb-1" />
+                      <span className="text-xs">Upload banner</span>
+                    </div>
+                  )}
+                  {/* Upload overlay */}
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                    {uploadingBanner ? (
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-white" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerUpload}
+                      className="hidden"
+                      disabled={uploadingBanner}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -315,9 +323,9 @@ export default function CreatorSettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={addSupportLink}
-                className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="rounded-full hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <Plus className="w-3 h-3 mr-1" /> Add link
+                <Plus className="w-3 h-3" /> Add link
               </Button>
             </div>
             {supportLinks.map((link, i) => (
@@ -365,7 +373,7 @@ export default function CreatorSettingsPage() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="w-full hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]"
+            className="w-full rounded-full hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]"
           >
             {saving ? (
               <>

@@ -93,7 +93,7 @@ function StripeCheckoutForm({ amountInCents, quantity, event, onSuccess, onClose
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold
+        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold
           py-3.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2
           hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] hover:scale-[1.02]
           active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
@@ -243,7 +243,7 @@ export default function StripePaymentModal({
             <div className="flex gap-3 w-full max-w-xs">
               <button
                 onClick={() => setShowLeaveConfirm(false)}
-                className="flex-1 bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold
                   py-3 rounded-full transition-all duration-200 hover:scale-[1.02]
                   hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
               >

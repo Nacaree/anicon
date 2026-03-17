@@ -9,10 +9,14 @@ import com.anicon.backend.gen.jooq.Keys;
 import com.anicon.backend.gen.jooq.Public;
 import com.anicon.backend.gen.jooq.enums.ApplicationStatus;
 import com.anicon.backend.gen.jooq.enums.UserRole;
+import com.anicon.backend.gen.jooq.tables.CommentLikes.CommentLikesPath;
 import com.anicon.backend.gen.jooq.tables.EventRsvps.EventRsvpsPath;
 import com.anicon.backend.gen.jooq.tables.Events.EventsPath;
 import com.anicon.backend.gen.jooq.tables.Follows.FollowsPath;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications.InfluencerApplicationsPath;
+import com.anicon.backend.gen.jooq.tables.PostComments.PostCommentsPath;
+import com.anicon.backend.gen.jooq.tables.PostLikes.PostLikesPath;
+import com.anicon.backend.gen.jooq.tables.Posts.PostsPath;
 import com.anicon.backend.gen.jooq.tables.Tickets.TicketsPath;
 import com.anicon.backend.gen.jooq.tables.Transactions.TransactionsPath;
 import com.anicon.backend.gen.jooq.tables.records.ProfilesRecord;
@@ -267,6 +271,19 @@ public class Profiles extends TableImpl<ProfilesRecord> {
         return Arrays.asList(Keys.PROFILES_USERNAME_KEY);
     }
 
+    private transient CommentLikesPath _commentLikes;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.comment_likes</code> table
+     */
+    public CommentLikesPath commentLikes() {
+        if (_commentLikes == null)
+            _commentLikes = new CommentLikesPath(this, null, Keys.COMMENT_LIKES__COMMENT_LIKES_USER_ID_FKEY.getInverseKey());
+
+        return _commentLikes;
+    }
+
     private transient EventRsvpsPath _eventRsvps;
 
     /**
@@ -345,6 +362,44 @@ public class Profiles extends TableImpl<ProfilesRecord> {
             _influencerApplicationsReviewedByFkey = new InfluencerApplicationsPath(this, null, Keys.INFLUENCER_APPLICATIONS__INFLUENCER_APPLICATIONS_REVIEWED_BY_FKEY.getInverseKey());
 
         return _influencerApplicationsReviewedByFkey;
+    }
+
+    private transient PostCommentsPath _postComments;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.post_comments</code> table
+     */
+    public PostCommentsPath postComments() {
+        if (_postComments == null)
+            _postComments = new PostCommentsPath(this, null, Keys.POST_COMMENTS__POST_COMMENTS_USER_ID_FKEY.getInverseKey());
+
+        return _postComments;
+    }
+
+    private transient PostLikesPath _postLikes;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.post_likes</code>
+     * table
+     */
+    public PostLikesPath postLikes() {
+        if (_postLikes == null)
+            _postLikes = new PostLikesPath(this, null, Keys.POST_LIKES__POST_LIKES_USER_ID_FKEY.getInverseKey());
+
+        return _postLikes;
+    }
+
+    private transient PostsPath _posts;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.posts</code> table
+     */
+    public PostsPath posts() {
+        if (_posts == null)
+            _posts = new PostsPath(this, null, Keys.POSTS__POSTS_USER_ID_FKEY.getInverseKey());
+
+        return _posts;
     }
 
     private transient TicketsPath _tickets;

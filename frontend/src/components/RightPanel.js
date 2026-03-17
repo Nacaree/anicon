@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuthGate } from "@/context/AuthGateContext";
 import { profileApi } from "@/lib/api";
 import { RoleBadge } from "@/components/profile/RoleBadge";
+import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 
 // Featured creator username shown in the right panel card
@@ -41,7 +41,6 @@ function AnimatedCard({ children, className = "" }) {
 }
 
 export default function RightPanel() {
-  const { requireAuth } = useAuthGate();
   const [creator, setCreator] = useState(null);
 
   // Fetch the featured creator's profile on mount
@@ -121,13 +120,8 @@ export default function RightPanel() {
                 <span>{formatFollowers(creator.followerCount)} Followers</span>
               </div>
 
-              {/* Follow button */}
-              <button
-                onClick={() => requireAuth(() => {})}
-                className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white py-2 rounded-full font-medium transition-colors"
-              >
-                Follow +
-              </button>
+              {/* Follow button — wired to the real follow API */}
+              <FollowButton userId={creator.id} className="w-full" />
             </div>
           </div>
         </AnimatedCard>
@@ -160,62 +154,6 @@ export default function RightPanel() {
               <p className="text-orange-500 font-medium text-sm">#onePie3d3</p>
               <p className="text-xs text-gray-500">467 Posts</p>
             </div>
-          </div>
-        </div>
-      </AnimatedCard>
-
-      {/* Recommended Users */}
-      <AnimatedCard>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-bold text-gray-800 mb-4">Recommended users</h3>
-          <div className="space-y-4">
-            {/* User Item */}
-            {[
-              {
-                name: "James007",
-                username: "shinraTensei123",
-                avatar:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-7HvDghOAEqLBvRqUMe6cC8lD9po71veMeg&s",
-              },
-              {
-                name: "Luna Mai",
-                username: "lunamai",
-                avatar:
-                  "https://i.pinimg.com/736x/07/30/87/0730879ca7bcb351f93c195fa05605b3.jpg",
-              },
-              {
-                name: "Anime Power",
-                username: "animepower",
-                avatar:
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGBTqsz7uRiK__anUS-dq3Rj7jZcxjT8-Bcg&s",
-              },
-            ].map((user, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-300 rounded-full shrink-0 overflow-hidden">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl">
-                      👤
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm text-gray-800">{user.name}</p>
-                  <p className="text-xs text-gray-500">@{user.username}</p>
-                </div>
-                <button
-                  onClick={() => requireAuth(() => {})}
-                  className="bg-[#FF7927] hover:bg-[#E66B1F] text-white px-4 py-1.5 rounded-full text-xs font-medium transition-colors"
-                >
-                  Follow
-                </button>
-              </div>
-            ))}
           </div>
         </div>
       </AnimatedCard>

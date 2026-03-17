@@ -63,8 +63,11 @@ function EventsSubTabs({ profile }) {
         </button>
       </div>
 
-      {subTab === 'going' && <EventsGoingSection userId={profile.id} />}
-      {subTab === 'hosted' && <EventsHostedSection userId={profile.id} miniOnly={false} />}
+      {/* key forces remount on sub-tab change to trigger fade-in animation */}
+      <div key={subTab} className="animate-in fade-in duration-300">
+        {subTab === 'going' && <EventsGoingSection userId={profile.id} />}
+        {subTab === 'hosted' && <EventsHostedSection userId={profile.id} miniOnly={false} />}
+      </div>
     </div>
   );
 }

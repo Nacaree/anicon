@@ -14,9 +14,11 @@ import { CommissionMenu } from '@/components/creator/CommissionMenu';
 import { CommissionEditModal } from '@/components/creator/CommissionEditModal';
 import { RoleBadge } from '@/components/profile/RoleBadge';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
+import { FollowButton } from '@/components/FollowButton';
+import { FollowListModal } from '@/components/FollowListModal';
 import { canHavePortfolio, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
-import { MapPin, Calendar, Link as LinkIcon, Settings, Move, Camera, Loader2, Pencil } from 'lucide-react';
+import { MapPin, Calendar, Link as LinkIcon, Move, Camera, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -149,6 +151,15 @@ export default function ProfilePage() {
     }
   };
 
+  // Follow list modal state
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState("followers");
+
+  // Optimistic follower count update when FollowButton is clicked
+  const handleFollowChange = useCallback((delta) => {
+    setProfile((prev) => prev ? { ...prev, followerCount: (prev.followerCount || 0) + delta } : prev);
+  }, []);
+
   // Commission edit modal state
   const [showCommissionModal, setShowCommissionModal] = useState(false);
 
@@ -219,7 +230,7 @@ export default function ProfilePage() {
           {/* Banner — spans full width like Facebook cover photo */}
           <div
             ref={bannerRef}
-            className={`relative h-[280px] md:h-[350px] overflow-hidden bg-muted shadow-md ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`relative h-[280px] md:h-[350px] overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
             onMouseDown={repositioning ? handleDragStart : undefined}
             onTouchStart={repositioning ? handleDragStart : undefined}
           >
@@ -262,14 +273,14 @@ export default function ProfilePage() {
               <div className="absolute bottom-3 right-3 flex gap-2">
                 <button
                   onClick={cancelReposition}
-                  className="bg-white/90 hover:bg-white text-gray-800 text-xs font-medium px-4 py-1.5 rounded-full transition-colors"
+                  className="bg-popover/90 hover:bg-popover text-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveBannerPosition}
                   disabled={savingBanner}
-                  className="bg-[#FF7927] hover:bg-[#E66B1F] text-white text-xs font-medium px-4 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] disabled:opacity-50"
                 >
                   {savingBanner ? 'Saving...' : 'Save'}
                 </button>
@@ -307,11 +318,25 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="pt-7 space-y-2">
-                  <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
-                  <p className="text-muted-foreground">@{profile.username}</p>
-                  {/* Follower count inline like Facebook's friend count */}
+                  <div>
+                    <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
+                    <p className="text-muted-foreground mt-0.5">@{profile.username}</p>
+                  </div>
+                  {/* Follower/following counts — clickable to open list modal */}
                   <p className="text-sm text-muted-foreground">
-                    {profile.followerCount || 0} followers · {profile.followingCount || 0} following
+                    <button
+                      onClick={() => { setFollowModalTab("followers"); setFollowModalOpen(true); }}
+                      className="hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    >
+                      <span className="font-semibold text-foreground">{profile.followerCount || 0}</span> followers
+                    </button>
+                    {" · "}
+                    <button
+                      onClick={() => { setFollowModalTab("following"); setFollowModalOpen(true); }}
+                      className="hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    >
+                      <span className="font-semibold text-foreground">{profile.followingCount || 0}</span> following
+                    </button>
                   </p>
                   {joinedDate && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -322,21 +347,22 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Settings button for owner */}
-              {isOwner && (
-                <div className="pt-7">
+              {/* Action buttons — Edit Profile for owner, Follow for visitors */}
+              <div className="pt-7">
+                {isOwner ? (
                   <Link href="/settings/creator">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="px-5 py-2 rounded-full hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Pencil className="w-4 h-4" />
                       Edit Profile
                     </Button>
                   </Link>
-                </div>
-              )}
+                ) : (
+                  <FollowButton userId={profile.id} onFollowChange={handleFollowChange} />
+                )}
+              </div>
             </div>
 
             {/* Profile content below the divider */}
@@ -432,6 +458,17 @@ export default function ProfilePage() {
             {/* Tab section — Home (placeholder) + Events (role-based) */}
             <ProfileTabs profile={profile} isOwner={isOwner} />
           </div>
+
+          {/* Followers/following list modal — opened by clicking follower/following counts */}
+          <FollowListModal
+            userId={profile.id}
+            username={profile.username}
+            initialTab={followModalTab}
+            followerCount={profile.followerCount || 0}
+            followingCount={profile.followingCount || 0}
+            open={followModalOpen}
+            onOpenChange={setFollowModalOpen}
+          />
 
         </div>
       </div>

@@ -81,9 +81,9 @@ export function PortfolioGrid({ userId, isOwner = false }) {
             variant="outline"
             size="sm"
             onClick={() => setShowUpload(true)}
-            className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="rounded-full gap-1 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add
+            <Plus className="w-3.5 h-3.5" /> Add
           </Button>
         )}
       </div>
