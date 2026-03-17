@@ -6,10 +6,14 @@ import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.anicon.backend.notification.NotificationEvent;
+import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.social.dto.CommentResponse;
 import com.anicon.backend.social.dto.CreateCommentRequest;
@@ -24,15 +28,21 @@ public class CommentService {
     private final CommentLikeRepository commentLikeRepository;
     private final PostRepository postRepository;
     private final DSLContext dsl;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public CommentService(PostCommentRepository commentRepository,
                           CommentLikeRepository commentLikeRepository,
                           PostRepository postRepository,
-                          DSLContext dsl) {
+                          DSLContext dsl,
+                          ApplicationEventPublisher eventPublisher,
+                          NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.commentLikeRepository = commentLikeRepository;
         this.postRepository = postRepository;
         this.dsl = dsl;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -123,6 +133,26 @@ public class CommentService {
                 .where(DSL.field("id", UUID.class).eq(postId))
                 .execute();
 
+        // Notify the appropriate recipient
+        if (request.parentId() != null) {
+            // Reply — notify the parent comment owner
+            PostComment parent = commentRepository.findById(request.parentId()).orElse(null);
+            if (parent != null) {
+                eventPublisher.publishEvent(new NotificationEvent(
+                        userId, parent.getUserId(), "reply_comment", comment.getId(), postId));
+            }
+        } else {
+            // Top-level comment — notify the post owner
+            UUID postOwnerId = dsl.select(DSL.field("user_id", UUID.class))
+                    .from(DSL.table("posts"))
+                    .where(DSL.field("id", UUID.class).eq(postId))
+                    .fetchOne(DSL.field("user_id", UUID.class));
+            if (postOwnerId != null) {
+                eventPublisher.publishEvent(new NotificationEvent(
+                        userId, postOwnerId, "comment_post", comment.getId(), postId));
+            }
+        }
+
         PostAuthorResponse author = fetchAuthor(userId);
         return toResponse(comment, author, false, List.of());
     }
@@ -183,6 +213,13 @@ public class CommentService {
                 .set(DSL.field("like_count", Long.class), DSL.field("like_count", Long.class).plus(1))
                 .where(DSL.field("id", UUID.class).eq(commentId))
                 .execute();
+
+        // Notify the comment owner
+        PostComment comment = commentRepository.findById(commentId).orElse(null);
+        if (comment != null) {
+            eventPublisher.publishEvent(new NotificationEvent(
+                    userId, comment.getUserId(), "like_comment", commentId, comment.getPostId()));
+        }
     }
 
     @Transactional
@@ -198,6 +235,9 @@ public class CommentService {
                         DSL.greatest(DSL.field("like_count", Long.class).minus(1), DSL.val(0L)))
                 .where(DSL.field("id", UUID.class).eq(commentId))
                 .execute();
+
+        // Remove the like notification
+        notificationService.deleteNotification(userId, "like_comment", commentId);
     }
 
     // ========================================

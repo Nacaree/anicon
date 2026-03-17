@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Trash2, ChevronDown, ChevronUp } from "lucide-rea
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { postsApi } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CommentInput from "./CommentInput";
 
 /**
@@ -139,9 +140,9 @@ export default function CommentCard({ comment, postId, onCommentAdded, onComment
             )}
           </div>
 
-          {/* Reply input */}
+          {/* Reply input — mb-1 prevents overlap with the main comment input below */}
           {showReplyInput && (
-            <div className="mt-2">
+            <div className="mt-2 mb-1">
               <CommentInput
                 placeholder={`Reply to ${comment.author?.displayName || comment.author?.username}...`}
                 onSubmit={handleReply}
@@ -186,41 +187,35 @@ export default function CommentCard({ comment, postId, onCommentAdded, onComment
           )}
         </div>
       </div>
-      {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center animate-in fade-in-0 duration-150">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowDeleteConfirm(false)}
-          />
-          <div className="relative z-10 w-full max-w-xs mx-4 rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-            <div className="p-6 text-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                Delete comment?
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                This can't be undone.
-              </p>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={confirmDelete}
-                className="w-full py-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="w-full py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Delete confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete comment ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This comment will be permanently removed. This action cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep it
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Delete
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

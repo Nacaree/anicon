@@ -6,10 +6,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.anicon.backend.notification.NotificationEvent;
+import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.creator.dto.PortfolioItemRequest;
 import com.anicon.backend.creator.dto.PortfolioItemResponse;
@@ -26,13 +30,19 @@ public class PortfolioService {
     private final PortfolioItemRepository portfolioItemRepository;
     private final PortfolioLikeRepository portfolioLikeRepository;
     private final DSLContext dsl;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public PortfolioService(PortfolioItemRepository portfolioItemRepository,
                             PortfolioLikeRepository portfolioLikeRepository,
-                            DSLContext dsl) {
+                            DSLContext dsl,
+                            ApplicationEventPublisher eventPublisher,
+                            NotificationService notificationService) {
         this.portfolioItemRepository = portfolioItemRepository;
         this.portfolioLikeRepository = portfolioLikeRepository;
         this.dsl = dsl;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -179,6 +189,9 @@ public class PortfolioService {
                 .set(DSL.field("like_count", Long.class), DSL.field("like_count", Long.class).plus(1))
                 .where(DSL.field("id", UUID.class).eq(itemId))
                 .execute();
+
+        // Notify the portfolio item owner
+        eventPublisher.publishEvent(new NotificationEvent(userId, item.getUserId(), "like_portfolio", itemId, null));
     }
 
     /**
@@ -199,6 +212,9 @@ public class PortfolioService {
                         DSL.greatest(DSL.field("like_count", Long.class).minus(1), DSL.val(0L)))
                 .where(DSL.field("id", UUID.class).eq(itemId))
                 .execute();
+
+        // Remove the like notification
+        notificationService.deleteNotification(userId, "like_portfolio", itemId);
     }
 
     private PortfolioItemResponse toResponse(PortfolioItem item, boolean likedByCurrentUser) {

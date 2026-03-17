@@ -164,8 +164,6 @@ export default function CreatorSettingsPage() {
         bannerImageUrl: bannerImageUrl || null,
         bannerPositionY: profile.bannerPositionY ?? 50,
         creatorType: profile.creatorType || null,
-        commissionStatus: profile.commissionStatus || 'closed',
-        commissionInfo: profile.commissionInfo || {},
         supportLinks: supportLinks.filter((l) => l.url),
         showSupportLinks: showSupportLinksToggle,
       });

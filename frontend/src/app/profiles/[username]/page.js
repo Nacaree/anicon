@@ -10,13 +10,11 @@ import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { SupportLinksDisplay } from '@/components/creator/SupportLinksDisplay';
 import { PortfolioGrid } from '@/components/creator/PortfolioGrid';
-import { CommissionMenu } from '@/components/creator/CommissionMenu';
-import { CommissionEditModal } from '@/components/creator/CommissionEditModal';
 import { RoleBadge } from '@/components/profile/RoleBadge';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { FollowButton } from '@/components/FollowButton';
 import { FollowListModal } from '@/components/FollowListModal';
-import { canHavePortfolio, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
+import { canHavePortfolio, canHaveSupportLinks } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import { MapPin, Calendar, Link as LinkIcon, Move, Camera, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -88,8 +86,6 @@ export default function ProfilePage() {
         bannerImageUrl: profile.bannerImageUrl || null,
         bannerPositionY: Math.round(bannerPosY),
         creatorType: profile.creatorType || null,
-        commissionStatus: profile.commissionStatus || 'closed',
-        commissionInfo: profile.commissionInfo || {},
         supportLinks: profile.supportLinks || [],
       });
       setSavedPosY(bannerPosY);
@@ -137,8 +133,6 @@ export default function ProfilePage() {
         bannerImageUrl: profile.bannerImageUrl || null,
         bannerPositionY: profile.bannerPositionY ?? 50,
         creatorType: profile.creatorType || null,
-        commissionStatus: profile.commissionStatus || 'closed',
-        commissionInfo: profile.commissionInfo || {},
         supportLinks: profile.supportLinks || [],
       });
 
@@ -159,9 +153,6 @@ export default function ProfilePage() {
   const handleFollowChange = useCallback((delta) => {
     setProfile((prev) => prev ? { ...prev, followerCount: (prev.followerCount || 0) + delta } : prev);
   }, []);
-
-  // Commission edit modal state
-  const [showCommissionModal, setShowCommissionModal] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -406,51 +397,6 @@ export default function ProfilePage() {
               {/* Portfolio Section — creator only */}
               {canHavePortfolio(profile.roles) && (
                 <PortfolioGrid userId={profile.id} isOwner={isOwner} />
-              )}
-
-              {/* Commission Menu — creator + influencer only */}
-              {canHaveCommissions(profile.roles) && (
-                <>
-                  {profile.commissionInfo?.menu?.length > 0 ? (
-                    <div className="relative">
-                      <CommissionMenu
-                        info={profile.commissionInfo}
-                        status={profile.commissionStatus}
-                      />
-                      {/* Edit button for owner */}
-                      {isOwner && (
-                        <button
-                          onClick={() => setShowCommissionModal(true)}
-                          className="absolute top-0 right-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors duration-300"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  ) : isOwner ? (
-                    // Empty state — let owner add commissions
-                    <button
-                      onClick={() => setShowCommissionModal(true)}
-                      className="w-full py-6 border-2 border-dashed border-muted-foreground/30 rounded-lg text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors duration-300 text-sm"
-                    >
-                      + Add Commission Menu
-                    </button>
-                  ) : null}
-                </>
-              )}
-
-              {/* Commission edit modal */}
-              {showCommissionModal && (
-                <CommissionEditModal
-                  profile={profile}
-                  onClose={() => setShowCommissionModal(false)}
-                  onSaved={() => {
-                    setShowCommissionModal(false);
-                    // Re-fetch profile to reflect changes
-                    profileApi.getProfileByUsername(username).then(setProfile);
-                  }}
-                />
               )}
 
             </div>

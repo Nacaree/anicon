@@ -19,6 +19,9 @@ export default function CommentSection({ postId, noBorder = false }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Reset state when switching to a different post so stale comments don't flash
+    setComments([]);
+    setLoading(true);
     loadComments();
   }, [postId]);
 
@@ -68,7 +71,7 @@ export default function CommentSection({ postId, noBorder = false }) {
     <div className={`px-4 py-3 ${noBorder ? "" : "border-t border-gray-200 dark:border-gray-800"}`}>
       {/* Comments list */}
       {comments.length > 0 ? (
-        <div className="space-y-3 mb-3 max-h-96 overflow-y-auto">
+        <div className="space-y-3 mb-4">
           {comments.map((comment) => (
             <CommentCard
               key={comment.id}

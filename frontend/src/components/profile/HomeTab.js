@@ -19,6 +19,8 @@ export function HomeTab({ profile, isOwner }) {
   const [composerInitialFiles, setComposerInitialFiles] = useState(null);
   // Post detail modal — opened when clicking a post in the feed
   const [detailPost, setDetailPost] = useState(null);
+  // Post being edited — when set, the composer opens in edit mode
+  const [editingPost, setEditingPost] = useState(null);
 
   // Fetch function for this specific user's posts
   const fetchUserPosts = useCallback(
@@ -37,13 +39,15 @@ export function HomeTab({ profile, isOwner }) {
           />
           <PostComposerModal
             isOpen={composerOpen}
-            onClose={() => { setComposerOpen(false); setComposerInitialFiles(null); }}
+            onClose={() => { setComposerOpen(false); setComposerInitialFiles(null); setEditingPost(null); }}
             onPostCreated={() => {
               setComposerOpen(false);
               setComposerInitialFiles(null);
+              setEditingPost(null);
               setRefreshKey((k) => k + 1);
             }}
             initialFiles={composerInitialFiles}
+            editingPost={editingPost}
           />
         </>
       )}
@@ -53,7 +57,14 @@ export function HomeTab({ profile, isOwner }) {
         fetchFn={fetchUserPosts}
         emptyMessage={isOwner ? "Share your first post!" : "No posts yet"}
         refreshKey={refreshKey}
-        onOpenDetail={(post) => setDetailPost(post)}
+        onOpenDetail={(post, editMode) => {
+          if (editMode) {
+            setEditingPost(post);
+            setComposerOpen(true);
+          } else {
+            setDetailPost(post);
+          }
+        }}
       />
 
       {/* Post detail modal — opens when clicking a post in the feed */}
@@ -64,6 +75,11 @@ export function HomeTab({ profile, isOwner }) {
         onPostDeleted={(id) => {
           setDetailPost(null);
           setRefreshKey((k) => k + 1);
+        }}
+        onEdit={(post) => {
+          setDetailPost(null);
+          setEditingPost(post);
+          setComposerOpen(true);
         }}
       />
     </div>

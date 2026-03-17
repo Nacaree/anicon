@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Repeat2, Pencil, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import PostImageCarousel from "./PostImageCarousel";
 import PostActions from "./PostActions";
@@ -16,14 +17,18 @@ import { postsApi } from "@/lib/api";
  */
 export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetail }) {
   const { user } = useAuth();
-  const [post, setPost] = useState(initialPost);
+  // For reposts, inherit the original post's like state so the heart shows red
+  const [post, setPost] = useState(() => mergeRepostState(initialPost));
   const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   const isOwner = user?.id === post.author?.id;
   const isRepost = post.originalPost !== undefined && post.originalPost !== null;
   // For reposts, display the original post's content
   const displayPost = isRepost ? post.originalPost : post;
+  // If the current user is the one who reposted, force repostedByCurrentUser true
+  const isOwnRepost = isRepost && user?.id === post.author?.id;
   // Original post was deleted (ON DELETE SET NULL made originalPost null)
   const isOrphanedRepost = isRepost && !post.originalPost;
 
@@ -80,15 +85,19 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Delete this post?")) return;
+  const handleDelete = () => {
+    setShowMenu(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
     try {
       await postsApi.deletePost(post.id);
       onPostDeleted?.(post.id);
     } catch (err) {
       console.error("Failed to delete post:", err);
     }
-    setShowMenu(false);
   };
 
   const handleComment = () => {
@@ -238,20 +247,50 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
 
           {/* Image carousel — clicking opens post detail modal */}
           {displayPost.images?.length > 0 && (
-            <div className="mb-3 cursor-pointer" onClick={() => onOpenDetail?.(post)}>
+            <div className="mb-3 cursor-pointer rounded-[14px] overflow-hidden" onClick={() => onOpenDetail?.(post)}>
               <PostImageCarousel images={displayPost.images} />
             </div>
           )}
 
           {/* Action bar */}
           <PostActions
-            post={isRepost ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser, repostedByCurrentUser: post.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount } : post}
+            post={isRepost ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser || displayPost.likedByCurrentUser, repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || displayPost.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount } : post}
             onLike={handleLike}
             onComment={handleComment}
             onRepost={handleRepost}
           />
         </>
       )}
+
+      {/* Delete confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete post ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This post will be permanently removed. This action cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep it
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -271,4 +310,13 @@ function formatTimeAgo(isoString) {
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
 
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** For reposts, inherit the original post's like state into the wrapper */
+function mergeRepostState(post) {
+  if (!post?.originalPost) return post;
+  return {
+    ...post,
+    likedByCurrentUser: post.likedByCurrentUser || post.originalPost.likedByCurrentUser,
+  };
 }

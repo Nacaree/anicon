@@ -12,7 +12,11 @@ import static org.jooq.impl.DSL.selectOne;
 import static org.jooq.impl.DSL.val;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+
+import com.anicon.backend.notification.NotificationEvent;
+import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.dto.FollowUserResponse;
 import com.anicon.backend.entity.Follow;
@@ -31,15 +35,21 @@ public class FollowService {
     private final ProfileRepository profileRepository;
     private final DSLContext dsl; // JOOQ's main entry point
     private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public FollowService(FollowRepository followRepository,
             ProfileRepository profileRepository,
             DSLContext dsl,
-            CacheManager cacheManager) {
+            CacheManager cacheManager,
+            ApplicationEventPublisher eventPublisher,
+            NotificationService notificationService) {
         this.followRepository = followRepository;
         this.profileRepository = profileRepository;
         this.dsl = dsl;
         this.cacheManager = cacheManager;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -80,6 +90,9 @@ public class FollowService {
         // Evict cache so users see updated counts immediately
         evictProfileCache(followerId);
         evictProfileCache(followingId);
+
+        // Notify the followed user
+        eventPublisher.publishEvent(new NotificationEvent(followerId, followingId, "follow_user", followingId, null));
     }
 
     @Transactional
@@ -105,6 +118,9 @@ public class FollowService {
         // Evict cache so users see updated counts immediately
         evictProfileCache(followerId);
         evictProfileCache(followingId);
+
+        // Remove the follow notification
+        notificationService.deleteNotification(followerId, "follow_user", followingId);
     }
 
     public boolean isFollowing(UUID followerId, UUID followingId) {

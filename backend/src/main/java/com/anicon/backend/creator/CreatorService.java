@@ -33,8 +33,8 @@ public class CreatorService {
 
     /**
      * Update creator-specific fields on the profile.
-     * Role-gated: creatorType requires creator role, commission fields require
-     * creator or influencer, support links are blocked for organizers.
+     * Role-gated: creatorType requires creator role,
+     * support links are blocked for organizers.
      * Evicts the profile cache so subsequent GETs return fresh data.
      */
     @CacheEvict(value = "profiles", key = "#userId")
@@ -61,16 +61,6 @@ public class CreatorService {
             // Creator type — only creators can set this
             if (RoleChecker.isCreator(roles)) {
                 update = update.set(PROFILES.CREATOR_TYPE, request.creatorType());
-            }
-
-            // Commission fields — creators and influencers only
-            if (RoleChecker.canHaveCommissions(roles)) {
-                update = update
-                        .set(PROFILES.COMMISSION_STATUS, request.commissionStatus())
-                        .set(PROFILES.COMMISSION_INFO,
-                                request.commissionInfo() != null
-                                        ? JSONB.jsonb(objectMapper.writeValueAsString(request.commissionInfo()))
-                                        : JSONB.jsonb("{}"));
             }
 
             // Support links — everyone except pure organizers

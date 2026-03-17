@@ -30,6 +30,14 @@ export function clearCachedToken() {
   _cachedAccessToken = null;
 }
 
+// Expose token and base URL for the WebSocket hook
+export function getCachedToken() {
+  return _cachedAccessToken;
+}
+export function getApiBaseUrl() {
+  return API_URL;
+}
+
 async function getAuthHeaders() {
   // Fast path: use the token AuthContext already resolved.
   // By the time any auth-required page fires a request (after the authLoading
@@ -311,7 +319,7 @@ export const ticketApi = {
 
 // Creator API calls — portfolio CRUD and creator profile updates
 export const creatorApi = {
-  // Update creator-specific profile fields (banner, type, commission info, support links)
+  // Update creator-specific profile fields (banner, type, support links)
   updateCreatorProfile: (data) => api.patch("/api/creator/profile", data),
 
   // Get portfolio items for a user — sends token if available so backend can populate likedByCurrentUser
@@ -393,9 +401,9 @@ export const postsApi = {
   getPost: (postId) =>
     request(`/api/posts/${postId}`, { method: "GET", bestEffortAuth: true }),
 
-  // Edit post text (owner only)
-  updatePost: (postId, textContent) =>
-    api.patch(`/api/posts/${postId}`, { textContent }),
+  // Edit post text and/or images (owner only)
+  updatePost: (postId, textContent, imageUrls) =>
+    api.patch(`/api/posts/${postId}`, { textContent, imageUrls }),
 
   // Delete post (owner only)
   deletePost: (postId) => api.delete(`/api/posts/${postId}`),
@@ -433,6 +441,28 @@ export const postsApi = {
     const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(path);
     return publicUrl;
   },
+};
+
+// ============================================
+// NOTIFICATION API
+// ============================================
+
+export const notificationApi = {
+  // Get aggregated notifications for the dropdown
+  getNotifications: (limit = 20, offset = 0) =>
+    request(`/api/notifications?limit=${limit}&offset=${offset}`),
+
+  // Get unread count for the bell icon badge (polled every 30s)
+  getUnreadCount: () =>
+    request("/api/notifications/unread-count"),
+
+  // Mark a single notification (group) as read
+  markAsRead: (id) =>
+    request(`/api/notifications/${id}/read`, { method: "PATCH" }),
+
+  // Mark all notifications as read
+  markAllRead: () =>
+    request("/api/notifications/read-all", { method: "PATCH" }),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

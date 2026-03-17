@@ -39,8 +39,6 @@ create table profiles (
   gift_link text,                                         -- DEPRECATED: use support_links instead
   banner_image_url text,                                  -- Cover/banner image (all roles)
   creator_type varchar(50),                               -- e.g. 'cosplayer', 'digital_artist' (creator only)
-  commission_status varchar(20) default 'closed',         -- 'open', 'waitlist', 'closed' (creator + influencer)
-  commission_info jsonb default '{}',                     -- Commission menu, turnaround, terms (creator + influencer)
   support_links jsonb default '[]',                       -- Multiple tip/support payment links (all except organizer)
   
   -- Influencer fields
@@ -245,3 +243,44 @@ create policy "Users can update own portfolio items"
 create policy "Users can delete own portfolio items"
   on portfolio_items for delete
   using (auth.uid() = user_id);
+
+-- ============================================
+-- NOTIFICATIONS TABLE
+-- ============================================
+-- Persistent notifications for social interactions (likes, comments, follows, reposts).
+-- Uses varchar(30) for type instead of PG enum to avoid JPA casting issues.
+
+create table notifications (
+  id              uuid primary key default gen_random_uuid(),
+
+  -- Who receives this notification
+  recipient_id    uuid not null references profiles(id) on delete cascade,
+
+  -- Who triggered the notification
+  actor_id        uuid not null references profiles(id) on delete cascade,
+
+  -- Notification type: like_post, comment_post, reply_comment, like_comment,
+  -- repost_post, like_portfolio, follow_user
+  type            varchar(30) not null,
+
+  -- The entity this notification is about (post, comment, portfolio item, or user)
+  target_id       uuid not null,
+
+  -- Navigation context (e.g., post_id for comment/reply notifications)
+  reference_id    uuid,
+
+  -- Read state
+  is_read         boolean not null default false,
+
+  -- Timestamps
+  created_at      timestamptz not null default now(),
+
+  -- Prevent duplicate notifications (like → unlike → like)
+  constraint no_duplicate_notification unique (actor_id, type, target_id)
+);
+
+-- Primary query: get my notifications sorted by recency
+create index idx_notif_recipient_unread on notifications(recipient_id, is_read, created_at desc);
+
+-- Lightweight count query for polling unread badge
+create index idx_notif_recipient_count on notifications(recipient_id) where is_read = false;

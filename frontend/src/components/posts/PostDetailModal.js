@@ -6,6 +6,7 @@ import { X, MoreHorizontal, Pencil, Trash2, Repeat2 } from "lucide-react";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PostImageCarousel from "./PostImageCarousel";
 import PostActions from "./PostActions";
 import CommentSection from "./CommentSection";
@@ -16,21 +17,23 @@ import CommentSection from "./CommentSection";
  * Text-only posts: single-column layout with comments below.
  * Pushes /posts/[id] to URL for shareability.
  */
-export default function PostDetailModal({ post: initialPost, isOpen, onClose, onPostDeleted }) {
+export default function PostDetailModal({ post: initialPost, isOpen, onClose, onPostDeleted, onEdit }) {
   const { user } = useAuth();
-  const [post, setPost] = useState(initialPost);
+  // For reposts, inherit the original post's like state so the heart shows red
+  const [post, setPost] = useState(() => mergeRepostState(initialPost));
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Sync post state when a new post is opened
   useEffect(() => {
-    if (initialPost) setPost(initialPost);
+    if (initialPost) setPost(mergeRepostState(initialPost));
   }, [initialPost]);
 
   const isOwner = user?.id === post?.author?.id;
   const isRepost = post?.originalPost !== undefined && post?.originalPost !== null;
   const displayPost = isRepost ? post?.originalPost : post;
   const hasImages = displayPost?.images?.length > 0;
+  const isOwnRepost = isRepost && user?.id === post?.author?.id;
 
   // Push URL when modal opens, pop when it closes
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
               <div className="absolute right-0 top-8 z-20 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[120px]">
                 <button
-                  onClick={() => setShowMenu(false)}
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit?.(post); }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   <Pencil className="w-4 h-4" />
@@ -238,7 +241,7 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
   const actionBar = (
     <PostActions
       post={isRepost
-        ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser, repostedByCurrentUser: post.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount }
+        ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser || displayPost.likedByCurrentUser, repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || displayPost.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount }
         : post}
       onLike={handleLike}
       onComment={() => {}}
@@ -266,13 +269,14 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
       {hasImages ? (
         /* ===== SIDE-BY-SIDE LAYOUT (Instagram-style) ===== */
         <div className="relative z-10 flex w-full max-w-6xl h-[90vh] mx-4 rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
-          {/* Left: Image — fixed, no scroll, black background for contrast */}
-          <div className="flex-1 min-w-0 bg-black flex items-center justify-center overflow-hidden">
-            <PostImageCarousel images={displayPost.images} className="max-w-full max-h-full rounded-none bg-black" />
+          {/* Left: Image — fixed, no scroll, black background for contrast.
+              max-w-[calc(100%-400px)] ensures the comment panel always stays visible. */}
+          <div className="flex-1 min-w-0 max-w-[calc(100%-400px)] bg-black flex items-center justify-center overflow-hidden">
+            <PostImageCarousel images={displayPost.images} className="w-full h-full rounded-none bg-black" />
           </div>
 
           {/* Right: Author + text + actions + comments — scrollable */}
-          <div className="w-[400px] flex-shrink-0 flex flex-col border-l border-gray-200 dark:border-gray-800">
+          <div className="w-[400px] flex-shrink-0 flex flex-col">
             {/* Author header + caption */}
             <div className="px-4 pt-4 pb-2">
               {repostHeader}
@@ -288,7 +292,7 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
             <div className="flex-1 overflow-y-auto">
 
               {/* Comments */}
-              <CommentSection postId={post.id} noBorder />
+              <CommentSection key={displayPost.id} postId={displayPost.id} noBorder />
             </div>
 
             {/* Action bar — fixed at bottom */}
@@ -306,45 +310,39 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
             {textContent && <div className="mt-3">{textContent}</div>}
             <div className="mt-2">{actionBar}</div>
           </div>
-          <CommentSection postId={post.id} />
+          <CommentSection key={displayPost.id} postId={displayPost.id} />
         </div>
       )}
 
-      {/* Delete confirmation overlay — styled like the discard modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center animate-in fade-in-0 duration-150">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowDeleteConfirm(false)}
-          />
-          <div className="relative z-10 w-full max-w-xs mx-4 rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-            <div className="p-6 text-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                Delete post?
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                This can't be undone.
-              </p>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={confirmDelete}
-                className="w-full py-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="w-full py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Delete confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete post ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This post will be permanently removed. This action cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep it
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Delete
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -364,4 +362,13 @@ function formatTimeAgo(isoString) {
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
 
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** For reposts, inherit the original post's like state into the wrapper */
+function mergeRepostState(post) {
+  if (!post?.originalPost) return post;
+  return {
+    ...post,
+    likedByCurrentUser: post.likedByCurrentUser || post.originalPost.likedByCurrentUser,
+  };
 }

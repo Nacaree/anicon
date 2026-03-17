@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { useSidebar } from "@/context/SidebarContext";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
@@ -144,37 +145,14 @@ export default function Header() {
 
       {/* Right Side Icons */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 ml-2 sm:ml-4 md:ml-6">
-        {/* Post Button */}
-        <button
-          onClick={() => requireAuth(() => {})}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-3 sm:px-4 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <span className="hidden sm:inline">Post</span>
-        </button>
-
         {isLoading ? (
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-gray-200 animate-pulse" />
           </Avatar>
         ) : isAuthenticated ? (
           <>
-            {/* Notification Icon */}
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <svg
-                className="w-5 h-5 text-gray-600"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-              </svg>
-            </button>
+            {/* Notification bell with dropdown */}
+            <NotificationDropdown />
 
             {/* User Avatar & Profile Dropdown */}
             <ProfileDropdown />

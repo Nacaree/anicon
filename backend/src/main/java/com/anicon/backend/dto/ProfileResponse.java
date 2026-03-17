@@ -25,13 +25,9 @@ public class ProfileResponse {
     private String bannerImageUrl;
     private Integer bannerPositionY;
     private String creatorType;
-    private String commissionStatus;
-
     // JSONB fields stored as raw JSON strings so JOOQ's fetchOptionalInto() can
     // map them (JOOQ returns JSONB as String, not Map/List). @JsonRawValue tells
     // Jackson to output the string as-is (not double-escaped) in the API response.
-    @JsonRawValue
-    private String commissionInfo;
     @JsonRawValue
     private String supportLinks;
     private Boolean showSupportLinks;

@@ -10,6 +10,7 @@ import com.anicon.backend.gen.jooq.tables.EventTags;
 import com.anicon.backend.gen.jooq.tables.Events;
 import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
+import com.anicon.backend.gen.jooq.tables.Notifications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
 import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
 import com.anicon.backend.gen.jooq.tables.PostComments;
@@ -72,6 +73,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.influencer_applications</code>.
      */
     public final InfluencerApplications INFLUENCER_APPLICATIONS = InfluencerApplications.INFLUENCER_APPLICATIONS;
+
+    /**
+     * The table <code>public.notifications</code>.
+     */
+    public final Notifications NOTIFICATIONS = Notifications.NOTIFICATIONS;
 
     /**
      * The table <code>public.portfolio_items</code>.
@@ -145,6 +151,7 @@ public class Public extends SchemaImpl {
             Events.EVENTS,
             Follows.FOLLOWS,
             InfluencerApplications.INFLUENCER_APPLICATIONS,
+            Notifications.NOTIFICATIONS,
             PortfolioItems.PORTFOLIO_ITEMS,
             PortfolioLikes.PORTFOLIO_LIKES,
             PostComments.POST_COMMENTS,

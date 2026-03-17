@@ -56,7 +56,7 @@ export default function PostFeed({ fetchFn, emptyMessage = "No posts yet", refre
     <div>
       {items.map((post) => (
         <PostCard
-          key={post.id}
+          key={`${post.id}-${refreshKey}`}
           post={post}
           onPostDeleted={handlePostDeleted}
           onOpenDetail={onOpenDetail}

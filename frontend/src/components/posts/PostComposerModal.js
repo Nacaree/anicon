@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImageUploadGrid from "./ImageUploadGrid";
 
 /**
@@ -12,7 +13,7 @@ import ImageUploadGrid from "./ImageUploadGrid";
  * Contains text area (500 char limit), image upload (up to 10), and post button.
  * Shows a discard confirmation when closing with unsaved content.
  */
-export default function PostComposerModal({ isOpen, onClose, onPostCreated, initialFiles }) {
+export default function PostComposerModal({ isOpen, onClose, onPostCreated, initialFiles, editingPost }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [images, setImages] = useState([]); // { file, preview, url, uploading }
@@ -21,6 +22,26 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
   const [showDiscard, setShowDiscard] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
+
+  const isEditing = !!editingPost;
+
+  // Pre-fill text and images when editing an existing post
+  useEffect(() => {
+    if (isOpen && editingPost) {
+      setText(editingPost.textContent || "");
+      // Pre-populate existing images as already-uploaded entries
+      if (editingPost.images?.length > 0) {
+        setImages(
+          editingPost.images.map((img) => ({
+            file: null,
+            preview: img.imageUrl,
+            url: img.imageUrl,
+            uploading: false,
+          }))
+        );
+      }
+    }
+  }, [isOpen, editingPost]);
 
   // Allow posting with text only, images only, or both
   const hasContent = text.trim().length > 0 || images.length > 0;
@@ -149,18 +170,24 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
 
     setPosting(true);
     try {
-      const imageUrls = images.filter((img) => img.url).map((img) => img.url);
-
-      const newPost = await postsApi.createPost(text.trim() || null, imageUrls);
+      if (isEditing) {
+        // Edit mode — update text and images
+        const imageUrls = images.filter((img) => img.url).map((img) => img.url);
+        await postsApi.updatePost(editingPost.id, text.trim() || null, imageUrls);
+      } else {
+        // Create mode
+        const imageUrls = images.filter((img) => img.url).map((img) => img.url);
+        await postsApi.createPost(text.trim() || null, imageUrls);
+      }
       setText("");
       images.forEach((img) => {
         if (img.preview) URL.revokeObjectURL(img.preview);
       });
       setImages([]);
-      onPostCreated?.(newPost);
+      onPostCreated?.();
       onClose();
     } catch (err) {
-      console.error("Failed to create post:", err);
+      console.error(isEditing ? "Failed to edit post:" : "Failed to create post:", err);
     } finally {
       setPosting(false);
     }
@@ -178,7 +205,7 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
         {/* Header */}
         <div className="relative flex items-center justify-center px-4 py-3 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
-            Create Post
+            {isEditing ? "Edit Post" : "Create Post"}
           </h2>
           <button
             onClick={handleClose}
@@ -247,48 +274,42 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
               {posting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                "Post"
+                isEditing ? "Save" : "Post"
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Discard confirmation overlay — shown when closing with unsaved content */}
-      {showDiscard && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center animate-in fade-in-0 duration-150">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowDiscard(false)}
-          />
-          <div className="relative z-10 w-full max-w-xs mx-4 rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-            <div className="p-6 text-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                Discard post?
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Your changes will be lost if you discard.
-              </p>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={handleDiscard}
-                className="w-full py-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              >
-                Discard
-              </button>
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={() => setShowDiscard(false)}
-                className="w-full py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Keep editing
-              </button>
-            </div>
+      {/* Discard confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={showDiscard} onOpenChange={setShowDiscard}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Discard post ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            Your changes will be lost if you discard.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setShowDiscard(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep editing
+            </button>
+            <button
+              onClick={handleDiscard}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Discard
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

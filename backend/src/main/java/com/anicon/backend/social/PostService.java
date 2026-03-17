@@ -12,10 +12,14 @@ import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.anicon.backend.notification.NotificationEvent;
+import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.social.dto.*;
 
@@ -28,6 +32,8 @@ public class PostService {
     private final PostImageRepository postImageRepository;
     private final PostLikeRepository postLikeRepository;
     private final DSLContext dsl;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     // Plain SQL field references — JOOQ types for posts tables don't exist yet
     // (tables haven't been generated). Same pattern as portfolio like_count updates.
@@ -46,11 +52,15 @@ public class PostService {
     public PostService(PostRepository postRepository,
                        PostImageRepository postImageRepository,
                        PostLikeRepository postLikeRepository,
-                       DSLContext dsl) {
+                       DSLContext dsl,
+                       ApplicationEventPublisher eventPublisher,
+                       NotificationService notificationService) {
         this.postRepository = postRepository;
         this.postImageRepository = postImageRepository;
         this.postLikeRepository = postLikeRepository;
         this.dsl = dsl;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     // ========================================
@@ -281,7 +291,8 @@ public class PostService {
     // ========================================
 
     /**
-     * Edit post text. Only the owner can edit, and only original posts (not reposts).
+     * Edit post text and/or images. Only the owner can edit, and only original posts (not reposts).
+     * If imageUrls is provided, replaces all existing images with the new set.
      */
     @Transactional
     public PostResponse updatePost(UUID userId, UUID postId, UpdatePostRequest request) {
@@ -294,15 +305,33 @@ public class PostService {
         if (post.getOriginalPostId() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot edit a repost");
         }
-        if (request.textContent() == null || request.textContent().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post text is required");
-        }
-        String text = request.textContent().trim();
-        if (text.length() > 500) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post text must be 500 characters or fewer");
+
+        // Update text if provided
+        if (request.textContent() != null && !request.textContent().isBlank()) {
+            String text = request.textContent().trim();
+            if (text.length() > 500) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post text must be 500 characters or fewer");
+            }
+            post.setTextContent(text);
         }
 
-        post.setTextContent(text);
+        // Update images if provided — replace all existing images with the new set
+        if (request.imageUrls() != null) {
+            List<PostImage> existing = postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId);
+            postImageRepository.deleteAll(existing);
+
+            for (int i = 0; i < request.imageUrls().size() && i < 10; i++) {
+                String url = request.imageUrls().get(i);
+                if (url != null && !url.isBlank()) {
+                    postImageRepository.save(PostImage.builder()
+                            .postId(postId)
+                            .imageUrl(url)
+                            .displayOrder(i)
+                            .build());
+                }
+            }
+        }
+
         post = postRepository.save(post);
 
         return getPost(postId, userId);
@@ -357,6 +386,12 @@ public class PostService {
                 .build());
 
         incrementCount("posts", "like_count", "id", postId);
+
+        // Notify the post owner that someone liked their post
+        UUID postOwnerId = dsl.select(P_USER_ID).from(POSTS).where(P_ID.eq(postId)).fetchOne(P_USER_ID);
+        if (postOwnerId != null) {
+            eventPublisher.publishEvent(new NotificationEvent(userId, postOwnerId, "like_post", postId, null));
+        }
     }
 
     /**
@@ -371,6 +406,9 @@ public class PostService {
         postLikeRepository.deleteByUserIdAndPostId(userId, postId);
 
         decrementCount("posts", "like_count", "id", postId);
+
+        // Remove the like notification
+        notificationService.deleteNotification(userId, "like_post", postId);
     }
 
     // ========================================
@@ -407,6 +445,9 @@ public class PostService {
         // Increment repost_count on the original
         incrementCount("posts", "repost_count", "id", originalPostId);
 
+        // Notify the original post owner
+        eventPublisher.publishEvent(new NotificationEvent(userId, original.getUserId(), "repost_post", originalPostId, null));
+
         return getPost(repost.getId(), userId);
     }
 
@@ -422,6 +463,9 @@ public class PostService {
         postRepository.delete(repost);
 
         decrementCount("posts", "repost_count", "id", originalPostId);
+
+        // Remove the repost notification
+        notificationService.deleteNotification(userId, "repost_post", originalPostId);
     }
 
     // ========================================

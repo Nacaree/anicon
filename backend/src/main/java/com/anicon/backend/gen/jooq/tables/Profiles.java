@@ -14,6 +14,7 @@ import com.anicon.backend.gen.jooq.tables.EventRsvps.EventRsvpsPath;
 import com.anicon.backend.gen.jooq.tables.Events.EventsPath;
 import com.anicon.backend.gen.jooq.tables.Follows.FollowsPath;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications.InfluencerApplicationsPath;
+import com.anicon.backend.gen.jooq.tables.Notifications.NotificationsPath;
 import com.anicon.backend.gen.jooq.tables.PostComments.PostCommentsPath;
 import com.anicon.backend.gen.jooq.tables.PostLikes.PostLikesPath;
 import com.anicon.backend.gen.jooq.tables.Posts.PostsPath;
@@ -362,6 +363,34 @@ public class Profiles extends TableImpl<ProfilesRecord> {
             _influencerApplicationsReviewedByFkey = new InfluencerApplicationsPath(this, null, Keys.INFLUENCER_APPLICATIONS__INFLUENCER_APPLICATIONS_REVIEWED_BY_FKEY.getInverseKey());
 
         return _influencerApplicationsReviewedByFkey;
+    }
+
+    private transient NotificationsPath _notificationsActorIdFkey;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.notifications</code> table, via the
+     * <code>notifications_actor_id_fkey</code> key
+     */
+    public NotificationsPath notificationsActorIdFkey() {
+        if (_notificationsActorIdFkey == null)
+            _notificationsActorIdFkey = new NotificationsPath(this, null, Keys.NOTIFICATIONS__NOTIFICATIONS_ACTOR_ID_FKEY.getInverseKey());
+
+        return _notificationsActorIdFkey;
+    }
+
+    private transient NotificationsPath _notificationsRecipientIdFkey;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.notifications</code> table, via the
+     * <code>notifications_recipient_id_fkey</code> key
+     */
+    public NotificationsPath notificationsRecipientIdFkey() {
+        if (_notificationsRecipientIdFkey == null)
+            _notificationsRecipientIdFkey = new NotificationsPath(this, null, Keys.NOTIFICATIONS__NOTIFICATIONS_RECIPIENT_ID_FKEY.getInverseKey());
+
+        return _notificationsRecipientIdFkey;
     }
 
     private transient PostCommentsPath _postComments;

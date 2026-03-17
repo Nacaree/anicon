@@ -138,15 +138,42 @@ export default function Home() {
   const [composerOpen, setComposerOpen] = useState(false);
   // Files pre-selected from the composer's image button
   const [composerInitialFiles, setComposerInitialFiles] = useState(null);
+  // Post being edited — when set, the composer opens in edit mode
+  const [editingPost, setEditingPost] = useState(null);
 
   useEffect(() => {
-    const handler = () => {
+    const refreshHandler = () => {
       setRefreshKey((k) => k + 1);
       setFeedRefreshKey((k) => k + 1);
     };
-    window.addEventListener("anicon-home-refresh", handler);
-    return () => window.removeEventListener("anicon-home-refresh", handler);
+    // Open post detail modal when a notification is clicked (dispatched from NotificationItem)
+    const openPostHandler = async (e) => {
+      const { postId } = e.detail;
+      if (!postId) return;
+      try {
+        const post = await postsApi.getPost(postId);
+        if (post) setDetailPost(post);
+      } catch (err) {
+        console.error("Failed to load post from notification:", err);
+      }
+    };
+    window.addEventListener("anicon-home-refresh", refreshHandler);
+    window.addEventListener("anicon-open-post", openPostHandler);
+    return () => {
+      window.removeEventListener("anicon-home-refresh", refreshHandler);
+      window.removeEventListener("anicon-open-post", openPostHandler);
+    };
   }, []);
+
+  // Re-fetch feed once auth resolves so liked/reposted state is accurate.
+  // On hard refresh, the feed loads before the token is ready (bestEffortAuth),
+  // so posts come back without personalized state. This bumps the feed key
+  // once the token becomes available, triggering a reload with auth.
+  useEffect(() => {
+    if (isAuthenticated) {
+      setFeedRefreshKey((k) => k + 1);
+    }
+  }, [isAuthenticated]);
 
   // Fetch function for the public feed — passed to PostFeed
   const fetchFeed = useCallback((cursor) => postsApi.getFeed(cursor), []);
@@ -185,7 +212,14 @@ export default function Home() {
                 fetchFn={fetchFeed}
                 emptyMessage="No posts yet. Be the first to share!"
                 refreshKey={feedRefreshKey}
-                onOpenDetail={(post) => setDetailPost(post)}
+                onOpenDetail={(post, editMode) => {
+                  if (editMode) {
+                    setEditingPost(post);
+                    setComposerOpen(true);
+                  } else {
+                    setDetailPost(post);
+                  }
+                }}
               />
             </div>
           </main>
@@ -199,13 +233,15 @@ export default function Home() {
       {/* Composer modal — opens when clicking the compact composer trigger */}
       <PostComposerModal
         isOpen={composerOpen}
-        onClose={() => { setComposerOpen(false); setComposerInitialFiles(null); }}
+        onClose={() => { setComposerOpen(false); setComposerInitialFiles(null); setEditingPost(null); }}
         onPostCreated={() => {
           setComposerOpen(false);
           setComposerInitialFiles(null);
+          setEditingPost(null);
           setFeedRefreshKey((k) => k + 1);
         }}
         initialFiles={composerInitialFiles}
+        editingPost={editingPost}
       />
       {/* Post detail modal — opens when clicking a post in the feed */}
       <PostDetailModal
@@ -215,6 +251,11 @@ export default function Home() {
         onPostDeleted={(id) => {
           setDetailPost(null);
           setFeedRefreshKey((k) => k + 1);
+        }}
+        onEdit={(post) => {
+          setDetailPost(null);
+          setEditingPost(post);
+          setComposerOpen(true);
         }}
       />
     </div>

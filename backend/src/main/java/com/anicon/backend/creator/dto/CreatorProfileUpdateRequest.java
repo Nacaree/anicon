@@ -11,8 +11,6 @@ public record CreatorProfileUpdateRequest(
     String bannerImageUrl,
     Integer bannerPositionY,
     String creatorType,
-    String commissionStatus,
-    Map<String, Object> commissionInfo,
     List<Map<String, String>> supportLinks,
     Boolean showSupportLinks
 ) {}

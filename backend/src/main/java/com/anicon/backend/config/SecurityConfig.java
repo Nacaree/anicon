@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // WebSocket handshake is an HTTP upgrade — auth happens at STOMP level
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/health", "/api/public/**").permitAll()
                         // Email existence check for forgot-password page — no auth required
                         .requestMatchers(HttpMethod.POST, "/api/auth/check-email").permitAll()

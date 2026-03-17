@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MoreVertical, Trash2, Pencil } from 'lucide-react';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Single portfolio gallery item with hover menu for owner actions
 export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick }) {
@@ -24,7 +25,7 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
   }, [menuOpen]);
 
   return (
-    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer" onClick={onClick} onMouseLeave={() => { setMenuOpen(false); setConfirmDelete(false); }}>
+    <div className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer" onClick={onClick} onMouseLeave={() => setMenuOpen(false)}>
       <Image
         src={item.imageUrl}
         alt={item.title || 'Portfolio item'}
@@ -67,45 +68,55 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
             <MoreVertical className="w-4 h-4" />
           </button>
 
-          {/* Dropdown menu */}
+          {/* Dropdown menu — edit/delete actions */}
           {menuOpen && (
             <div className="absolute top-9 right-0 bg-popover rounded-lg shadow-lg overflow-hidden min-w-[120px] z-10">
-              {confirmDelete ? (
-                <>
-                  <p className="px-3 py-1.5 text-xs text-muted-foreground">Are you sure?</p>
-                  <button
-                    onClick={() => { onDelete(); setMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    Yes, delete
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="w-full text-left px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => { onEdit?.(); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Edit
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => { onEdit?.(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+              <button
+                onClick={() => { setConfirmDelete(true); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
             </div>
           )}
         </div>
       )}
+
+      {/* Delete confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete item ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This portfolio item will be permanently removed. This action cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep it
+            </button>
+            <button
+              onClick={() => { onDelete(); setConfirmDelete(false); }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
