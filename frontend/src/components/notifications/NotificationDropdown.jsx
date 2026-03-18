@@ -10,71 +10,63 @@ import NotificationItem from "./NotificationItem";
 /**
  * Bell icon with unread badge + dropdown panel showing recent notifications.
  * Uses Radix Popover for accessibility and dismiss-on-click-outside.
- * Combines real-time WebSocket notifications with REST fetch on open.
+ * Notification data is cached at module level in useNotificationCount —
+ * navigating between pages does NOT refetch. Cache TTL is 5 minutes.
  */
 export default function NotificationDropdown() {
-  const { unreadCount, setUnreadCount, notifications: wsNotifications, refetch, resetNotifications } = useNotificationCount();
+  const {
+    unreadCount, setUnreadCount,
+    notifications: wsNotifications,
+    fullList, setFullList,
+    refetch, fetchFullList, resetNotifications, invalidateCache,
+  } = useNotificationCount();
   const [open, setOpen] = useState(false);
-  // Merged list: REST-fetched + real-time WebSocket arrivals
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Fetch full notification list from REST when dropdown opens
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await notificationApi.getNotifications();
-      setNotifications(data || []);
-      // Reset the WebSocket queue since REST data is now the source of truth
-      resetNotifications([]);
-    } catch (err) {
-      console.error("Failed to load notifications:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [resetNotifications]);
 
   // Mark a single notification as read — optimistic update
   const handleRead = useCallback(async (notificationId) => {
-    setNotifications((prev) =>
+    setFullList((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
     );
     try {
       await notificationApi.markAsRead(notificationId);
       refetch();
     } catch {
-      setNotifications((prev) =>
+      setFullList((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, isRead: false } : n))
       );
     }
-  }, [refetch]);
+  }, [refetch, setFullList]);
 
   // Mark all as read
   const handleMarkAllRead = useCallback(async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setFullList((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
     try {
       await notificationApi.markAllRead();
       refetch();
     } catch {
-      const data = await notificationApi.getNotifications();
-      setNotifications(data || []);
+      // Invalidate cache and refetch on error
+      invalidateCache();
+      await fetchFullList(true);
       refetch();
     }
-  }, [refetch, setUnreadCount]);
+  }, [refetch, setUnreadCount, setFullList, invalidateCache, fetchFullList]);
 
-  // On open: fetch fresh data. On close: merge any new WebSocket arrivals.
-  const handleOpenChange = useCallback((isOpen) => {
+  // On open: fetch (uses module-level cache if fresh). On close: no-op.
+  const handleOpenChange = useCallback(async (isOpen) => {
     setOpen(isOpen);
     if (isOpen) {
-      fetchNotifications();
+      setLoading(true);
+      await fetchFullList();
+      setLoading(false);
     }
-  }, [fetchNotifications]);
+  }, [fetchFullList]);
 
-  // Combine REST-fetched notifications with any WebSocket arrivals that came in while open
+  // Combine REST-fetched notifications with any WebSocket arrivals that came in after last fetch
   const displayNotifications = wsNotifications.length > 0
-    ? [...wsNotifications, ...notifications.filter((n) => !wsNotifications.some((ws) => ws.type === n.type && ws.targetId === n.targetId))]
-    : notifications;
+    ? [...wsNotifications, ...fullList.filter((n) => !wsNotifications.some((ws) => ws.type === n.type && ws.targetId === n.targetId))]
+    : fullList;
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -96,7 +88,7 @@ export default function NotificationDropdown() {
         className="w-[380px] p-0 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-4 py-3">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
           {unreadCount > 0 && (
             <button
@@ -111,8 +103,8 @@ export default function NotificationDropdown() {
 
         {/* Notification list */}
         <div className="max-h-[400px] overflow-y-auto">
-          {loading ? (
-            // Skeleton loaders
+          {loading && fullList.length === 0 ? (
+            // Skeleton loaders — only show when there's no cached data
             <div className="space-y-1">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="flex items-start gap-3 px-4 py-3 animate-pulse">

@@ -254,6 +254,9 @@ export const eventApi = {
     if (cached) return Promise.resolve(cached);
     return request(`/api/events/${id}`, { method: "GET", noAuth: true });
   },
+  // Create a new event (requires auth — role-gated on the backend).
+  // Used by the /host/create page for mini-events, and future event creation UIs.
+  createEvent: (data) => api.post("/api/events", data),
 };
 
 // In-memory ticket/RSVP cache. Populated by the tickets page after its first
@@ -374,6 +377,15 @@ export const userEventsApi = {
     const query = miniOnly ? "?miniOnly=true" : "";
     return request(`/api/users/${userId}/events/hosted${query}`, { method: "GET", noAuth: true });
   },
+};
+
+// Influencer Application API — submit/check host applications
+export const influencerApi = {
+  // Submit an application to become a verified host (requires auth)
+  submitApplication: (data) => api.post("/api/influencer-applications", data),
+
+  // Get current user's most recent application status (requires auth)
+  getMyApplication: () => api.get("/api/influencer-applications/my"),
 };
 
 // Posts API — social feed CRUD, likes, reposts, comments

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { isEventSaved, saveEvent, unsaveEvent } from "@/lib/savedEvents";
+import { MiniEventBadge } from "./MiniEventBadge";
 
 export default function EventsPageCard({ event }) {
   const { requireAuth } = useAuthGate();
@@ -100,6 +101,7 @@ export default function EventsPageCard({ event }) {
           <h3 className="font-bold text-sm text-gray-900 mb-1 line-clamp-1">
             {event.title}
           </h3>
+          {event.eventType === 'mini_event' && <MiniEventBadge />}
           <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
             <svg
               className="w-3 h-3 text-[#FF7927] flex-shrink-0"

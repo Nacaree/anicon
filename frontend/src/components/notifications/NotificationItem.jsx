@@ -101,8 +101,8 @@ export default function NotificationItem({ notification, onRead, onClose }) {
         !isRead ? "bg-orange-50/50 dark:bg-orange-950/10" : ""
       }`}
     >
-      {/* Unread indicator dot */}
-      <div className="flex-shrink-0 pt-2 w-2">
+      {/* Unread indicator dot — h-10 matches avatar height so dot is vertically centered */}
+      <div className="flex-shrink-0 w-2 h-10 flex items-center">
         {!isRead && (
           <div className="w-2 h-2 rounded-full bg-orange-500" />
         )}

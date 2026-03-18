@@ -124,7 +124,7 @@ const RightPanel = dynamic(
 
 export default function Home() {
   const { isSidebarCollapsed } = useSidebar();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   // Incremented by the "anicon-home-refresh" custom event dispatched from Header
   // when the user clicks the logo while already on the homepage.
   // Passing this as `key` to FeaturedEvents and EventSections forces React to
@@ -157,6 +157,16 @@ export default function Home() {
         console.error("Failed to load post from notification:", err);
       }
     };
+    // Check URL for ?post={id} — used by shared post links (/posts/{id} redirects here)
+    const params = new URLSearchParams(window.location.search);
+    const postParam = params.get("post");
+    if (postParam) {
+      // Clear the query param from the URL without triggering a navigation
+      window.history.replaceState({}, "", "/");
+      postsApi.getPost(postParam).then((post) => {
+        if (post) setDetailPost(post);
+      }).catch((err) => console.error("Failed to load shared post:", err));
+    }
     window.addEventListener("anicon-home-refresh", refreshHandler);
     window.addEventListener("anicon-open-post", openPostHandler);
     return () => {
@@ -164,16 +174,6 @@ export default function Home() {
       window.removeEventListener("anicon-open-post", openPostHandler);
     };
   }, []);
-
-  // Re-fetch feed once auth resolves so liked/reposted state is accurate.
-  // On hard refresh, the feed loads before the token is ready (bestEffortAuth),
-  // so posts come back without personalized state. This bumps the feed key
-  // once the token becomes available, triggering a reload with auth.
-  useEffect(() => {
-    if (isAuthenticated) {
-      setFeedRefreshKey((k) => k + 1);
-    }
-  }, [isAuthenticated]);
 
   // Fetch function for the public feed — passed to PostFeed
   const fetchFeed = useCallback((cursor) => postsApi.getFeed(cursor), []);
@@ -200,27 +200,57 @@ export default function Home() {
           <main className="flex-1 min-w-0">
             <EventSections key={refreshKey} />
 
-            {/* Social Feed — real posts from all users, capped width to match design */}
+            {/* Social Feed — real posts from all users, capped width to match design.
+                Gated on !authLoading so the first fetch always has the auth token,
+                ensuring liked/reposted state is correct without a racy re-fetch. */}
             <div className="mt-8 max-w-3xl mx-auto">
-              {isAuthenticated && (
-                <PostComposer
-                  onOpenComposer={() => { setComposerInitialFiles(null); setComposerOpen(true); }}
-                  onOpenWithImages={(files) => { setComposerInitialFiles(files); setComposerOpen(true); }}
-                />
+              {authLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-3 animate-pulse">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-28 rounded bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-3 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 mb-3">
+                        <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                      </div>
+                      <div className="h-64 rounded-lg bg-gray-200 dark:bg-gray-700 mb-3" />
+                      <div className="flex gap-4">
+                        <div className="h-8 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-8 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-8 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {isAuthenticated && (
+                    <PostComposer
+                      onOpenComposer={() => { setComposerInitialFiles(null); setComposerOpen(true); }}
+                      onOpenWithImages={(files) => { setComposerInitialFiles(files); setComposerOpen(true); }}
+                    />
+                  )}
+                  <PostFeed
+                    fetchFn={fetchFeed}
+                    emptyMessage="No posts yet. Be the first to share!"
+                    refreshKey={feedRefreshKey}
+                    onOpenDetail={(post, editMode) => {
+                      if (editMode) {
+                        setEditingPost(post);
+                        setComposerOpen(true);
+                      } else {
+                        setDetailPost(post);
+                      }
+                    }}
+                  />
+                </>
               )}
-              <PostFeed
-                fetchFn={fetchFeed}
-                emptyMessage="No posts yet. Be the first to share!"
-                refreshKey={feedRefreshKey}
-                onOpenDetail={(post, editMode) => {
-                  if (editMode) {
-                    setEditingPost(post);
-                    setComposerOpen(true);
-                  } else {
-                    setDetailPost(post);
-                  }
-                }}
-              />
             </div>
           </main>
 

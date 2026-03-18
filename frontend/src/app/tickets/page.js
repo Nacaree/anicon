@@ -831,7 +831,7 @@ function RsvpRow({ item, onCancel }) {
             <DialogTitle className="text-xl font-bold">Not going?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            You&apos;ll be removed from the guest list. You can always RSVP
+            You&apos;ll be removed from the guest list. You can always join
             again later.
           </p>
           <div className="flex gap-3 mt-2">

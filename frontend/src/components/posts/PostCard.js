@@ -31,6 +31,8 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
   const isOwnRepost = isRepost && user?.id === post.author?.id;
   // Original post was deleted (ON DELETE SET NULL made originalPost null)
   const isOrphanedRepost = isRepost && !post.originalPost;
+  // For likes/unlikes/reposts on reposted posts, target the original post — not the repost wrapper
+  const targetPostId = isRepost && post.originalPost ? post.originalPost.id : post.id;
 
   // Format relative time (e.g. "2h", "3d", "Jan 5")
   const timeAgo = formatTimeAgo(post.createdAt);
@@ -41,17 +43,24 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
 
   const handleLike = async () => {
     const wasLiked = post.likedByCurrentUser;
-    // Optimistic update
+    // Optimistic update — for reposts, update originalPost.likeCount since
+    // PostActions reads displayPost (the original), not the repost wrapper
     setPost((p) => ({
       ...p,
       likedByCurrentUser: !wasLiked,
       likeCount: wasLiked ? p.likeCount - 1 : p.likeCount + 1,
+      ...(p.originalPost ? {
+        originalPost: {
+          ...p.originalPost,
+          likeCount: wasLiked ? p.originalPost.likeCount - 1 : p.originalPost.likeCount + 1,
+        },
+      } : {}),
     }));
     try {
       if (wasLiked) {
-        await postsApi.unlikePost(post.id);
+        await postsApi.unlikePost(targetPostId);
       } else {
-        await postsApi.likePost(post.id);
+        await postsApi.likePost(targetPostId);
       }
     } catch {
       // Revert on error
@@ -59,6 +68,12 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
         ...p,
         likedByCurrentUser: wasLiked,
         likeCount: wasLiked ? p.likeCount + 1 : p.likeCount - 1,
+        ...(p.originalPost ? {
+          originalPost: {
+            ...p.originalPost,
+            likeCount: wasLiked ? p.originalPost.likeCount + 1 : p.originalPost.likeCount - 1,
+          },
+        } : {}),
       }));
     }
   };
@@ -72,9 +87,9 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
     }));
     try {
       if (wasReposted) {
-        await postsApi.undoRepost(post.id);
+        await postsApi.undoRepost(targetPostId);
       } else {
-        await postsApi.repost(post.id);
+        await postsApi.repost(targetPostId);
       }
     } catch {
       setPost((p) => ({
@@ -109,7 +124,7 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
   // ========================================
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-3 w-full">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 pb-3 mb-2 w-full">
       {/* Repost header */}
       {isRepost && !isOrphanedRepost && (
         <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mb-2 pl-1">

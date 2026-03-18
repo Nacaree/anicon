@@ -38,6 +38,9 @@ public class ProfileResponse {
     private String socialLinks;
     private Long followerCount;
     private Long followingCount;
+    // Tracks the user's influencer application status ("pending", "approved", "rejected", or null).
+    // Auto-mapped from DB column influencer_status by JOOQ's fetchOptionalInto().
+    private String influencerStatus;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

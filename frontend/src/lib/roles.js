@@ -47,6 +47,16 @@ export function canHaveHostedEvents(roles) {
   return isOrganizer(roles);
 }
 
+/** Whether user can apply to become an influencer (fans only — not already influencer/creator/organizer) */
+export function canApplyForInfluencer(roles) {
+  return !isInfluencer(roles) && !isCreator(roles) && !isOrganizer(roles);
+}
+
+/** Whether user can create mini-events (influencer, creator, or organizer) */
+export function canCreateMiniEvent(roles) {
+  return isInfluencer(roles) || isCreator(roles) || isOrganizer(roles);
+}
+
 /** Returns the highest-priority role for display purposes */
 export function getPrimaryRole(roles) {
   if (isOrganizer(roles)) return ROLES.ORGANIZER;
