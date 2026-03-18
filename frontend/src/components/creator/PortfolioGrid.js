@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { creatorApi } from '@/lib/api';
 import { PortfolioCard } from './PortfolioCard';
+import { PortfolioLightbox } from './PortfolioLightbox';
+import { PortfolioEditModal } from './PortfolioEditModal';
 import { PortfolioUploadModal } from './PortfolioUploadModal';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,9 @@ export function PortfolioGrid({ userId, isOwner = false }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [editItem, setEditItem] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   const loadPortfolio = async () => {
     try {
@@ -37,9 +42,23 @@ export function PortfolioGrid({ userId, isOwner = false }) {
     }
   };
 
+  // Update portfolio item metadata from the edit modal
+  const handleUpdate = async (id, data) => {
+    await creatorApi.updatePortfolioItem(id, data);
+    // Update local state so changes are reflected immediately
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+  };
+
   const handleUploadSuccess = () => {
     setShowUpload(false);
     loadPortfolio();
+  };
+
+  // Sync like state from lightbox back to items array so reopening shows correct state
+  const handleLikeChange = (itemId, liked, newCount) => {
+    setItems(prev => prev.map(i =>
+      i.id === itemId ? { ...i, likedByCurrentUser: liked, likeCount: newCount } : i
+    ));
   };
 
   if (loading) {
@@ -62,9 +81,9 @@ export function PortfolioGrid({ userId, isOwner = false }) {
             variant="outline"
             size="sm"
             onClick={() => setShowUpload(true)}
-            className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="rounded-full gap-1 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add
+            <Plus className="w-3.5 h-3.5" /> Add
           </Button>
         )}
       </div>
@@ -75,16 +94,51 @@ export function PortfolioGrid({ userId, isOwner = false }) {
           {isOwner ? 'Add your first portfolio item!' : 'No portfolio items yet.'}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map(item => (
-            <PortfolioCard
-              key={item.id}
-              item={item}
-              isOwner={isOwner}
-              onDelete={() => handleDelete(item.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {(expanded ? items : items.slice(0, 8)).map((item, index) => (
+              <PortfolioCard
+                key={item.id}
+                item={item}
+                isOwner={isOwner}
+                onDelete={() => handleDelete(item.id)}
+                onEdit={() => setEditItem(item)}
+                onClick={() => setLightboxIndex(index)}
+              />
+            ))}
+          </div>
+          {/* Show more / Show less toggle when there are more than 8 items (2 rows on desktop) */}
+          {items.length > 8 && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {expanded ? 'Show less' : `Show all ${items.length} items`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Lightbox — fullscreen image viewer with prev/next navigation */}
+      {lightboxIndex !== null && (
+        <PortfolioLightbox
+          items={items}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onChange={(i) => setLightboxIndex(i)}
+          onLikeChange={handleLikeChange}
+        />
+      )}
+
+      {/* Edit Modal — standalone modal for editing item metadata */}
+      {editItem && (
+        <PortfolioEditModal
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSave={handleUpdate}
+        />
       )}
 
       {/* Upload Modal */}

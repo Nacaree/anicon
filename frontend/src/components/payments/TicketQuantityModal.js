@@ -93,9 +93,9 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
               onClick={handleIncrement}
               disabled={quantity >= maxQty}
               aria-label="Add one ticket"
-              className="w-9 h-9 rounded-full bg-[#FF7927] flex items-center justify-center
-                text-white font-semibold text-lg leading-none
-                hover:bg-[#E66B1F] transition-colors duration-150
+              className="w-9 h-9 rounded-full bg-primary flex items-center justify-center
+                text-primary-foreground font-semibold text-lg leading-none
+                hover:bg-primary/90 transition-colors duration-150
                 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               +
@@ -121,7 +121,7 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
         <button
           onClick={handleCheckout}
           disabled={quantity < 1 || remaining <= 0}
-          className="w-full bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold py-3.5 text-base rounded-full
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3.5 text-base rounded-full
             transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]
             active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
             disabled:hover:scale-100 disabled:hover:shadow-none"

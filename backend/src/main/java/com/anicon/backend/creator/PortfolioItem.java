@@ -53,6 +53,11 @@ public class PortfolioItem {
     @Builder.Default
     private Boolean isFeatured = false;
 
+    // Denormalized like count — incremented/decremented atomically via JOOQ
+    @Column(name = "like_count")
+    @Builder.Default
+    private Long likeCount = 0L;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();

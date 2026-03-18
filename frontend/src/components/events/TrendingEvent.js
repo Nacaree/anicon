@@ -208,7 +208,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
                   without interfering with the box-shadow animation. */}
               <Link
                 href={`/events/${event.id}`}
-                className="trending-btn-ki inline-block bg-[#FF7927] hover:bg-[#E66B1F] text-white font-semibold px-8 py-3 rounded-full
+                className="trending-btn-ki inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 rounded-full
                   transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
               >
                 View Event

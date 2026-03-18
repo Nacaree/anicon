@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // WebSocket handshake is an HTTP upgrade — auth happens at STOMP level
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/health", "/api/public/**").permitAll()
                         // Email existence check for forgot-password page — no auth required
                         .requestMatchers(HttpMethod.POST, "/api/auth/check-email").permitAll()
@@ -41,10 +43,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
                         // Profile lookups are public — anyone can view profiles without logging in
                         .requestMatchers(HttpMethod.GET, "/api/profiles/**").permitAll()
+                        // Follower/following lists and counts are public — anyone can see who follows whom
+                        .requestMatchers(HttpMethod.GET, "/api/follows/*/followers", "/api/follows/*/following", "/api/follows/*/counts").permitAll()
                         // Portfolio viewing is public — anyone can browse a creator's work
                         .requestMatchers(HttpMethod.GET, "/api/creator/*/portfolio").permitAll()
                         // Profile event tabs are public — shows events a user is going to or hosting
                         .requestMatchers(HttpMethod.GET, "/api/users/*/events/**").permitAll()
+                        // Post feed, user posts, and single post detail are public (optionally authenticated for liked/reposted state)
+                        .requestMatchers(HttpMethod.GET, "/api/posts/feed", "/api/posts/user/**").permitAll()
+                        // Single post detail — must come after /feed and /user/** to avoid shadowing
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*").permitAll()
+                        // Comments on posts are public
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.

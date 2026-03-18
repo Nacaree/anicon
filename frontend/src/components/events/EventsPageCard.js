@@ -144,7 +144,7 @@ export default function EventsPageCard({ event }) {
           className={`w-full text-xs font-medium py-2 px-3 rounded-full transition-colors duration-200 ${
             wantToGo
               ? "bg-green-500 text-white hover:bg-green-600 active:bg-green-700"
-              : "bg-[#FF7927] text-white hover:bg-[#E66B1F] active:bg-[#CC5A18]"
+              : "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80"
           }`}
         >
           {wantToGo ? "Saved" : "Save Event"}

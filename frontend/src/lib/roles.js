@@ -31,14 +31,10 @@ export function canHavePortfolio(roles) {
   return isCreator(roles);
 }
 
-/** Commission menu — creator or influencer */
-export function canHaveCommissions(roles) {
-  return isCreator(roles) || isInfluencer(roles);
-}
-
 /** Support/tip links — everyone except organizer */
 export function canHaveSupportLinks(roles) {
-  return !isOrganizer(roles);
+  // Creator+Organizer combo keeps support links (they're also a creator)
+  return !isOrganizer(roles) || isCreator(roles);
 }
 
 /** "Going" events tab — everyone except organizer (organizers run events, don't attend) */

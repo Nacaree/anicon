@@ -14,5 +14,7 @@ public record PortfolioItemResponse(
     String seriesName,
     Integer displayOrder,
     Boolean isFeatured,
+    Long likeCount,
+    Boolean likedByCurrentUser,
     OffsetDateTime createdAt
 ) {}

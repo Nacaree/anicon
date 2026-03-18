@@ -1,21 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { profileApi } from '@/lib/api';
+import { profileApi, creatorApi } from '@/lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
-import { CreatorTypeBadge } from '@/components/creator/CreatorTypeBadge';
 import { SupportLinksDisplay } from '@/components/creator/SupportLinksDisplay';
 import { PortfolioGrid } from '@/components/creator/PortfolioGrid';
-import { CommissionMenu } from '@/components/creator/CommissionMenu';
 import { RoleBadge } from '@/components/profile/RoleBadge';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
-import { canHavePortfolio, canHaveCommissions, canHaveSupportLinks } from '@/lib/roles';
-import { MapPin, Calendar, Link as LinkIcon, Settings } from 'lucide-react';
+import { FollowButton } from '@/components/FollowButton';
+import { FollowListModal } from '@/components/FollowListModal';
+import { canHavePortfolio, canHaveSupportLinks } from '@/lib/roles';
+import { supabase } from '@/lib/supabase';
+import { MapPin, Calendar, Link as LinkIcon, Move, Camera, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -30,6 +31,128 @@ export default function ProfilePage() {
 
   // Check if the viewer is the profile owner
   const isOwner = myProfile?.username === username;
+
+  // Banner reposition state
+  const [repositioning, setRepositioning] = useState(false);
+  const [bannerPosY, setBannerPosY] = useState(50);
+  const [savedPosY, setSavedPosY] = useState(50);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const bannerRef = useRef(null);
+  const dragState = useRef(null);
+
+  // Sync banner position when profile loads
+  useEffect(() => {
+    if (profile?.bannerPositionY != null) {
+      setBannerPosY(profile.bannerPositionY);
+      setSavedPosY(profile.bannerPositionY);
+    }
+  }, [profile?.bannerPositionY]);
+
+  // Drag-to-reposition handlers
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    dragState.current = { startY: clientY, startPos: bannerPosY };
+
+    const handleDragMove = (moveEvent) => {
+      const moveY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      const containerHeight = bannerRef.current?.offsetHeight || 350;
+      // Moving mouse down should show higher parts of the image (lower Y%), and vice versa
+      const delta = ((moveY - dragState.current.startY) / containerHeight) * -100;
+      const newPos = Math.max(0, Math.min(100, dragState.current.startPos + delta));
+      setBannerPosY(newPos);
+    };
+
+    const handleDragEnd = () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      document.removeEventListener('touchmove', handleDragMove);
+      document.removeEventListener('touchend', handleDragEnd);
+    };
+
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchmove', handleDragMove);
+    document.addEventListener('touchend', handleDragEnd);
+  }, [bannerPosY]);
+
+  // Save the new banner position to the backend
+  const saveBannerPosition = async () => {
+    setSavingBanner(true);
+    try {
+      await creatorApi.updateCreatorProfile({
+        displayName: profile.displayName || null,
+        bio: profile.bio || null,
+        bannerImageUrl: profile.bannerImageUrl || null,
+        bannerPositionY: Math.round(bannerPosY),
+        creatorType: profile.creatorType || null,
+        supportLinks: profile.supportLinks || [],
+      });
+      setSavedPosY(bannerPosY);
+      setRepositioning(false);
+    } catch (err) {
+      console.error('Failed to save banner position:', err);
+    } finally {
+      setSavingBanner(false);
+    }
+  };
+
+  const cancelReposition = () => {
+    setBannerPosY(savedPosY);
+    setRepositioning(false);
+  };
+
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) return;
+
+    setUploadingAvatar(true);
+    try {
+      const filename = `avatar-${Date.now()}.${file.name.split('.').pop()}`;
+      const path = `${profile.id}/${filename}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('portfolio')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('portfolio')
+        .getPublicUrl(path);
+
+      // Save avatar URL to backend
+      await creatorApi.updateCreatorProfile({
+        displayName: profile.displayName || null,
+        bio: profile.bio || null,
+        avatarUrl: publicUrl,
+        bannerImageUrl: profile.bannerImageUrl || null,
+        bannerPositionY: profile.bannerPositionY ?? 50,
+        creatorType: profile.creatorType || null,
+        supportLinks: profile.supportLinks || [],
+      });
+
+      // Update local profile state so avatar refreshes immediately
+      setProfile((prev) => ({ ...prev, avatarUrl: publicUrl }));
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // Follow list modal state
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState("followers");
+
+  // Optimistic follower count update when FollowButton is clicked
+  const handleFollowChange = useCallback((delta) => {
+    setProfile((prev) => prev ? { ...prev, followerCount: (prev.followerCount || 0) + delta } : prev);
+  }, []);
 
   useEffect(() => {
     if (!username) return;
@@ -61,7 +184,7 @@ export default function ProfilePage() {
             <div className="h-[280px] md:h-[350px] bg-muted" />
             <div className="max-w-[940px] mx-auto px-4">
               <div className="flex items-end gap-4 -mt-[42px] pb-4">
-                <div className="w-[168px] h-[168px] rounded-full bg-muted border-4 border-background -mt-[84px]" />
+                <div className="w-[176px] h-[176px] rounded-full bg-muted -mt-[84px]" />
                 <div className="space-y-2 pb-2">
                   <div className="h-8 w-48 bg-muted rounded" />
                   <div className="h-4 w-28 bg-muted rounded" />
@@ -96,17 +219,63 @@ export default function ProfilePage() {
         <div className="space-y-0">
 
           {/* Banner — spans full width like Facebook cover photo */}
-          <div className="relative h-[280px] md:h-[350px] overflow-hidden bg-muted shadow-md">
+          <div
+            ref={bannerRef}
+            className={`relative h-[280px] md:h-[350px] overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            onMouseDown={repositioning ? handleDragStart : undefined}
+            onTouchStart={repositioning ? handleDragStart : undefined}
+          >
             {profile.bannerImageUrl ? (
               <Image
                 src={profile.bannerImageUrl}
                 alt="Profile banner"
                 fill
                 className="object-cover"
+                style={{ objectPosition: `center ${bannerPosY}%` }}
                 priority
+                draggable={false}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5" />
+            )}
+
+            {/* Reposition overlay — dimmed background with instructions */}
+            {repositioning && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                <p className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full">
+                  Drag to reposition
+                </p>
+              </div>
+            )}
+
+            {/* Reposition button — visible to owner when not repositioning */}
+            {isOwner && profile.bannerImageUrl && !repositioning && (
+              <button
+                onClick={() => setRepositioning(true)}
+                className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/50 hover:bg-black/70 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+              >
+                <Move className="w-3.5 h-3.5" />
+                Reposition
+              </button>
+            )}
+
+            {/* Save / Cancel controls during reposition */}
+            {repositioning && (
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <button
+                  onClick={cancelReposition}
+                  className="bg-popover/90 hover:bg-popover text-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveBannerPosition}
+                  disabled={savingBanner}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] disabled:opacity-50"
+                >
+                  {savingBanner ? 'Saving...' : 'Save'}
+                </button>
+              </div>
             )}
           </div>
 
@@ -116,16 +285,49 @@ export default function ProfilePage() {
             {/* Avatar + Name row — avatar overlaps the banner */}
             <div className="flex items-start justify-between pb-4">
               <div className="flex gap-5">
-                <Avatar className="w-[168px] h-[168px] border-4 border-background shadow-lg -mt-[20px] shrink-0">
-                  <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
-                  <AvatarFallback className="text-3xl bg-muted">{initials}</AvatarFallback>
-                </Avatar>
+                <div className="relative group shrink-0 -mt-[20px] size-[176px] rounded-full overflow-hidden">
+                  <Avatar className="!size-[176px]">
+                    <AvatarImage src={profile.avatarUrl} alt={profile.displayName} className="object-cover" />
+                    <AvatarFallback className="text-3xl bg-muted">{initials}</AvatarFallback>
+                  </Avatar>
+                  {/* Avatar upload overlay — visible on hover for profile owner */}
+                  {isOwner && (
+                    <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                      {uploadingAvatar ? (
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-white" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        disabled={uploadingAvatar}
+                      />
+                    </label>
+                  )}
+                </div>
                 <div className="pt-7 space-y-2">
-                  <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
-                  <p className="text-muted-foreground">@{profile.username}</p>
-                  {/* Follower count inline like Facebook's friend count */}
+                  <div>
+                    <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
+                    <p className="text-muted-foreground mt-0.5">@{profile.username}</p>
+                  </div>
+                  {/* Follower/following counts — clickable to open list modal */}
                   <p className="text-sm text-muted-foreground">
-                    {profile.followerCount || 0} followers · {profile.followingCount || 0} following
+                    <button
+                      onClick={() => { setFollowModalTab("followers"); setFollowModalOpen(true); }}
+                      className="hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    >
+                      <span className="font-semibold text-foreground">{profile.followerCount || 0}</span> followers
+                    </button>
+                    {" · "}
+                    <button
+                      onClick={() => { setFollowModalTab("following"); setFollowModalOpen(true); }}
+                      className="hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    >
+                      <span className="font-semibold text-foreground">{profile.followingCount || 0}</span> following
+                    </button>
                   </p>
                   {joinedDate && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -136,32 +338,30 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Settings button for owner */}
-              {isOwner && (
-                <div className="pt-7">
+              {/* Action buttons — Edit Profile for owner, Follow for visitors */}
+              <div className="pt-7">
+                {isOwner ? (
                   <Link href="/settings/creator">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="px-5 py-2 rounded-full hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Pencil className="w-4 h-4" />
                       Edit Profile
                     </Button>
                   </Link>
-                </div>
-              )}
+                ) : (
+                  <FollowButton userId={profile.id} onFollowChange={handleFollowChange} />
+                )}
+              </div>
             </div>
 
             {/* Profile content below the divider */}
             <div className="py-4 space-y-6">
 
-              {/* Role + creator type badges */}
+              {/* Role badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 <RoleBadge roles={profile.roles} />
-                {profile.creatorType && (
-                  <CreatorTypeBadge type={profile.creatorType} />
-                )}
               </div>
 
               {/* Bio + meta info */}
@@ -189,8 +389,8 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Support Links — everyone except organizers */}
-              {canHaveSupportLinks(profile.roles) && profile.supportLinks?.length > 0 && (
+              {/* Support Links — everyone except pure organizers, hidden when toggled off */}
+              {canHaveSupportLinks(profile.roles) && profile.showSupportLinks !== false && profile.supportLinks?.length > 0 && (
                 <SupportLinksDisplay links={profile.supportLinks} />
               )}
 
@@ -199,19 +399,22 @@ export default function ProfilePage() {
                 <PortfolioGrid userId={profile.id} isOwner={isOwner} />
               )}
 
-              {/* Commission Menu — creator + influencer only */}
-              {canHaveCommissions(profile.roles) && profile.commissionInfo?.menu?.length > 0 && (
-                <CommissionMenu
-                  info={profile.commissionInfo}
-                  status={profile.commissionStatus}
-                />
-              )}
-
             </div>
 
             {/* Tab section — Home (placeholder) + Events (role-based) */}
             <ProfileTabs profile={profile} isOwner={isOwner} />
           </div>
+
+          {/* Followers/following list modal — opened by clicking follower/following counts */}
+          <FollowListModal
+            userId={profile.id}
+            username={profile.username}
+            initialTab={followModalTab}
+            followerCount={profile.followerCount || 0}
+            followingCount={profile.followingCount || 0}
+            open={followModalOpen}
+            onOpenChange={setFollowModalOpen}
+          />
 
         </div>
       </div>

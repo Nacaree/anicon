@@ -56,24 +56,24 @@ public class Profile {
     @Column(name = "banner_image_url")
     private String bannerImageUrl;
 
+    // Y-position percentage for banner image cropping (0=top, 50=center, 100=bottom)
+    @Column(name = "banner_position_y")
+    @Builder.Default
+    private Integer bannerPositionY = 50;
+
     @Column(name = "creator_type")
     private String creatorType;
-
-    @Column(name = "commission_status")
-    @Builder.Default
-    private String commissionStatus = "closed";
-
-    // Commission details: menu items, turnaround, terms, contact method
-    @Column(name = "commission_info", columnDefinition = "jsonb")
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Builder.Default
-    private Map<String, Object> commissionInfo = Map.of();
 
     // Multiple support/tip links (replaces single gift_link)
     @Column(name = "support_links", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default
     private List<Map<String, String>> supportLinks = List.of();
+
+    // Toggle to show/hide support links on the public profile
+    @Column(name = "show_support_links")
+    @Builder.Default
+    private Boolean showSupportLinks = true;
 
     // Influencer fields
     @Enumerated(EnumType.STRING)

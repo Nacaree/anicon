@@ -17,7 +17,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Already registered for this event");
+        String message = ex.getMostSpecificCause().getMessage();
+
+        // Match specific constraint violations to user-friendly messages
+        if (message != null && message.contains("unique_rsvp")) {
+            error.put("error", "Already registered for this event");
+        } else {
+            error.put("error", "A data conflict occurred");
+            error.put("message", message != null ? message : "Unknown constraint violation");
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 

@@ -4,12 +4,19 @@
 package com.anicon.backend.gen.jooq;
 
 
+import com.anicon.backend.gen.jooq.tables.CommentLikes;
 import com.anicon.backend.gen.jooq.tables.EventRsvps;
 import com.anicon.backend.gen.jooq.tables.EventTags;
 import com.anicon.backend.gen.jooq.tables.Events;
 import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
+import com.anicon.backend.gen.jooq.tables.Notifications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
+import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
+import com.anicon.backend.gen.jooq.tables.PostComments;
+import com.anicon.backend.gen.jooq.tables.PostImages;
+import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
@@ -32,6 +39,10 @@ public class Indexes {
 
     public static final Index IDX_APPLICATIONS_PROFILE = Internal.createIndex(DSL.name("idx_applications_profile"), InfluencerApplications.INFLUENCER_APPLICATIONS, new OrderField[] { InfluencerApplications.INFLUENCER_APPLICATIONS.PROFILE_ID }, false);
     public static final Index IDX_APPLICATIONS_STATUS = Internal.createIndex(DSL.name("idx_applications_status"), InfluencerApplications.INFLUENCER_APPLICATIONS, new OrderField[] { InfluencerApplications.INFLUENCER_APPLICATIONS.STATUS }, false);
+    public static final Index IDX_COMMENT_LIKES_COMMENT = Internal.createIndex(DSL.name("idx_comment_likes_comment"), CommentLikes.COMMENT_LIKES, new OrderField[] { CommentLikes.COMMENT_LIKES.COMMENT_ID }, false);
+    public static final Index IDX_COMMENTS_PARENT = Internal.createIndex(DSL.name("idx_comments_parent"), PostComments.POST_COMMENTS, new OrderField[] { PostComments.POST_COMMENTS.PARENT_ID }, false);
+    public static final Index IDX_COMMENTS_POST = Internal.createIndex(DSL.name("idx_comments_post"), PostComments.POST_COMMENTS, new OrderField[] { PostComments.POST_COMMENTS.POST_ID }, false);
+    public static final Index IDX_COMMENTS_USER = Internal.createIndex(DSL.name("idx_comments_user"), PostComments.POST_COMMENTS, new OrderField[] { PostComments.POST_COMMENTS.USER_ID }, false);
     public static final Index IDX_EVENT_TAGS_EVENT = Internal.createIndex(DSL.name("idx_event_tags_event"), EventTags.EVENT_TAGS, new OrderField[] { EventTags.EVENT_TAGS.EVENT_ID }, false);
     public static final Index IDX_EVENT_TAGS_TAG = Internal.createIndex(DSL.name("idx_event_tags_tag"), EventTags.EVENT_TAGS, new OrderField[] { EventTags.EVENT_TAGS.TAG_ID }, false);
     public static final Index IDX_EVENTS_CATEGORY = Internal.createIndex(DSL.name("idx_events_category"), Events.EVENTS, new OrderField[] { Events.EVENTS.CATEGORY }, false);
@@ -41,7 +52,17 @@ public class Indexes {
     public static final Index IDX_EVENTS_TYPE = Internal.createIndex(DSL.name("idx_events_type"), Events.EVENTS, new OrderField[] { Events.EVENTS.EVENT_TYPE }, false);
     public static final Index IDX_FOLLOWS_FOLLOWER = Internal.createIndex(DSL.name("idx_follows_follower"), Follows.FOLLOWS, new OrderField[] { Follows.FOLLOWS.FOLLOWER_ID }, false);
     public static final Index IDX_FOLLOWS_FOLLOWING = Internal.createIndex(DSL.name("idx_follows_following"), Follows.FOLLOWS, new OrderField[] { Follows.FOLLOWS.FOLLOWING_ID }, false);
+    public static final Index IDX_NOTIF_RECIPIENT_COUNT = Internal.createIndex(DSL.name("idx_notif_recipient_count"), Notifications.NOTIFICATIONS, new OrderField[] { Notifications.NOTIFICATIONS.RECIPIENT_ID }, false);
+    public static final Index IDX_NOTIF_RECIPIENT_UNREAD = Internal.createIndex(DSL.name("idx_notif_recipient_unread"), Notifications.NOTIFICATIONS, new OrderField[] { Notifications.NOTIFICATIONS.RECIPIENT_ID, Notifications.NOTIFICATIONS.IS_READ, Notifications.NOTIFICATIONS.CREATED_AT.desc() }, false);
+    public static final Index IDX_PORTFOLIO_LIKES_ITEM = Internal.createIndex(DSL.name("idx_portfolio_likes_item"), PortfolioLikes.PORTFOLIO_LIKES, new OrderField[] { PortfolioLikes.PORTFOLIO_LIKES.PORTFOLIO_ITEM_ID }, false);
+    public static final Index IDX_PORTFOLIO_LIKES_USER = Internal.createIndex(DSL.name("idx_portfolio_likes_user"), PortfolioLikes.PORTFOLIO_LIKES, new OrderField[] { PortfolioLikes.PORTFOLIO_LIKES.USER_ID }, false);
     public static final Index IDX_PORTFOLIO_USER_ID = Internal.createIndex(DSL.name("idx_portfolio_user_id"), PortfolioItems.PORTFOLIO_ITEMS, new OrderField[] { PortfolioItems.PORTFOLIO_ITEMS.USER_ID }, false);
+    public static final Index IDX_POST_IMAGES_POST = Internal.createIndex(DSL.name("idx_post_images_post"), PostImages.POST_IMAGES, new OrderField[] { PostImages.POST_IMAGES.POST_ID }, false);
+    public static final Index IDX_POST_LIKES_POST = Internal.createIndex(DSL.name("idx_post_likes_post"), PostLikes.POST_LIKES, new OrderField[] { PostLikes.POST_LIKES.POST_ID }, false);
+    public static final Index IDX_POST_LIKES_USER = Internal.createIndex(DSL.name("idx_post_likes_user"), PostLikes.POST_LIKES, new OrderField[] { PostLikes.POST_LIKES.USER_ID }, false);
+    public static final Index IDX_POSTS_FEED_CURSOR = Internal.createIndex(DSL.name("idx_posts_feed_cursor"), Posts.POSTS, new OrderField[] { Posts.POSTS.CREATED_AT.desc(), Posts.POSTS.ID.desc() }, false);
+    public static final Index IDX_POSTS_ORIGINAL_POST = Internal.createIndex(DSL.name("idx_posts_original_post"), Posts.POSTS, new OrderField[] { Posts.POSTS.ORIGINAL_POST_ID }, false);
+    public static final Index IDX_POSTS_USER_FEED = Internal.createIndex(DSL.name("idx_posts_user_feed"), Posts.POSTS, new OrderField[] { Posts.POSTS.USER_ID, Posts.POSTS.CREATED_AT.desc(), Posts.POSTS.ID.desc() }, false);
     public static final Index IDX_PROFILES_ROLES = Internal.createIndex(DSL.name("idx_profiles_roles"), Profiles.PROFILES, new OrderField[] { Profiles.PROFILES.ROLES }, false);
     public static final Index IDX_PROFILES_USERNAME = Internal.createIndex(DSL.name("idx_profiles_username"), Profiles.PROFILES, new OrderField[] { Profiles.PROFILES.USERNAME }, true);
     public static final Index IDX_RSVPS_EVENT = Internal.createIndex(DSL.name("idx_rsvps_event"), EventRsvps.EVENT_RSVPS, new OrderField[] { EventRsvps.EVENT_RSVPS.EVENT_ID }, false);

@@ -4,22 +4,36 @@
 package com.anicon.backend.gen.jooq;
 
 
+import com.anicon.backend.gen.jooq.tables.CommentLikes;
 import com.anicon.backend.gen.jooq.tables.EventRsvps;
 import com.anicon.backend.gen.jooq.tables.EventTags;
 import com.anicon.backend.gen.jooq.tables.Events;
 import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
+import com.anicon.backend.gen.jooq.tables.Notifications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
+import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
+import com.anicon.backend.gen.jooq.tables.PostComments;
+import com.anicon.backend.gen.jooq.tables.PostImages;
+import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tags;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
+import com.anicon.backend.gen.jooq.tables.records.CommentLikesRecord;
 import com.anicon.backend.gen.jooq.tables.records.EventRsvpsRecord;
 import com.anicon.backend.gen.jooq.tables.records.EventTagsRecord;
 import com.anicon.backend.gen.jooq.tables.records.EventsRecord;
 import com.anicon.backend.gen.jooq.tables.records.FollowsRecord;
 import com.anicon.backend.gen.jooq.tables.records.InfluencerApplicationsRecord;
+import com.anicon.backend.gen.jooq.tables.records.NotificationsRecord;
 import com.anicon.backend.gen.jooq.tables.records.PortfolioItemsRecord;
+import com.anicon.backend.gen.jooq.tables.records.PortfolioLikesRecord;
+import com.anicon.backend.gen.jooq.tables.records.PostCommentsRecord;
+import com.anicon.backend.gen.jooq.tables.records.PostImagesRecord;
+import com.anicon.backend.gen.jooq.tables.records.PostLikesRecord;
+import com.anicon.backend.gen.jooq.tables.records.PostsRecord;
 import com.anicon.backend.gen.jooq.tables.records.ProfilesRecord;
 import com.anicon.backend.gen.jooq.tables.records.TagsRecord;
 import com.anicon.backend.gen.jooq.tables.records.TicketsRecord;
@@ -44,13 +58,21 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<CommentLikesRecord> COMMENT_LIKES_PKEY = Internal.createUniqueKey(CommentLikes.COMMENT_LIKES, DSL.name("comment_likes_pkey"), new TableField[] { CommentLikes.COMMENT_LIKES.USER_ID, CommentLikes.COMMENT_LIKES.COMMENT_ID }, true);
     public static final UniqueKey<EventRsvpsRecord> EVENT_RSVPS_PKEY = Internal.createUniqueKey(EventRsvps.EVENT_RSVPS, DSL.name("event_rsvps_pkey"), new TableField[] { EventRsvps.EVENT_RSVPS.ID }, true);
     public static final UniqueKey<EventRsvpsRecord> UNIQUE_RSVP = Internal.createUniqueKey(EventRsvps.EVENT_RSVPS, DSL.name("unique_rsvp"), new TableField[] { EventRsvps.EVENT_RSVPS.USER_ID, EventRsvps.EVENT_RSVPS.EVENT_ID }, true);
     public static final UniqueKey<EventTagsRecord> EVENT_TAGS_PKEY = Internal.createUniqueKey(EventTags.EVENT_TAGS, DSL.name("event_tags_pkey"), new TableField[] { EventTags.EVENT_TAGS.EVENT_ID, EventTags.EVENT_TAGS.TAG_ID }, true);
     public static final UniqueKey<EventsRecord> EVENTS_PKEY = Internal.createUniqueKey(Events.EVENTS, DSL.name("events_pkey"), new TableField[] { Events.EVENTS.ID }, true);
     public static final UniqueKey<FollowsRecord> FOLLOWS_PKEY = Internal.createUniqueKey(Follows.FOLLOWS, DSL.name("follows_pkey"), new TableField[] { Follows.FOLLOWS.FOLLOWER_ID, Follows.FOLLOWS.FOLLOWING_ID }, true);
     public static final UniqueKey<InfluencerApplicationsRecord> INFLUENCER_APPLICATIONS_PKEY = Internal.createUniqueKey(InfluencerApplications.INFLUENCER_APPLICATIONS, DSL.name("influencer_applications_pkey"), new TableField[] { InfluencerApplications.INFLUENCER_APPLICATIONS.ID }, true);
+    public static final UniqueKey<NotificationsRecord> NO_DUPLICATE_NOTIFICATION = Internal.createUniqueKey(Notifications.NOTIFICATIONS, DSL.name("no_duplicate_notification"), new TableField[] { Notifications.NOTIFICATIONS.ACTOR_ID, Notifications.NOTIFICATIONS.TYPE, Notifications.NOTIFICATIONS.TARGET_ID }, true);
+    public static final UniqueKey<NotificationsRecord> NOTIFICATIONS_PKEY = Internal.createUniqueKey(Notifications.NOTIFICATIONS, DSL.name("notifications_pkey"), new TableField[] { Notifications.NOTIFICATIONS.ID }, true);
     public static final UniqueKey<PortfolioItemsRecord> PORTFOLIO_ITEMS_PKEY = Internal.createUniqueKey(PortfolioItems.PORTFOLIO_ITEMS, DSL.name("portfolio_items_pkey"), new TableField[] { PortfolioItems.PORTFOLIO_ITEMS.ID }, true);
+    public static final UniqueKey<PortfolioLikesRecord> PORTFOLIO_LIKES_PKEY = Internal.createUniqueKey(PortfolioLikes.PORTFOLIO_LIKES, DSL.name("portfolio_likes_pkey"), new TableField[] { PortfolioLikes.PORTFOLIO_LIKES.USER_ID, PortfolioLikes.PORTFOLIO_LIKES.PORTFOLIO_ITEM_ID }, true);
+    public static final UniqueKey<PostCommentsRecord> POST_COMMENTS_PKEY = Internal.createUniqueKey(PostComments.POST_COMMENTS, DSL.name("post_comments_pkey"), new TableField[] { PostComments.POST_COMMENTS.ID }, true);
+    public static final UniqueKey<PostImagesRecord> POST_IMAGES_PKEY = Internal.createUniqueKey(PostImages.POST_IMAGES, DSL.name("post_images_pkey"), new TableField[] { PostImages.POST_IMAGES.ID }, true);
+    public static final UniqueKey<PostLikesRecord> POST_LIKES_PKEY = Internal.createUniqueKey(PostLikes.POST_LIKES, DSL.name("post_likes_pkey"), new TableField[] { PostLikes.POST_LIKES.USER_ID, PostLikes.POST_LIKES.POST_ID }, true);
+    public static final UniqueKey<PostsRecord> POSTS_PKEY = Internal.createUniqueKey(Posts.POSTS, DSL.name("posts_pkey"), new TableField[] { Posts.POSTS.ID }, true);
     public static final UniqueKey<ProfilesRecord> PROFILES_PKEY = Internal.createUniqueKey(Profiles.PROFILES, DSL.name("profiles_pkey"), new TableField[] { Profiles.PROFILES.ID }, true);
     public static final UniqueKey<ProfilesRecord> PROFILES_USERNAME_KEY = Internal.createUniqueKey(Profiles.PROFILES, DSL.name("profiles_username_key"), new TableField[] { Profiles.PROFILES.USERNAME }, true);
     public static final UniqueKey<TagsRecord> TAGS_NAME_KEY = Internal.createUniqueKey(Tags.TAGS, DSL.name("tags_name_key"), new TableField[] { Tags.TAGS.NAME }, true);
@@ -65,6 +87,8 @@ public class Keys {
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final ForeignKey<CommentLikesRecord, PostCommentsRecord> COMMENT_LIKES__COMMENT_LIKES_COMMENT_ID_FKEY = Internal.createForeignKey(CommentLikes.COMMENT_LIKES, DSL.name("comment_likes_comment_id_fkey"), new TableField[] { CommentLikes.COMMENT_LIKES.COMMENT_ID }, Keys.POST_COMMENTS_PKEY, new TableField[] { PostComments.POST_COMMENTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<CommentLikesRecord, ProfilesRecord> COMMENT_LIKES__COMMENT_LIKES_USER_ID_FKEY = Internal.createForeignKey(CommentLikes.COMMENT_LIKES, DSL.name("comment_likes_user_id_fkey"), new TableField[] { CommentLikes.COMMENT_LIKES.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<EventRsvpsRecord, EventsRecord> EVENT_RSVPS__EVENT_RSVPS_EVENT_ID_FKEY = Internal.createForeignKey(EventRsvps.EVENT_RSVPS, DSL.name("event_rsvps_event_id_fkey"), new TableField[] { EventRsvps.EVENT_RSVPS.EVENT_ID }, Keys.EVENTS_PKEY, new TableField[] { Events.EVENTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<EventRsvpsRecord, ProfilesRecord> EVENT_RSVPS__EVENT_RSVPS_USER_ID_FKEY = Internal.createForeignKey(EventRsvps.EVENT_RSVPS, DSL.name("event_rsvps_user_id_fkey"), new TableField[] { EventRsvps.EVENT_RSVPS.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<EventTagsRecord, EventsRecord> EVENT_TAGS__EVENT_TAGS_EVENT_ID_FKEY = Internal.createForeignKey(EventTags.EVENT_TAGS, DSL.name("event_tags_event_id_fkey"), new TableField[] { EventTags.EVENT_TAGS.EVENT_ID }, Keys.EVENTS_PKEY, new TableField[] { Events.EVENTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
@@ -74,6 +98,17 @@ public class Keys {
     public static final ForeignKey<FollowsRecord, ProfilesRecord> FOLLOWS__FOLLOWS_FOLLOWING_ID_FKEY = Internal.createForeignKey(Follows.FOLLOWS, DSL.name("follows_following_id_fkey"), new TableField[] { Follows.FOLLOWS.FOLLOWING_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<InfluencerApplicationsRecord, ProfilesRecord> INFLUENCER_APPLICATIONS__INFLUENCER_APPLICATIONS_PROFILE_ID_FKEY = Internal.createForeignKey(InfluencerApplications.INFLUENCER_APPLICATIONS, DSL.name("influencer_applications_profile_id_fkey"), new TableField[] { InfluencerApplications.INFLUENCER_APPLICATIONS.PROFILE_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<InfluencerApplicationsRecord, ProfilesRecord> INFLUENCER_APPLICATIONS__INFLUENCER_APPLICATIONS_REVIEWED_BY_FKEY = Internal.createForeignKey(InfluencerApplications.INFLUENCER_APPLICATIONS, DSL.name("influencer_applications_reviewed_by_fkey"), new TableField[] { InfluencerApplications.INFLUENCER_APPLICATIONS.REVIEWED_BY }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<NotificationsRecord, ProfilesRecord> NOTIFICATIONS__NOTIFICATIONS_ACTOR_ID_FKEY = Internal.createForeignKey(Notifications.NOTIFICATIONS, DSL.name("notifications_actor_id_fkey"), new TableField[] { Notifications.NOTIFICATIONS.ACTOR_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<NotificationsRecord, ProfilesRecord> NOTIFICATIONS__NOTIFICATIONS_RECIPIENT_ID_FKEY = Internal.createForeignKey(Notifications.NOTIFICATIONS, DSL.name("notifications_recipient_id_fkey"), new TableField[] { Notifications.NOTIFICATIONS.RECIPIENT_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PortfolioLikesRecord, PortfolioItemsRecord> PORTFOLIO_LIKES__PORTFOLIO_LIKES_PORTFOLIO_ITEM_ID_FKEY = Internal.createForeignKey(PortfolioLikes.PORTFOLIO_LIKES, DSL.name("portfolio_likes_portfolio_item_id_fkey"), new TableField[] { PortfolioLikes.PORTFOLIO_LIKES.PORTFOLIO_ITEM_ID }, Keys.PORTFOLIO_ITEMS_PKEY, new TableField[] { PortfolioItems.PORTFOLIO_ITEMS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostCommentsRecord, PostCommentsRecord> POST_COMMENTS__POST_COMMENTS_PARENT_ID_FKEY = Internal.createForeignKey(PostComments.POST_COMMENTS, DSL.name("post_comments_parent_id_fkey"), new TableField[] { PostComments.POST_COMMENTS.PARENT_ID }, Keys.POST_COMMENTS_PKEY, new TableField[] { PostComments.POST_COMMENTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostCommentsRecord, PostsRecord> POST_COMMENTS__POST_COMMENTS_POST_ID_FKEY = Internal.createForeignKey(PostComments.POST_COMMENTS, DSL.name("post_comments_post_id_fkey"), new TableField[] { PostComments.POST_COMMENTS.POST_ID }, Keys.POSTS_PKEY, new TableField[] { Posts.POSTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostCommentsRecord, ProfilesRecord> POST_COMMENTS__POST_COMMENTS_USER_ID_FKEY = Internal.createForeignKey(PostComments.POST_COMMENTS, DSL.name("post_comments_user_id_fkey"), new TableField[] { PostComments.POST_COMMENTS.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostImagesRecord, PostsRecord> POST_IMAGES__POST_IMAGES_POST_ID_FKEY = Internal.createForeignKey(PostImages.POST_IMAGES, DSL.name("post_images_post_id_fkey"), new TableField[] { PostImages.POST_IMAGES.POST_ID }, Keys.POSTS_PKEY, new TableField[] { Posts.POSTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostLikesRecord, PostsRecord> POST_LIKES__POST_LIKES_POST_ID_FKEY = Internal.createForeignKey(PostLikes.POST_LIKES, DSL.name("post_likes_post_id_fkey"), new TableField[] { PostLikes.POST_LIKES.POST_ID }, Keys.POSTS_PKEY, new TableField[] { Posts.POSTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostLikesRecord, ProfilesRecord> POST_LIKES__POST_LIKES_USER_ID_FKEY = Internal.createForeignKey(PostLikes.POST_LIKES, DSL.name("post_likes_user_id_fkey"), new TableField[] { PostLikes.POST_LIKES.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostsRecord, PostsRecord> POSTS__POSTS_ORIGINAL_POST_ID_FKEY = Internal.createForeignKey(Posts.POSTS, DSL.name("posts_original_post_id_fkey"), new TableField[] { Posts.POSTS.ORIGINAL_POST_ID }, Keys.POSTS_PKEY, new TableField[] { Posts.POSTS.ID }, true, ForeignKeyRule.SET_NULL, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<PostsRecord, ProfilesRecord> POSTS__POSTS_USER_ID_FKEY = Internal.createForeignKey(Posts.POSTS, DSL.name("posts_user_id_fkey"), new TableField[] { Posts.POSTS.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<TicketsRecord, EventsRecord> TICKETS__TICKETS_EVENT_ID_FKEY = Internal.createForeignKey(Tickets.TICKETS, DSL.name("tickets_event_id_fkey"), new TableField[] { Tickets.TICKETS.EVENT_ID }, Keys.EVENTS_PKEY, new TableField[] { Events.EVENTS.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<TicketsRecord, TransactionsRecord> TICKETS__TICKETS_TRANSACTION_ID_FKEY = Internal.createForeignKey(Tickets.TICKETS, DSL.name("tickets_transaction_id_fkey"), new TableField[] { Tickets.TICKETS.TRANSACTION_ID }, Keys.TRANSACTIONS_PKEY, new TableField[] { Transactions.TRANSACTIONS.ID }, true, ForeignKeyRule.SET_NULL, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<TicketsRecord, ProfilesRecord> TICKETS__TICKETS_USER_ID_FKEY = Internal.createForeignKey(Tickets.TICKETS, DSL.name("tickets_user_id_fkey"), new TableField[] { Tickets.TICKETS.USER_ID }, Keys.PROFILES_PKEY, new TableField[] { Profiles.PROFILES.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);

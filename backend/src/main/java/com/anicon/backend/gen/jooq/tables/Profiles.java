@@ -9,10 +9,15 @@ import com.anicon.backend.gen.jooq.Keys;
 import com.anicon.backend.gen.jooq.Public;
 import com.anicon.backend.gen.jooq.enums.ApplicationStatus;
 import com.anicon.backend.gen.jooq.enums.UserRole;
+import com.anicon.backend.gen.jooq.tables.CommentLikes.CommentLikesPath;
 import com.anicon.backend.gen.jooq.tables.EventRsvps.EventRsvpsPath;
 import com.anicon.backend.gen.jooq.tables.Events.EventsPath;
 import com.anicon.backend.gen.jooq.tables.Follows.FollowsPath;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications.InfluencerApplicationsPath;
+import com.anicon.backend.gen.jooq.tables.Notifications.NotificationsPath;
+import com.anicon.backend.gen.jooq.tables.PostComments.PostCommentsPath;
+import com.anicon.backend.gen.jooq.tables.PostLikes.PostLikesPath;
+import com.anicon.backend.gen.jooq.tables.Posts.PostsPath;
 import com.anicon.backend.gen.jooq.tables.Tickets.TicketsPath;
 import com.anicon.backend.gen.jooq.tables.Transactions.TransactionsPath;
 import com.anicon.backend.gen.jooq.tables.records.ProfilesRecord;
@@ -175,6 +180,16 @@ public class Profiles extends TableImpl<ProfilesRecord> {
      */
     public final TableField<ProfilesRecord, JSONB> SUPPORT_LINKS = createField(DSL.name("support_links"), SQLDataType.JSONB.defaultValue(DSL.field(DSL.raw("'[]'::jsonb"), SQLDataType.JSONB)), this, "");
 
+    /**
+     * The column <code>public.profiles.banner_position_y</code>.
+     */
+    public final TableField<ProfilesRecord, Integer> BANNER_POSITION_Y = createField(DSL.name("banner_position_y"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("50"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>public.profiles.show_support_links</code>.
+     */
+    public final TableField<ProfilesRecord, Boolean> SHOW_SUPPORT_LINKS = createField(DSL.name("show_support_links"), SQLDataType.BOOLEAN.defaultValue(DSL.field(DSL.raw("true"), SQLDataType.BOOLEAN)), this, "");
+
     private Profiles(Name alias, Table<ProfilesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -257,6 +272,19 @@ public class Profiles extends TableImpl<ProfilesRecord> {
         return Arrays.asList(Keys.PROFILES_USERNAME_KEY);
     }
 
+    private transient CommentLikesPath _commentLikes;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.comment_likes</code> table
+     */
+    public CommentLikesPath commentLikes() {
+        if (_commentLikes == null)
+            _commentLikes = new CommentLikesPath(this, null, Keys.COMMENT_LIKES__COMMENT_LIKES_USER_ID_FKEY.getInverseKey());
+
+        return _commentLikes;
+    }
+
     private transient EventRsvpsPath _eventRsvps;
 
     /**
@@ -335,6 +363,72 @@ public class Profiles extends TableImpl<ProfilesRecord> {
             _influencerApplicationsReviewedByFkey = new InfluencerApplicationsPath(this, null, Keys.INFLUENCER_APPLICATIONS__INFLUENCER_APPLICATIONS_REVIEWED_BY_FKEY.getInverseKey());
 
         return _influencerApplicationsReviewedByFkey;
+    }
+
+    private transient NotificationsPath _notificationsActorIdFkey;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.notifications</code> table, via the
+     * <code>notifications_actor_id_fkey</code> key
+     */
+    public NotificationsPath notificationsActorIdFkey() {
+        if (_notificationsActorIdFkey == null)
+            _notificationsActorIdFkey = new NotificationsPath(this, null, Keys.NOTIFICATIONS__NOTIFICATIONS_ACTOR_ID_FKEY.getInverseKey());
+
+        return _notificationsActorIdFkey;
+    }
+
+    private transient NotificationsPath _notificationsRecipientIdFkey;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.notifications</code> table, via the
+     * <code>notifications_recipient_id_fkey</code> key
+     */
+    public NotificationsPath notificationsRecipientIdFkey() {
+        if (_notificationsRecipientIdFkey == null)
+            _notificationsRecipientIdFkey = new NotificationsPath(this, null, Keys.NOTIFICATIONS__NOTIFICATIONS_RECIPIENT_ID_FKEY.getInverseKey());
+
+        return _notificationsRecipientIdFkey;
+    }
+
+    private transient PostCommentsPath _postComments;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.post_comments</code> table
+     */
+    public PostCommentsPath postComments() {
+        if (_postComments == null)
+            _postComments = new PostCommentsPath(this, null, Keys.POST_COMMENTS__POST_COMMENTS_USER_ID_FKEY.getInverseKey());
+
+        return _postComments;
+    }
+
+    private transient PostLikesPath _postLikes;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.post_likes</code>
+     * table
+     */
+    public PostLikesPath postLikes() {
+        if (_postLikes == null)
+            _postLikes = new PostLikesPath(this, null, Keys.POST_LIKES__POST_LIKES_USER_ID_FKEY.getInverseKey());
+
+        return _postLikes;
+    }
+
+    private transient PostsPath _posts;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.posts</code> table
+     */
+    public PostsPath posts() {
+        if (_posts == null)
+            _posts = new PostsPath(this, null, Keys.POSTS__POSTS_USER_ID_FKEY.getInverseKey());
+
+        return _posts;
     }
 
     private transient TicketsPath _tickets;

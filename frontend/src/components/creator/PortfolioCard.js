@@ -1,15 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { MoreVertical, Trash2, Pencil } from 'lucide-react';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-// Single portfolio gallery item with optional delete for the owner
-export function PortfolioCard({ item, isOwner = false, onDelete }) {
+// Single portfolio gallery item with hover menu for owner actions
+export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   return (
-    <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
+    <div className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer" onClick={onClick} onMouseLeave={() => setMenuOpen(false)}>
       <Image
         src={item.imageUrl}
         alt={item.title || 'Portfolio item'}
@@ -33,39 +49,74 @@ export function PortfolioCard({ item, isOwner = false, onDelete }) {
 
       {/* Featured indicator */}
       {item.isFeatured && (
-        <div className="absolute top-2 left-2 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
           Featured
         </div>
       )}
 
-      {/* Delete button for owner */}
+      {/* 3-dot menu for owner — stopPropagation prevents opening the lightbox */}
       {isOwner && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          {confirmDelete ? (
-            <div className="flex gap-1">
+        <div
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          ref={menuRef}
+        >
+          <button
+            onClick={() => { setMenuOpen(!menuOpen); setConfirmDelete(false); }}
+            className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70 transition-colors"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+
+          {/* Dropdown menu — edit/delete actions */}
+          {menuOpen && (
+            <div className="absolute top-9 right-0 bg-popover rounded-lg shadow-lg overflow-hidden min-w-[120px] z-10">
               <button
-                onClick={onDelete}
-                className="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                onClick={() => { onEdit?.(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
               >
-                Confirm
+                <Pencil className="w-3.5 h-3.5" /> Edit
               </button>
               <button
-                onClick={() => setConfirmDelete(false)}
-                className="bg-muted text-foreground text-xs px-2 py-1 rounded hover:bg-muted/80 transition-colors"
+                onClick={() => { setConfirmDelete(true); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
               >
-                Cancel
+                <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="bg-black/50 text-white p-1.5 rounded-full hover:bg-red-500 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
           )}
         </div>
       )}
+
+      {/* Delete confirmation modal — matches the "Not going?" modal design */}
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete item ?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This portfolio item will be permanently removed. This action cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+            >
+              Keep it
+            </button>
+            <button
+              onClick={() => { onDelete(); setConfirmDelete(false); }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                transition-all duration-300 hover:scale-[1.02]
+                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

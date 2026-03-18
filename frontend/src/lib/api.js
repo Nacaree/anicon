@@ -30,6 +30,14 @@ export function clearCachedToken() {
   _cachedAccessToken = null;
 }
 
+// Expose token and base URL for the WebSocket hook
+export function getCachedToken() {
+  return _cachedAccessToken;
+}
+export function getApiBaseUrl() {
+  return API_URL;
+}
+
 async function getAuthHeaders() {
   // Fast path: use the token AuthContext already resolved.
   // By the time any auth-required page fires a request (after the authLoading
@@ -311,12 +319,12 @@ export const ticketApi = {
 
 // Creator API calls — portfolio CRUD and creator profile updates
 export const creatorApi = {
-  // Update creator-specific profile fields (banner, type, commission info, support links)
+  // Update creator-specific profile fields (banner, type, support links)
   updateCreatorProfile: (data) => api.patch("/api/creator/profile", data),
 
-  // Get portfolio items for a user (public — no auth needed)
+  // Get portfolio items for a user — sends token if available so backend can populate likedByCurrentUser
   getPortfolio: (userId) =>
-    request(`/api/creator/${userId}/portfolio`, { method: "GET", noAuth: true }),
+    request(`/api/creator/${userId}/portfolio`, { method: "GET", bestEffortAuth: true }),
 
   // Add new portfolio item
   addPortfolioItem: (data) => api.post("/api/creator/portfolio", data),
@@ -326,6 +334,32 @@ export const creatorApi = {
 
   // Delete portfolio item
   deletePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}`),
+
+  // Like a portfolio item (requires auth)
+  likePortfolioItem: (id) => api.post(`/api/creator/portfolio/${id}/like`),
+
+  // Unlike a portfolio item (requires auth)
+  unlikePortfolioItem: (id) => api.delete(`/api/creator/portfolio/${id}/like`),
+};
+
+// Follow API — follow/unfollow users and fetch follower/following lists
+export const followApi = {
+  // Follow a user (requires auth)
+  follow: (userId) => api.post(`/api/follows/${userId}`),
+
+  // Unfollow a user (requires auth)
+  unfollow: (userId) => api.delete(`/api/follows/${userId}`),
+
+  // Check if current user follows the given user (requires auth)
+  getStatus: (userId) => api.get(`/api/follows/${userId}/status`),
+
+  // Get list of users who follow the given user — sends token if available so backend includes isFollowing
+  getFollowers: (userId) =>
+    request(`/api/follows/${userId}/followers`, { method: "GET", bestEffortAuth: true }),
+
+  // Get list of users the given user follows — sends token if available so backend includes isFollowing
+  getFollowing: (userId) =>
+    request(`/api/follows/${userId}/following`, { method: "GET", bestEffortAuth: true }),
 };
 
 // User Events API — for profile event tabs (Going/Hosted)
@@ -340,6 +374,95 @@ export const userEventsApi = {
     const query = miniOnly ? "?miniOnly=true" : "";
     return request(`/api/users/${userId}/events/hosted${query}`, { method: "GET", noAuth: true });
   },
+};
+
+// Posts API — social feed CRUD, likes, reposts, comments
+export const postsApi = {
+  // Create a new post (requires auth)
+  createPost: (textContent, imageUrls = []) =>
+    api.post("/api/posts", { textContent, imageUrls }),
+
+  // Get public feed — cursor-paginated, newest first.
+  // bestEffortAuth: sends cached token if available for liked/reposted state.
+  getFeed: (cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/posts/feed?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+
+  // Get a specific user's posts for their profile HomeTab
+  getUserPosts: (userId, cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/posts/user/${userId}?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+
+  // Get single post detail (for /posts/[id] page and modal)
+  getPost: (postId) =>
+    request(`/api/posts/${postId}`, { method: "GET", bestEffortAuth: true }),
+
+  // Edit post text and/or images (owner only)
+  updatePost: (postId, textContent, imageUrls) =>
+    api.patch(`/api/posts/${postId}`, { textContent, imageUrls }),
+
+  // Delete post (owner only)
+  deletePost: (postId) => api.delete(`/api/posts/${postId}`),
+
+  // Like / Unlike (idempotent)
+  likePost: (postId) => api.post(`/api/posts/${postId}/like`),
+  unlikePost: (postId) => api.delete(`/api/posts/${postId}/like`),
+
+  // Repost / Undo repost
+  repost: (postId) => api.post(`/api/posts/${postId}/repost`),
+  undoRepost: (postId) => api.delete(`/api/posts/${postId}/repost`),
+
+  // Comments
+  getComments: (postId) =>
+    request(`/api/posts/${postId}/comments`, { method: "GET", bestEffortAuth: true }),
+
+  addComment: (postId, textContent, parentId = null) =>
+    api.post(`/api/posts/${postId}/comments`, { textContent, parentId }),
+
+  deleteComment: (commentId) => api.delete(`/api/comments/${commentId}`),
+
+  // Comment likes
+  likeComment: (commentId) => api.post(`/api/comments/${commentId}/like`),
+  unlikeComment: (commentId) => api.delete(`/api/comments/${commentId}/like`),
+
+  // Upload post images to Supabase Storage (client-side, same pattern as portfolio)
+  uploadImage: async (file, userId) => {
+    const ext = file.name.split(".").pop();
+    const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const path = `${userId}/${filename}`;
+
+    const { error } = await supabase.storage.from("posts").upload(path, file);
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(path);
+    return publicUrl;
+  },
+};
+
+// ============================================
+// NOTIFICATION API
+// ============================================
+
+export const notificationApi = {
+  // Get aggregated notifications for the dropdown
+  getNotifications: (limit = 20, offset = 0) =>
+    request(`/api/notifications?limit=${limit}&offset=${offset}`),
+
+  // Get unread count for the bell icon badge (polled every 30s)
+  getUnreadCount: () =>
+    request("/api/notifications/unread-count"),
+
+  // Mark a single notification (group) as read
+  markAsRead: (id) =>
+    request(`/api/notifications/${id}/read`, { method: "PATCH" }),
+
+  // Mark all notifications as read
+  markAllRead: () =>
+    request("/api/notifications/read-all", { method: "PATCH" }),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

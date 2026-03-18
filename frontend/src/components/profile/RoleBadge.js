@@ -11,35 +11,40 @@ import { ROLES } from '@/lib/roles';
 const ROLE_CONFIG = {
   [ROLES.INFLUENCER]: {
     label: 'Influencer',
-    emoji: '\uD83C\uDFC5',
-    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-blue-500/25',
   },
   [ROLES.CREATOR]: {
-    label: 'Creator',
-    emoji: '\uD83C\uDFA8',
-    className: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    label: 'Creator', 
+    className: 'bg-[#2ED1E4]/15 text-[#18b3c4] shadow-[#2ED1E4]/25',
   },
   [ROLES.ORGANIZER]: {
     label: 'Organizer',
-    emoji: '\uD83C\uDFAA',
-    className: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    className: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 shadow-orange-500/25',
   },
 };
 
-export function RoleBadge({ roles }) {
+/**
+ * @param {Object} props
+ * @param {string[]} props.roles - Array of role strings
+ * @param {'sm' | 'md'} [props.size='md'] - sm: compact, no shadow (detail page). md: default with shadow (profile page).
+ */
+export function RoleBadge({ roles, size = 'md' }) {
   if (!Array.isArray(roles)) return null;
 
   // Filter to only roles that have a badge config (excludes fan)
   const visibleRoles = roles.filter(r => ROLE_CONFIG[r]);
   if (visibleRoles.length === 0) return null;
 
+  const sizeClasses = size === 'sm'
+    ? 'px-2 py-0.5 text-xs'
+    : 'px-3 py-0.5 text-[12px] shadow-sm';
+
   return (
     <>
       {visibleRoles.map(role => {
         const config = ROLE_CONFIG[role];
         return (
-          <span key={role} className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
-            <span>{config.emoji}</span>
+          <span key={role} className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${config.className}`}>
             {config.label}
           </span>
         );

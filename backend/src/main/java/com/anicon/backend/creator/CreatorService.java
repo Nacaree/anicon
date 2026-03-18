@@ -33,8 +33,8 @@ public class CreatorService {
 
     /**
      * Update creator-specific fields on the profile.
-     * Role-gated: creatorType requires creator role, commission fields require
-     * creator or influencer, support links are blocked for organizers.
+     * Role-gated: creatorType requires creator role,
+     * support links are blocked for organizers.
      * Evicts the profile cache so subsequent GETs return fresh data.
      */
     @CacheEvict(value = "profiles", key = "#userId")
@@ -54,29 +54,24 @@ public class CreatorService {
                     // General fields — any role can update these
                     .set(PROFILES.DISPLAY_NAME, request.displayName())
                     .set(PROFILES.BIO, request.bio())
-                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl());
+                    .set(PROFILES.AVATAR_URL, request.avatarUrl())
+                    .set(PROFILES.BANNER_IMAGE_URL, request.bannerImageUrl())
+                    .set(PROFILES.BANNER_POSITION_Y, request.bannerPositionY() != null ? request.bannerPositionY() : 50);
 
             // Creator type — only creators can set this
             if (RoleChecker.isCreator(roles)) {
                 update = update.set(PROFILES.CREATOR_TYPE, request.creatorType());
             }
 
-            // Commission fields — creators and influencers only
-            if (RoleChecker.canHaveCommissions(roles)) {
-                update = update
-                        .set(PROFILES.COMMISSION_STATUS, request.commissionStatus())
-                        .set(PROFILES.COMMISSION_INFO,
-                                request.commissionInfo() != null
-                                        ? JSONB.jsonb(objectMapper.writeValueAsString(request.commissionInfo()))
-                                        : JSONB.jsonb("{}"));
-            }
-
-            // Support links — everyone except organizers
+            // Support links — everyone except pure organizers
             if (RoleChecker.canHaveSupportLinks(roles)) {
                 update = update.set(PROFILES.SUPPORT_LINKS,
                         request.supportLinks() != null
                                 ? JSONB.jsonb(objectMapper.writeValueAsString(request.supportLinks()))
-                                : JSONB.jsonb("[]"));
+                                : JSONB.jsonb("[]"))
+                        // Toggle to show/hide support links on the public profile
+                        .set(PROFILES.SHOW_SUPPORT_LINKS,
+                                request.showSupportLinks() != null ? request.showSupportLinks() : true);
             }
 
             int updated = update

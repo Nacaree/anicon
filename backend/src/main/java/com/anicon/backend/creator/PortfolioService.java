@@ -1,17 +1,26 @@
 package com.anicon.backend.creator;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.anicon.backend.notification.NotificationEvent;
+import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.creator.dto.PortfolioItemRequest;
 import com.anicon.backend.creator.dto.PortfolioItemResponse;
 import com.anicon.backend.gen.jooq.enums.UserRole;
 
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
 
@@ -19,11 +28,21 @@ import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
 public class PortfolioService {
 
     private final PortfolioItemRepository portfolioItemRepository;
+    private final PortfolioLikeRepository portfolioLikeRepository;
     private final DSLContext dsl;
+    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
-    public PortfolioService(PortfolioItemRepository portfolioItemRepository, DSLContext dsl) {
+    public PortfolioService(PortfolioItemRepository portfolioItemRepository,
+                            PortfolioLikeRepository portfolioLikeRepository,
+                            DSLContext dsl,
+                            ApplicationEventPublisher eventPublisher,
+                            NotificationService notificationService) {
         this.portfolioItemRepository = portfolioItemRepository;
+        this.portfolioLikeRepository = portfolioLikeRepository;
         this.dsl = dsl;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -44,8 +63,9 @@ public class PortfolioService {
     /**
      * Get all portfolio items for a user, ordered by display_order.
      * Public — no auth needed. Returns empty list if user is not a creator.
+     * When currentUserId is provided, populates likedByCurrentUser on each item.
      */
-    public List<PortfolioItemResponse> getPortfolio(UUID userId) {
+    public List<PortfolioItemResponse> getPortfolio(UUID userId, UUID currentUserId) {
         // Only return portfolio for creators — non-creators have no portfolio
         UserRole[] roles = dsl.select(PROFILES.ROLES)
                 .from(PROFILES)
@@ -55,9 +75,19 @@ public class PortfolioService {
             return List.of();
         }
 
-        return portfolioItemRepository.findByUserIdOrderByDisplayOrderAsc(userId)
-                .stream()
-                .map(this::toResponse)
+        List<PortfolioItem> items = portfolioItemRepository.findByUserIdOrderByDisplayOrderAsc(userId);
+
+        // Batch-fetch which items the current user has liked (avoids N+1)
+        Set<UUID> likedIds;
+        if (currentUserId != null && !items.isEmpty()) {
+            List<UUID> itemIds = items.stream().map(PortfolioItem::getId).toList();
+            likedIds = new HashSet<>(portfolioLikeRepository.findLikedItemIds(currentUserId, itemIds));
+        } else {
+            likedIds = Collections.emptySet();
+        }
+
+        return items.stream()
+                .map(item -> toResponse(item, likedIds.contains(item.getId())))
                 .toList();
     }
 
@@ -84,7 +114,7 @@ public class PortfolioService {
                 .build();
 
         PortfolioItem saved = portfolioItemRepository.save(item);
-        return toResponse(saved);
+        return toResponse(saved, false);
     }
 
     /**
@@ -114,7 +144,7 @@ public class PortfolioService {
         if (request.isFeatured() != null) item.setIsFeatured(request.isFeatured());
 
         PortfolioItem saved = portfolioItemRepository.save(item);
-        return toResponse(saved);
+        return toResponse(saved, false);
     }
 
     /**
@@ -136,7 +166,58 @@ public class PortfolioService {
         portfolioItemRepository.delete(item);
     }
 
-    private PortfolioItemResponse toResponse(PortfolioItem item) {
+    /**
+     * Like a portfolio item. Idempotent — liking twice is a no-op.
+     * Atomically increments the denormalized like_count.
+     */
+    @Transactional
+    public void likeItem(UUID userId, UUID itemId) {
+        PortfolioItem item = portfolioItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio item not found"));
+
+        if (portfolioLikeRepository.existsByUserIdAndPortfolioItemId(userId, itemId)) {
+            return; // Already liked — idempotent
+        }
+
+        portfolioLikeRepository.save(PortfolioLike.builder()
+                .userId(userId)
+                .portfolioItemId(itemId)
+                .build());
+
+        // Atomic increment via JOOQ (uses plain SQL field reference since JOOQ types may not have like_count yet)
+        dsl.update(DSL.table("portfolio_items"))
+                .set(DSL.field("like_count", Long.class), DSL.field("like_count", Long.class).plus(1))
+                .where(DSL.field("id", UUID.class).eq(itemId))
+                .execute();
+
+        // Notify the portfolio item owner
+        eventPublisher.publishEvent(new NotificationEvent(userId, item.getUserId(), "like_portfolio", itemId, null));
+    }
+
+    /**
+     * Unlike a portfolio item. Idempotent — unliking when not liked is a no-op.
+     * Atomically decrements the denormalized like_count (floor at 0).
+     */
+    @Transactional
+    public void unlikeItem(UUID userId, UUID itemId) {
+        if (!portfolioLikeRepository.existsByUserIdAndPortfolioItemId(userId, itemId)) {
+            return; // Not liked — idempotent
+        }
+
+        portfolioLikeRepository.deleteByUserIdAndPortfolioItemId(userId, itemId);
+
+        // Atomic decrement via JOOQ, floored at 0 with GREATEST
+        dsl.update(DSL.table("portfolio_items"))
+                .set(DSL.field("like_count", Long.class),
+                        DSL.greatest(DSL.field("like_count", Long.class).minus(1), DSL.val(0L)))
+                .where(DSL.field("id", UUID.class).eq(itemId))
+                .execute();
+
+        // Remove the like notification
+        notificationService.deleteNotification(userId, "like_portfolio", itemId);
+    }
+
+    private PortfolioItemResponse toResponse(PortfolioItem item, boolean likedByCurrentUser) {
         return new PortfolioItemResponse(
                 item.getId(),
                 item.getUserId(),
@@ -148,6 +229,8 @@ public class PortfolioService {
                 item.getSeriesName(),
                 item.getDisplayOrder(),
                 item.getIsFeatured(),
+                item.getLikeCount() != null ? item.getLikeCount() : 0L,
+                likedByCurrentUser,
                 item.getCreatedAt()
         );
     }

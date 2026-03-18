@@ -78,7 +78,7 @@ This session implemented role-based gating, user event tabs, and profile enhance
 | Display Name / Bio / Banner | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Creator Type setting | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Commission Settings | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Support/Tip Links | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Support/Tip Links | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Portfolio gallery | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Events: Going tab | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Events: Hosted tab | ❌ | ❌ | ❌ | ✅ | ✅ |

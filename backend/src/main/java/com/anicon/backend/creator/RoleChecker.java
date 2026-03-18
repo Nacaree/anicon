@@ -33,13 +33,9 @@ public class RoleChecker {
         return isCreator(roles);
     }
 
-    /** Commissions available to creators and influencers */
-    public static boolean canHaveCommissions(UserRole[] roles) {
-        return isCreator(roles) || isInfluencer(roles);
-    }
-
     /** Support/tip links available to everyone except organizers */
     public static boolean canHaveSupportLinks(UserRole[] roles) {
-        return !isOrganizer(roles);
+        // Creator+Organizer combo keeps support links (they're also a creator)
+        return !isOrganizer(roles) || isCreator(roles);
     }
 }

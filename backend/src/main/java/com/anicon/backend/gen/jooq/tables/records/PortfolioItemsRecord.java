@@ -189,6 +189,20 @@ public class PortfolioItemsRecord extends UpdatableRecordImpl<PortfolioItemsReco
         return (OffsetDateTime) get(11);
     }
 
+    /**
+     * Setter for <code>public.portfolio_items.like_count</code>.
+     */
+    public void setLikeCount(Long value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>public.portfolio_items.like_count</code>.
+     */
+    public Long getLikeCount() {
+        return (Long) get(12);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -212,7 +226,7 @@ public class PortfolioItemsRecord extends UpdatableRecordImpl<PortfolioItemsReco
     /**
      * Create a detached, initialised PortfolioItemsRecord
      */
-    public PortfolioItemsRecord(UUID id, UUID userId, String imageUrl, String title, String description, String category, String characterName, String seriesName, Integer displayOrder, Boolean isFeatured, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public PortfolioItemsRecord(UUID id, UUID userId, String imageUrl, String title, String description, String category, String characterName, String seriesName, Integer displayOrder, Boolean isFeatured, OffsetDateTime createdAt, OffsetDateTime updatedAt, Long likeCount) {
         super(PortfolioItems.PORTFOLIO_ITEMS);
 
         setId(id);
@@ -227,6 +241,7 @@ public class PortfolioItemsRecord extends UpdatableRecordImpl<PortfolioItemsReco
         setIsFeatured(isFeatured);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setLikeCount(likeCount);
         resetTouchedOnNotNull();
     }
 }

@@ -4,12 +4,19 @@
 package com.anicon.backend.gen.jooq;
 
 
+import com.anicon.backend.gen.jooq.tables.CommentLikes;
 import com.anicon.backend.gen.jooq.tables.EventRsvps;
 import com.anicon.backend.gen.jooq.tables.EventTags;
 import com.anicon.backend.gen.jooq.tables.Events;
 import com.anicon.backend.gen.jooq.tables.Follows;
 import com.anicon.backend.gen.jooq.tables.InfluencerApplications;
+import com.anicon.backend.gen.jooq.tables.Notifications;
 import com.anicon.backend.gen.jooq.tables.PortfolioItems;
+import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
+import com.anicon.backend.gen.jooq.tables.PostComments;
+import com.anicon.backend.gen.jooq.tables.PostImages;
+import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tags;
 import com.anicon.backend.gen.jooq.tables.Tickets;
@@ -38,6 +45,11 @@ public class Public extends SchemaImpl {
     public static final Public PUBLIC = new Public();
 
     /**
+     * The table <code>public.comment_likes</code>.
+     */
+    public final CommentLikes COMMENT_LIKES = CommentLikes.COMMENT_LIKES;
+
+    /**
      * The table <code>public.event_rsvps</code>.
      */
     public final EventRsvps EVENT_RSVPS = EventRsvps.EVENT_RSVPS;
@@ -63,9 +75,39 @@ public class Public extends SchemaImpl {
     public final InfluencerApplications INFLUENCER_APPLICATIONS = InfluencerApplications.INFLUENCER_APPLICATIONS;
 
     /**
+     * The table <code>public.notifications</code>.
+     */
+    public final Notifications NOTIFICATIONS = Notifications.NOTIFICATIONS;
+
+    /**
      * The table <code>public.portfolio_items</code>.
      */
     public final PortfolioItems PORTFOLIO_ITEMS = PortfolioItems.PORTFOLIO_ITEMS;
+
+    /**
+     * The table <code>public.portfolio_likes</code>.
+     */
+    public final PortfolioLikes PORTFOLIO_LIKES = PortfolioLikes.PORTFOLIO_LIKES;
+
+    /**
+     * The table <code>public.post_comments</code>.
+     */
+    public final PostComments POST_COMMENTS = PostComments.POST_COMMENTS;
+
+    /**
+     * The table <code>public.post_images</code>.
+     */
+    public final PostImages POST_IMAGES = PostImages.POST_IMAGES;
+
+    /**
+     * The table <code>public.post_likes</code>.
+     */
+    public final PostLikes POST_LIKES = PostLikes.POST_LIKES;
+
+    /**
+     * The table <code>public.posts</code>.
+     */
+    public final Posts POSTS = Posts.POSTS;
 
     /**
      * The table <code>public.profiles</code>.
@@ -103,12 +145,19 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            CommentLikes.COMMENT_LIKES,
             EventRsvps.EVENT_RSVPS,
             EventTags.EVENT_TAGS,
             Events.EVENTS,
             Follows.FOLLOWS,
             InfluencerApplications.INFLUENCER_APPLICATIONS,
+            Notifications.NOTIFICATIONS,
             PortfolioItems.PORTFOLIO_ITEMS,
+            PortfolioLikes.PORTFOLIO_LIKES,
+            PostComments.POST_COMMENTS,
+            PostImages.POST_IMAGES,
+            PostLikes.POST_LIKES,
+            Posts.POSTS,
             Profiles.PROFILES,
             Tags.TAGS,
             Tickets.TICKETS,
