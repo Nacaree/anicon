@@ -7,11 +7,11 @@ import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
+import { usePostModal } from "@/context/PostModalContext";
 import { postsApi } from "@/lib/api";
 import PostComposer from "@/components/posts/PostComposer";
 import PostComposerModal from "@/components/posts/PostComposerModal";
 import PostFeed from "@/components/posts/PostFeed";
-import PostDetailModal from "@/components/posts/PostDetailModal";
 
 const FeaturedEvents = dynamic(
   () => import("@/components/FeaturedEvents"),
@@ -125,6 +125,7 @@ const RightPanel = dynamic(
 export default function Home() {
   const { isSidebarCollapsed } = useSidebar();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { openPostDirect, openPost, registerCallbacks } = usePostModal();
   // Incremented by the "anicon-home-refresh" custom event dispatched from Header
   // when the user clicks the logo while already on the homepage.
   // Passing this as `key` to FeaturedEvents and EventSections forces React to
@@ -132,8 +133,6 @@ export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
   // Separate key for the feed so new posts prepend without remounting the whole feed
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
-  // Post detail modal state — opened when clicking a post in the feed
-  const [detailPost, setDetailPost] = useState(null);
   // Composer modal state — opened when clicking the compact composer trigger
   const [composerOpen, setComposerOpen] = useState(false);
   // Files pre-selected from the composer's image button
@@ -141,21 +140,22 @@ export default function Home() {
   // Post being edited — when set, the composer opens in edit mode
   const [editingPost, setEditingPost] = useState(null);
 
+  // Register feed-specific callbacks so the global PostDetailModal can refresh
+  // this page's feed on delete/edit
+  useEffect(() => {
+    return registerCallbacks({
+      onPostDeleted: () => setFeedRefreshKey((k) => k + 1),
+      onEdit: (post) => {
+        setEditingPost(post);
+        setComposerOpen(true);
+      },
+    });
+  }, [registerCallbacks]);
+
   useEffect(() => {
     const refreshHandler = () => {
       setRefreshKey((k) => k + 1);
       setFeedRefreshKey((k) => k + 1);
-    };
-    // Open post detail modal when a notification is clicked (dispatched from NotificationItem)
-    const openPostHandler = async (e) => {
-      const { postId } = e.detail;
-      if (!postId) return;
-      try {
-        const post = await postsApi.getPost(postId);
-        if (post) setDetailPost(post);
-      } catch (err) {
-        console.error("Failed to load post from notification:", err);
-      }
     };
     // Check URL for ?post={id} — used by shared post links (/posts/{id} redirects here)
     const params = new URLSearchParams(window.location.search);
@@ -163,17 +163,13 @@ export default function Home() {
     if (postParam) {
       // Clear the query param from the URL without triggering a navigation
       window.history.replaceState({}, "", "/");
-      postsApi.getPost(postParam).then((post) => {
-        if (post) setDetailPost(post);
-      }).catch((err) => console.error("Failed to load shared post:", err));
+      openPost(postParam);
     }
     window.addEventListener("anicon-home-refresh", refreshHandler);
-    window.addEventListener("anicon-open-post", openPostHandler);
     return () => {
       window.removeEventListener("anicon-home-refresh", refreshHandler);
-      window.removeEventListener("anicon-open-post", openPostHandler);
     };
-  }, []);
+  }, [openPost]);
 
   // Fetch function for the public feed — passed to PostFeed
   const fetchFeed = useCallback((cursor) => postsApi.getFeed(cursor), []);
@@ -245,7 +241,7 @@ export default function Home() {
                         setEditingPost(post);
                         setComposerOpen(true);
                       } else {
-                        setDetailPost(post);
+                        openPostDirect(post);
                       }
                     }}
                   />
@@ -272,21 +268,6 @@ export default function Home() {
         }}
         initialFiles={composerInitialFiles}
         editingPost={editingPost}
-      />
-      {/* Post detail modal — opens when clicking a post in the feed */}
-      <PostDetailModal
-        post={detailPost}
-        isOpen={!!detailPost}
-        onClose={() => setDetailPost(null)}
-        onPostDeleted={(id) => {
-          setDetailPost(null);
-          setFeedRefreshKey((k) => k + 1);
-        }}
-        onEdit={(post) => {
-          setDetailPost(null);
-          setEditingPost(post);
-          setComposerOpen(true);
-        }}
       />
     </div>
   );

@@ -48,7 +48,7 @@ export default function ProfileDropdown() {
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-64 rounded-xl p-3">
+      <DropdownMenuContent align="end" className="w-56 sm:w-64 rounded-xl p-3">
         {/* Profile Header */}
         <div className="flex items-center gap-3 px-2 py-2">
           <Avatar className="w-10 h-10">

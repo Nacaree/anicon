@@ -102,12 +102,12 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
   return (
     /* Backdrop — clicking closes the lightbox */
     <div
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 animate-in fade-in-0 duration-200"
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 sm:p-6 animate-in fade-in-0 duration-200"
       onClick={onClose}
     >
       {/* Modal container — fixed height so layout is consistent regardless of image aspect ratio */}
       <div
-        className="relative flex w-full max-w-5xl h-[80vh] rounded-xl overflow-hidden shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
+        className="relative flex flex-col md:flex-row w-full max-w-5xl h-[90vh] md:h-[80vh] rounded-xl overflow-hidden shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: dark image area */}
@@ -124,7 +124,7 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
           {hasPrev && (
             <button
               onClick={goPrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1.5 rounded-full bg-black/30 hover:bg-white/10 transition-colors z-10"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 md:p-1.5 rounded-full bg-black/30 hover:bg-white/10 transition-colors z-10"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -134,7 +134,7 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
           {hasNext && (
             <button
               onClick={goNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1.5 rounded-full bg-black/30 hover:bg-white/10 transition-colors z-10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-3 md:p-1.5 rounded-full bg-black/30 hover:bg-white/10 transition-colors z-10"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
@@ -173,8 +173,8 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onChange, onLi
           )}
         </div>
 
-        {/* Right: info panel */}
-        <div className="hidden md:flex flex-col w-72 bg-white border-l border-gray-200 shrink-0">
+        {/* Right: info panel — stacks below image on mobile, side panel on desktop */}
+        <div className="flex flex-col w-full md:w-72 bg-white border-t md:border-t-0 md:border-l border-gray-200 shrink-0 max-h-[30vh] md:max-h-none overflow-y-auto">
           {/* Header — like, share, and close buttons */}
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">

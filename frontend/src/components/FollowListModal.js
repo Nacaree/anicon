@@ -54,7 +54,7 @@ export function FollowListModal({ userId, username, initialTab = "followers", fo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md h-[70vh] flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-center">{tab === "followers" ? "Followers" : "Following"}</DialogTitle>
         </DialogHeader>

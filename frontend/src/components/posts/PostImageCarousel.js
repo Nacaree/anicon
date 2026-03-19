@@ -40,11 +40,13 @@ export default function PostImageCarousel({ images, className = "" }) {
     return () => observer.disconnect();
   }, [count]);
 
-  // Scroll to a specific slide when clicking arrows or dots
+  // Scroll to a specific slide when clicking arrows or dots.
+  // Uses container.scrollTo instead of scrollIntoView to avoid scrolling the page.
   const scrollTo = useCallback((index) => {
+    const container = scrollRef.current;
     const slide = slideRefs.current[index];
-    if (slide) {
-      slide.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    if (container && slide) {
+      container.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
     }
   }, []);
 
@@ -78,7 +80,7 @@ export default function PostImageCarousel({ images, className = "" }) {
         <>
           {current > 0 && (
             <button
-              onClick={() => scrollTo(current - 1)}
+              onClick={(e) => { e.stopPropagation(); scrollTo(current - 1); }}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
               aria-label="Previous image"
             >
@@ -87,7 +89,7 @@ export default function PostImageCarousel({ images, className = "" }) {
           )}
           {current < count - 1 && (
             <button
-              onClick={() => scrollTo(current + 1)}
+              onClick={(e) => { e.stopPropagation(); scrollTo(current + 1); }}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
               aria-label="Next image"
             >
@@ -103,7 +105,7 @@ export default function PostImageCarousel({ images, className = "" }) {
           {images.map((_, i) => (
             <button
               key={i}
-              onClick={() => scrollTo(i)}
+              onClick={(e) => { e.stopPropagation(); scrollTo(i); }}
               className={`w-1.5 h-1.5 rounded-full transition-all ${
                 i === current
                   ? "bg-white w-3"

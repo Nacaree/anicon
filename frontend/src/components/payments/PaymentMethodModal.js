@@ -54,7 +54,7 @@ export default function PaymentMethodModal({ open, onClose, event, quantity = 1,
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Choose Payment Method</DialogTitle>
         </DialogHeader>

@@ -37,7 +37,7 @@ export function PortfolioEditModal({ item, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in-0 duration-200" onClick={onClose}>
-      <div className="bg-background rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 transition-[height] duration-300 ease-out" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-background rounded-xl w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] overflow-y-auto shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 transition-[height] duration-300 ease-out" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Edit Portfolio Item</h3>
@@ -48,7 +48,7 @@ export function PortfolioEditModal({ item, onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Image preview (not editable — just for reference) */}
-          <div className="relative h-48 rounded-lg overflow-hidden bg-muted">
+          <div className="relative h-32 sm:h-48 rounded-lg overflow-hidden bg-muted">
             <Image
               src={item.imageUrl}
               alt={item.title || 'Portfolio item'}

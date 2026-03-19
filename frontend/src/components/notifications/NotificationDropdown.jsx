@@ -85,7 +85,7 @@ export default function NotificationDropdown() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[380px] p-0 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
+        className="w-[calc(100vw-1rem)] sm:w-[380px] p-0 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">

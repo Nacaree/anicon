@@ -119,8 +119,8 @@ export default function Header() {
         </div>
       )}
 
-      {/* Search Bar */}
-      <div className="flex-1 max-w-xl mr-auto">
+      {/* Search Bar — hidden on mobile to free space for notification/profile icons */}
+      <div className="hidden sm:block flex-1 max-w-xl mr-auto">
         <div className="relative">
           <input
             type="text"
