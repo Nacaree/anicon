@@ -5,17 +5,26 @@ import { Client } from "@stomp/stompjs";
 import { useAuth } from "@/context/AuthContext";
 import { notificationApi, getCachedToken, getApiBaseUrl } from "@/lib/api";
 
+// Module-level cache — survives component remounts (page navigations)
+let _cachedNotifications = [];
+let _cachedUnreadCount = 0;
+let _cachedFullList = [];       // REST-fetched notification list
+let _cachedFullListAt = null;   // Timestamp of last REST fetch
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Real-time notification hook using STOMP over WebSocket.
  * Connects to /ws with JWT auth, subscribes to /user/queue/notifications.
  * Falls back to polling every 30s if WebSocket fails to connect.
- * Returns { unreadCount, notifications, refetch, resetNotifications }.
+ * Module-level cache prevents refetching on page navigation.
+ * Returns { unreadCount, notifications, cachedFullList, refetch, resetNotifications, fetchFullList }.
  */
 export function useNotificationCount() {
   const { isAuthenticated } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(_cachedUnreadCount);
   // Real-time notifications received via WebSocket — newest first
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(_cachedNotifications);
+  const [fullList, setFullList] = useState(_cachedFullList);
   const clientRef = useRef(null);
   const pollingRef = useRef(null);
   const wsConnectedRef = useRef(false);
@@ -24,9 +33,33 @@ export function useNotificationCount() {
   const fetchCount = useCallback(async () => {
     try {
       const data = await notificationApi.getUnreadCount();
-      setUnreadCount(data.unreadCount ?? 0);
+      const count = data.unreadCount ?? 0;
+      _cachedUnreadCount = count;
+      setUnreadCount(count);
     } catch {
       // Silently ignore — non-critical
+    }
+  }, []);
+
+  // Fetch full notification list with module-level caching
+  const fetchFullList = useCallback(async (force = false) => {
+    // Use cache if fresh enough
+    if (!force && _cachedFullListAt && Date.now() - _cachedFullListAt < CACHE_TTL_MS && _cachedFullList.length > 0) {
+      setFullList(_cachedFullList);
+      return _cachedFullList;
+    }
+    try {
+      const data = await notificationApi.getNotifications();
+      _cachedFullList = data || [];
+      _cachedFullListAt = Date.now();
+      setFullList(_cachedFullList);
+      // Reset WebSocket queue since REST data is now the source of truth
+      _cachedNotifications = [];
+      setNotifications([]);
+      return _cachedFullList;
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+      return _cachedFullList;
     }
   }, []);
 
@@ -86,9 +119,11 @@ export function useNotificationCount() {
         client.subscribe("/user/queue/notifications", (message) => {
           try {
             const notification = JSON.parse(message.body);
-            // Increment unread count and prepend to list
-            setUnreadCount((prev) => prev + 1);
-            setNotifications((prev) => [notification, ...prev]);
+            // Increment unread count and prepend to list, syncing to module cache
+            _cachedUnreadCount += 1;
+            _cachedNotifications = [notification, ..._cachedNotifications];
+            setUnreadCount(_cachedUnreadCount);
+            setNotifications(_cachedNotifications);
           } catch (e) {
             console.error("Failed to parse notification:", e);
           }
@@ -144,8 +179,38 @@ export function useNotificationCount() {
 
   // Reset notifications list (e.g., when dropdown fetches fresh data from REST)
   const resetNotifications = useCallback((fresh) => {
-    setNotifications(fresh || []);
+    _cachedNotifications = fresh || [];
+    setNotifications(_cachedNotifications);
   }, []);
 
-  return { unreadCount, setUnreadCount, notifications, refetch: fetchCount, resetNotifications };
+  // Sync setUnreadCount to module cache
+  const setUnreadCountCached = useCallback((val) => {
+    const newVal = typeof val === "function" ? val(_cachedUnreadCount) : val;
+    _cachedUnreadCount = newVal;
+    setUnreadCount(newVal);
+  }, []);
+
+  // Update full list cache (used by dropdown for optimistic updates)
+  const setFullListCached = useCallback((updater) => {
+    const newList = typeof updater === "function" ? updater(_cachedFullList) : updater;
+    _cachedFullList = newList;
+    setFullList(newList);
+  }, []);
+
+  // Invalidate the full list cache (e.g., after mark-all-read error)
+  const invalidateCache = useCallback(() => {
+    _cachedFullListAt = null;
+  }, []);
+
+  return {
+    unreadCount,
+    setUnreadCount: setUnreadCountCached,
+    notifications,
+    fullList,
+    setFullList: setFullListCached,
+    refetch: fetchCount,
+    fetchFullList,
+    resetNotifications,
+    invalidateCache,
+  };
 }

@@ -21,7 +21,7 @@ export function EventsGoingSection({ userId }) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
         ))}
@@ -62,7 +62,7 @@ function EventGroup({ label, events }) {
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
         {label} ({events.length})
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map(event => (
           // Wrapper overrides EventCard's fixed carousel widths so it fills the grid cell
           <div key={event.id} className="[&>a>div]:w-full [&>a]:block">

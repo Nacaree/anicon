@@ -63,7 +63,7 @@ export function PortfolioGrid({ userId, isOwner = false }) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
         ))}
@@ -95,7 +95,7 @@ export function PortfolioGrid({ userId, isOwner = false }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {(expanded ? items : items.slice(0, 8)).map((item, index) => (
               <PortfolioCard
                 key={item.id}

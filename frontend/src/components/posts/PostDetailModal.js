@@ -5,11 +5,13 @@ import Link from "next/link";
 import { X, MoreHorizontal, Pencil, Trash2, Repeat2 } from "lucide-react";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import { useAuth } from "@/context/AuthContext";
+import { useAuthGate } from "@/context/AuthGateContext";
 import { postsApi } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PostImageCarousel from "./PostImageCarousel";
 import PostActions from "./PostActions";
 import CommentSection from "./CommentSection";
+import CommentInput from "./CommentInput";
 
 /**
  * Instagram-style post detail modal.
@@ -18,11 +20,21 @@ import CommentSection from "./CommentSection";
  * Pushes /posts/[id] to URL for shareability.
  */
 export default function PostDetailModal({ post: initialPost, isOpen, onClose, onPostDeleted, onEdit }) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { requireAuth } = useAuthGate();
   // For reposts, inherit the original post's like state so the heart shows red
   const [post, setPost] = useState(() => mergeRepostState(initialPost));
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Tracks the latest comment added from the sticky input, passed to CommentSection
+  const [externalComment, setExternalComment] = useState(null);
+
+  // Submit a comment from the sticky input and pass it to CommentSection
+  const handleExternalComment = async (text) => {
+    const displayId = (isRepost ? post?.originalPost : post)?.id;
+    const newComment = await postsApi.addComment(displayId, text);
+    setExternalComment(newComment);
+  };
 
   // Sync post state when a new post is opened
   useEffect(() => {
@@ -290,27 +302,55 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
 
             {/* Comments — scrollable area */}
             <div className="flex-1 overflow-y-auto">
-
-              {/* Comments */}
-              <CommentSection key={displayPost.id} postId={displayPost.id} noBorder />
+              <CommentSection key={displayPost.id} postId={displayPost.id} noBorder hideInput externalComment={externalComment} />
             </div>
 
-            {/* Action bar — fixed at bottom */}
-            <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800">
-              {actionBar}
+            {/* Action bar + comment input — fixed at bottom */}
+            <div className="border-t border-gray-100 dark:border-gray-800">
+              <div className="px-3 py-2">
+                {actionBar}
+              </div>
+              <div className="px-3 pb-3">
+                {isAuthenticated ? (
+                  <CommentInput placeholder="Write a comment..." onSubmit={handleExternalComment} />
+                ) : (
+                  <button
+                    onClick={() => requireAuth(() => {})}
+                    className="w-full text-sm text-gray-400 dark:text-gray-500 text-center py-2 hover:text-orange-500 transition-colors"
+                  >
+                    Log in to comment
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       ) : (
         /* ===== SINGLE-COLUMN LAYOUT (text-only posts) ===== */
-        <div className="relative z-10 w-full max-w-2xl max-h-[90vh] mx-4 overflow-y-auto rounded-xl bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className="relative z-10 w-full max-w-2xl max-h-[90vh] mx-4 flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
           <div className="p-4">
             {repostHeader}
             {authorHeader}
             {textContent && <div className="mt-3">{textContent}</div>}
             <div className="mt-2">{actionBar}</div>
           </div>
-          <CommentSection key={displayPost.id} postId={displayPost.id} />
+          {/* Comments — scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <CommentSection key={displayPost.id} postId={displayPost.id} hideInput externalComment={externalComment} />
+          </div>
+          {/* Comment input — sticky at bottom */}
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+            {isAuthenticated ? (
+              <CommentInput placeholder="Write a comment..." onSubmit={handleExternalComment} />
+            ) : (
+              <button
+                onClick={() => requireAuth(() => {})}
+                className="w-full text-sm text-gray-400 dark:text-gray-500 text-center py-2 hover:text-orange-500 transition-colors"
+              >
+                Log in to comment
+              </button>
+            )}
+          </div>
         </div>
       )}
 

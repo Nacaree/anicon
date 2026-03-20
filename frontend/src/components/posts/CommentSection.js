@@ -12,7 +12,7 @@ import CommentInput from "./CommentInput";
  * Full comment section for a post — shows comment list + input.
  * Fetches comments on mount, supports adding new top-level comments.
  */
-export default function CommentSection({ postId, noBorder = false }) {
+export default function CommentSection({ postId, noBorder = false, hideInput = false, externalComment }) {
   const { isAuthenticated } = useAuth();
   const { requireAuth } = useAuthGate();
   const [comments, setComments] = useState([]);
@@ -41,6 +41,13 @@ export default function CommentSection({ postId, noBorder = false }) {
     // Append to top-level comments list
     setComments((prev) => [...prev, { ...newComment, replies: [] }]);
   };
+
+  // Append comments added externally (e.g. from a sticky input outside this component)
+  useEffect(() => {
+    if (externalComment) {
+      setComments((prev) => [...prev, { ...externalComment, replies: [] }]);
+    }
+  }, [externalComment]);
 
   // Called when a reply is added to a top-level comment
   const handleReplyAdded = (newReply) => {
@@ -88,19 +95,21 @@ export default function CommentSection({ postId, noBorder = false }) {
         </p>
       )}
 
-      {/* New comment input */}
-      {isAuthenticated ? (
-        <CommentInput
-          placeholder="Write a comment..."
-          onSubmit={handleAddComment}
-        />
-      ) : (
-        <button
-          onClick={() => requireAuth(() => {})}
-          className="w-full text-sm text-gray-400 dark:text-gray-500 text-center py-2 hover:text-orange-500 transition-colors"
-        >
-          Log in to comment
-        </button>
+      {/* New comment input — hidden when rendered separately (e.g. sticky in modal) */}
+      {!hideInput && (
+        isAuthenticated ? (
+          <CommentInput
+            placeholder="Write a comment..."
+            onSubmit={handleAddComment}
+          />
+        ) : (
+          <button
+            onClick={() => requireAuth(() => {})}
+            className="w-full text-sm text-gray-400 dark:text-gray-500 text-center py-2 hover:text-orange-500 transition-colors"
+          >
+            Log in to comment
+          </button>
+        )
       )}
     </div>
   );

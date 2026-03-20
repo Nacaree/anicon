@@ -3,10 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
+import { canCreateMiniEvent } from "@/lib/roles";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { isSidebarCollapsed: isCollapsed, isMobileMenuOpen, closeMobileMenu } = useSidebar();
+  const { profile } = useAuth();
+
+  // Determine whether to show "Host" (can create events) or "Become a Host" (fan)
+  const roles = profile?.roles || [];
+  const canHost = canCreateMiniEvent(roles);
 
   const navItems = [
     {
@@ -40,6 +47,17 @@ export default function Sidebar() {
         </svg>
       ),
     },
+    // "Host" for users who can create events, "Become a Host" for fans.
+    // Only shown when the user is logged in.
+    ...(profile ? [{
+      label: canHost ? "Host" : "Become a Host",
+      href: canHost ? "/host/create" : "/become-host",
+      icon: (
+        <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+        </svg>
+      ),
+    }] : []),
   ];
 
   return (

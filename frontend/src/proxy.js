@@ -12,6 +12,7 @@ const publicRoutes = [
   "/callback",
   "/events",
   "/profiles",
+  "/search",
 ];
 
 // Auth pages that authenticated users should be redirected away from

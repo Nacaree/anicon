@@ -15,8 +15,7 @@ import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { FollowButton } from '@/components/FollowButton';
 import { FollowListModal } from '@/components/FollowListModal';
 import { canHavePortfolio, canHaveSupportLinks } from '@/lib/roles';
-import { supabase } from '@/lib/supabase';
-import { MapPin, Calendar, Link as LinkIcon, Move, Camera, Loader2, Pencil } from 'lucide-react';
+import { MapPin, Calendar, Link as LinkIcon, Move, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -102,49 +101,6 @@ export default function ProfilePage() {
     setRepositioning(false);
   };
 
-  // Avatar upload state
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) return;
-
-    setUploadingAvatar(true);
-    try {
-      const filename = `avatar-${Date.now()}.${file.name.split('.').pop()}`;
-      const path = `${profile.id}/${filename}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('portfolio')
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('portfolio')
-        .getPublicUrl(path);
-
-      // Save avatar URL to backend
-      await creatorApi.updateCreatorProfile({
-        displayName: profile.displayName || null,
-        bio: profile.bio || null,
-        avatarUrl: publicUrl,
-        bannerImageUrl: profile.bannerImageUrl || null,
-        bannerPositionY: profile.bannerPositionY ?? 50,
-        creatorType: profile.creatorType || null,
-        supportLinks: profile.supportLinks || [],
-      });
-
-      // Update local profile state so avatar refreshes immediately
-      setProfile((prev) => ({ ...prev, avatarUrl: publicUrl }));
-    } catch (err) {
-      console.error('Avatar upload failed:', err);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
   // Follow list modal state
   const [followModalOpen, setFollowModalOpen] = useState(false);
   const [followModalTab, setFollowModalTab] = useState("followers");
@@ -181,10 +137,10 @@ export default function ProfilePage() {
         <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
           <Header />
           <div className="animate-pulse">
-            <div className="h-[280px] md:h-[350px] bg-muted" />
+            <div className="h-[320px] md:h-[400px] bg-muted" />
             <div className="max-w-[940px] mx-auto px-4">
               <div className="flex items-end gap-4 -mt-[42px] pb-4">
-                <div className="w-[176px] h-[176px] rounded-full bg-muted -mt-[84px]" />
+                <div className="w-[200px] h-[200px] rounded-full bg-muted -mt-[80px]" />
                 <div className="space-y-2 pb-2">
                   <div className="h-8 w-48 bg-muted rounded" />
                   <div className="h-4 w-28 bg-muted rounded" />
@@ -221,7 +177,7 @@ export default function ProfilePage() {
           {/* Banner — spans full width like Facebook cover photo */}
           <div
             ref={bannerRef}
-            className={`relative h-[280px] md:h-[350px] overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`relative h-[320px] md:h-[400px] overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
             onMouseDown={repositioning ? handleDragStart : undefined}
             onTouchStart={repositioning ? handleDragStart : undefined}
           >
@@ -285,32 +241,18 @@ export default function ProfilePage() {
             {/* Avatar + Name row — avatar overlaps the banner */}
             <div className="flex items-start justify-between pb-4">
               <div className="flex gap-5">
-                <div className="relative group shrink-0 -mt-[20px] size-[176px] rounded-full overflow-hidden">
-                  <Avatar className="!size-[176px]">
+                <div className="shrink-0 -mt-[60px] size-[200px] rounded-full overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.15)]">
+                  <Avatar className="!size-[200px]">
                     <AvatarImage src={profile.avatarUrl} alt={profile.displayName} className="object-cover" />
                     <AvatarFallback className="text-3xl bg-muted">{initials}</AvatarFallback>
                   </Avatar>
-                  {/* Avatar upload overlay — visible on hover for profile owner */}
-                  {isOwner && (
-                    <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
-                      {uploadingAvatar ? (
-                        <Loader2 className="w-8 h-8 text-white animate-spin" />
-                      ) : (
-                        <Camera className="w-8 h-8 text-white" />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                        disabled={uploadingAvatar}
-                      />
-                    </label>
-                  )}
                 </div>
-                <div className="pt-7 space-y-2">
+                <div className="pt-4 space-y-1.5">
                   <div>
-                    <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
+                    <div className="flex items-center gap-2.5">
+                      <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
+                      <RoleBadge roles={profile.roles} />
+                    </div>
                     <p className="text-muted-foreground mt-0.5">@{profile.username}</p>
                   </div>
                   {/* Follower/following counts — clickable to open list modal */}
@@ -339,7 +281,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Action buttons — Edit Profile for owner, Follow for visitors */}
-              <div className="pt-7">
+              <div className="pt-5">
                 {isOwner ? (
                   <Link href="/settings/creator">
                     <Button
@@ -358,11 +300,6 @@ export default function ProfilePage() {
 
             {/* Profile content below the divider */}
             <div className="py-4 space-y-6">
-
-              {/* Role badges */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <RoleBadge roles={profile.roles} />
-              </div>
 
               {/* Bio + meta info */}
               <div className="space-y-3">

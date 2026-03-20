@@ -208,7 +208,7 @@ export default function StripePaymentModal({
         if (!isOpen) setShowLeaveConfirm(true);
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             Enter Card Details
@@ -229,7 +229,7 @@ export default function StripePaymentModal({
         {/* Leave confirmation overlay — shown when user tries to dismiss mid-checkout */}
         {showLeaveConfirm && (
           <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm rounded-xl
-            flex flex-col items-center justify-center gap-4 p-8 text-center">
+            flex flex-col items-center justify-center gap-4 p-4 sm:p-8 text-center">
             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-1">
               <svg className="w-6 h-6 text-[#FF7927]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

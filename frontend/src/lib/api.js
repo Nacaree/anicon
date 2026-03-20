@@ -254,6 +254,9 @@ export const eventApi = {
     if (cached) return Promise.resolve(cached);
     return request(`/api/events/${id}`, { method: "GET", noAuth: true });
   },
+  // Create a new event (requires auth — role-gated on the backend).
+  // Used by the /host/create page for mini-events, and future event creation UIs.
+  createEvent: (data) => api.post("/api/events", data),
 };
 
 // In-memory ticket/RSVP cache. Populated by the tickets page after its first
@@ -376,6 +379,15 @@ export const userEventsApi = {
   },
 };
 
+// Influencer Application API — submit/check host applications
+export const influencerApi = {
+  // Submit an application to become a verified host (requires auth)
+  submitApplication: (data) => api.post("/api/influencer-applications", data),
+
+  // Get current user's most recent application status (requires auth)
+  getMyApplication: () => api.get("/api/influencer-applications/my"),
+};
+
 // Posts API — social feed CRUD, likes, reposts, comments
 export const postsApi = {
   // Create a new post (requires auth)
@@ -463,6 +475,27 @@ export const notificationApi = {
   // Mark all notifications as read
   markAllRead: () =>
     request("/api/notifications/read-all", { method: "PATCH" }),
+};
+
+// ============================================
+// SEARCH API
+// ============================================
+
+export const searchApi = {
+  /**
+   * Global search across users, events, and posts.
+   * bestEffortAuth: sends cached token if available for post liked state,
+   * but never blocks on getSession() — search works instantly for guests.
+   *
+   * @param {string} q     Search query string
+   * @param {string} type  "all" | "users" | "events" | "posts"
+   * @param {number} limit Max results per category
+   */
+  search: (q, type = "all", limit = 5) =>
+    request(
+      `/api/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`,
+      { method: "GET", bestEffortAuth: true },
+    ),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

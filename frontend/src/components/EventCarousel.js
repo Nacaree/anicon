@@ -112,7 +112,7 @@ export default function EventCarousel({
           py-4 gives vertical breathing room so hover:scale doesn't get clipped. */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto flex gap-7 py-4 px-4"
+        className="overflow-x-auto flex gap-4 sm:gap-7 py-4 px-4"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {Children.map(children, (child, index) => (

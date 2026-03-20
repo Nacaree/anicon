@@ -46,7 +46,7 @@ export default function TicketQuantityModal({ open, onClose, event, onCheckout }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Get Tickets</DialogTitle>
         </DialogHeader>

@@ -82,7 +82,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in-0 duration-200">
-      <div className="bg-background rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 transition-[height] duration-300 ease-out">
+      <div className="bg-background rounded-xl w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] overflow-y-auto shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 transition-[height] duration-300 ease-out">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Add Portfolio Item</h3>
@@ -94,7 +94,7 @@ export function PortfolioUploadModal({ userId, onClose, onSuccess }) {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Image upload area */}
           {preview ? (
-            <div className="relative h-48 rounded-lg overflow-hidden bg-muted">
+            <div className="relative h-32 sm:h-48 rounded-lg overflow-hidden bg-muted">
               <img src={preview} alt="Preview" className="w-full h-full object-cover" />
               <button
                 type="button"

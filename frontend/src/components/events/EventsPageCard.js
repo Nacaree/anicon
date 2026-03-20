@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuthGate } from "@/context/AuthGateContext";
 import { isEventSaved, saveEvent, unsaveEvent } from "@/lib/savedEvents";
 
+
 export default function EventsPageCard({ event }) {
   const { requireAuth } = useAuthGate();
   // Initialize from localStorage so the saved state survives page refreshes.

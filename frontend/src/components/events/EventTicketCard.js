@@ -155,7 +155,7 @@ export default function EventTicketCard({ event, loading = false }) {
         });
       }
     } catch {
-      setActionError("Couldn't cancel RSVP. Please try again.");
+      setActionError("Couldn't cancel. Please try again.");
     } finally {
       setCancelRsvpLoading(false);
     }

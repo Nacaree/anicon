@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Repeat2, UserPlus, Image } from "lucide-react";
 
 /**
@@ -10,7 +10,6 @@ import { Heart, MessageCircle, Repeat2, UserPlus, Image } from "lucide-react";
  */
 export default function NotificationItem({ notification, onRead, onClose }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { type, targetId, referenceId, actorUsername, actorDisplayName, actorAvatarUrl, actorCount, isRead, createdAt } = notification;
 
   // Build the action text based on notification type
@@ -75,18 +74,11 @@ export default function NotificationItem({ notification, onRead, onClose }) {
     onClose?.();
 
     if (isPostRelated) {
+      // Dispatch global event — PostModalContext listens and opens the modal
+      // on whatever page the user is currently on, no navigation needed
       const postId = getPostId();
       if (postId) {
-        if (pathname === "/") {
-          // Already on home — open the post detail modal directly
-          window.dispatchEvent(new CustomEvent("anicon-open-post", { detail: { postId } }));
-        } else {
-          // Navigate home first, then open modal after page mounts
-          router.push("/");
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent("anicon-open-post", { detail: { postId } }));
-          }, 500);
-        }
+        window.dispatchEvent(new CustomEvent("anicon-open-post", { detail: { postId } }));
       }
     } else {
       // Navigate to profile for follow/portfolio notifications
@@ -101,8 +93,8 @@ export default function NotificationItem({ notification, onRead, onClose }) {
         !isRead ? "bg-orange-50/50 dark:bg-orange-950/10" : ""
       }`}
     >
-      {/* Unread indicator dot */}
-      <div className="flex-shrink-0 pt-2 w-2">
+      {/* Unread indicator dot — h-10 matches avatar height so dot is vertically centered */}
+      <div className="flex-shrink-0 w-2 h-10 flex items-center">
         {!isRead && (
           <div className="w-2 h-2 rounded-full bg-orange-500" />
         )}
