@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-AniCon is a platform for Cambodia's anime community — event ticketing, creator content, and community features. It is a full-stack monorepo: a **Next.js 16** frontend and a **Spring Boot 3.4 / Java 21** backend, backed by **Supabase (PostgreSQL)**.
+AniCon is a social platform for Cambodia's anime community — event ticketing, creator portfolios, social posts, real-time notifications, and community features. It is a full-stack monorepo: a **Next.js 16** frontend and a **Spring Boot 3.4 / Java 21** backend, backed by **Supabase (PostgreSQL)**.
 
 Key reference docs:
 - `docs/PLANNING2.md` — Auth flows, role system, entity designs, query patterns
@@ -56,7 +56,8 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 
 - **Routing:** Next.js App Router. `(auth)/` is a route group for login/signup flows; `events/[id]/` is a dynamic route. `callback/route.js` handles the Supabase OAuth callback.
 - **Middleware:** `src/proxy.js` handles route protection — it uses `@supabase/ssr` to read the session from cookies, redirects unauthenticated users to `/login`, and gates unverified emails to `/verify-email`. It exports a `proxy` named export (not `middleware`). Public routes: `/`, `/events`, `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/callback`, `/_next`.
-- **State:** Three React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle). Use the `useAuth()` hook to access `AuthContext`; it exposes: `user`, `profile`, `isLoading`, `isAuthenticated`, `emailVerified`, `signUp`, `signIn`, `signInWithMagicLink`, `signOut`, `resetPassword`, `updatePassword`, `refreshSession`, `fetchProfile`. Note: Supabase does not return an error for duplicate emails on signup — detect it by checking `authData.user?.identities?.length === 0`.
+- **State:** Four React contexts — `AuthContext` (session + user), `AuthGateContext` (modal prompting unauthenticated users), `SidebarContext` (visibility toggle), `PostModalContext` (global post detail modal). Use the `useAuth()` hook to access `AuthContext`; it exposes: `user`, `profile`, `isLoading`, `isAuthenticated`, `emailVerified`, `signUp`, `signIn`, `signInWithMagicLink`, `signOut`, `resetPassword`, `updatePassword`, `refreshSession`, `fetchProfile`. Note: Supabase does not return an error for duplicate emails on signup — detect it by checking `authData.user?.identities?.length === 0`.
+- **PostModalContext:** A global singleton that renders one `PostDetailModal` at the app root. `usePostModal()` exposes `openPost(id)` (fetches from API), `openPostDirect(data)` (already-loaded post), `closePost()`, and `registerCallbacks()`. Pages with feeds register `onPostDeleted`/`onEdit` callbacks so modal actions update the underlying feed. Also listens for `anicon-open-post` custom events (dispatched by notifications and search results).
 - **API calls:** All authenticated requests go through `src/lib/api.js`, which injects the JWT automatically, wraps errors in an `ApiError` class, and retries on 5xx errors (3 attempts, 500ms backoff). Defaults to `http://localhost:8080`; override with `NEXT_PUBLIC_API_URL`. `normalizeEvent()` in `api.js` maps backend field names to frontend expectations: `eventDate`→`date`, `eventTime`→`time`, `coverImageUrl`→`imageUrl`/`images`/`thumbnails`, `currentAttendance`→`wantToGoCount`, and also adds `timeRange`/`dateRange` aliases. Three auth modes on `request()`: `noAuth: true` skips token entirely (public endpoints), `bestEffortAuth: true` attaches the cached token synchronously if available but never calls `getSession()` (optionally-authenticated endpoints like `event-status`), default calls `getAuthHeaders()` which awaits the token (fully auth-required endpoints).
 - **Event cache:** `api.js` maintains a module-level `_eventCache` (Map). `eventApi.listEvents()` populates it; `eventApi.getEvent(id)` hits the cache first and only fetches Railway if the cache is empty (e.g. on a direct link to `/events/:id`). `getCachedEvent(id)` and `getCachedEvents()` are exported for synchronous reads — the event detail page uses these to render with real data on first paint, avoiding a skeleton flash when the user navigated from the events list.
 - **Token caching:** `api.js` maintains a `_cachedAccessToken` updated by `AuthContext`. This avoids concurrent `getSession()` calls that would deadlock via Supabase's `navigator.locks`. Do not call `supabase.auth.getSession()` directly inside page components — use the cached token path through `api.js` or read from `AuthContext`.
@@ -74,6 +75,10 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **Layers:** `controller/` → `service/` → `repository/` (JPA) or JOOQ DSLContext.
 - **Ticketing sub-package:** All ticketing code lives in `com.anicon.backend.ticketing` — `EventController`, `EventService`, `TicketController`, `TicketService`, `PayWayService`, `StripeService`, `StripeWebhookController`, and `dto/`. This package uses JOOQ exclusively (no JPA entities).
 - **Creator sub-package:** `com.anicon.backend.creator` — `CreatorController`, `CreatorService`, `PortfolioController`, `PortfolioService`, `UserEventsController`, `UserEventsService`, `RoleChecker`, and `dto/`. Portfolio uses JPA; user events uses JOOQ. `RoleChecker` is a static utility that gates field updates and portfolio access by role.
+- **Social sub-package:** `com.anicon.backend.social` — `PostController`, `PostService`, `CommentController`, `CommentService`, and JPA entities (`Post`, `PostImage`, `PostComment`, `PostLike`, `CommentLike`). Handles post CRUD, likes/unlikes, reposts, nested comments. Uses denormalized counters (`like_count`, `comment_count`, `repost_count`). Reposts tracked via `original_post_id`. Posts support soft-delete (`is_deleted`). Post images stored in Supabase Storage (`posts/` bucket).
+- **Notification sub-package:** `com.anicon.backend.notification` — `NotificationController`, `NotificationService`, `NotificationEventHandler`, JPA entity `Notification`. Uses Spring's `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` pattern — services publish `NotificationEvent` records, the handler persists and pushes via STOMP WebSocket. 7 types: `like_post`, `comment_post`, `reply_comment`, `like_comment`, `repost_post`, `like_portfolio`, `follow_user`. Upsert dedup on `(actor_id, type, target_id)`. Never notifies self; deletes notification on unlike/unfollow.
+- **Search sub-package:** `com.anicon.backend.search` — `SearchController`, `SearchService`. Unified `GET /api/search?q=&type=&limit=` endpoint. ILIKE search across users (username + display_name), events (title + description + location + tags), and posts (text_content). Uses JOOQ with batch-fetching to avoid N+1.
+- **WebSocket:** STOMP broker on `/ws` with SockJS fallback. `WebSocketConfig` enables the broker, `WebSocketAuthInterceptor` validates JWT on STOMP CONNECT. Clients subscribe to `/user/queue/notifications` for real-time push.
 
 ### Key API Endpoints
 
@@ -104,6 +109,26 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `DELETE` | `/api/portfolio/{id}` | Required | Delete portfolio item (owner only) |
 | `GET` | `/api/users/{userId}/events/going` | Public | Events user RSVP'd or bought tickets for |
 | `GET` | `/api/users/{userId}/events/hosted` | Public | Events user organized (`?miniOnly=true` for influencers) |
+| `POST` | `/api/posts` | Required | Create post with text/images |
+| `GET` | `/api/posts/feed?cursor=&limit=20` | Optional | Paginated feed (cursor-based, newest first) |
+| `GET` | `/api/posts/user/{userId}?cursor=` | Optional | User's posts (for profile HomeTab) |
+| `GET` | `/api/posts/{id}` | Optional | Single post (for detail page/modal) |
+| `PATCH` | `/api/posts/{id}` | Required | Edit post (owner only) |
+| `DELETE` | `/api/posts/{id}` | Required | Soft-delete post (owner only) |
+| `POST` | `/api/posts/{id}/like` | Required | Like a post |
+| `DELETE` | `/api/posts/{id}/like` | Required | Unlike a post |
+| `POST` | `/api/posts/{id}/repost` | Required | Repost |
+| `DELETE` | `/api/posts/{id}/repost` | Required | Undo repost |
+| `GET` | `/api/posts/{id}/comments` | Optional | Fetch comments (nested via `parentId`) |
+| `POST` | `/api/posts/{id}/comments` | Required | Add comment |
+| `DELETE` | `/api/comments/{id}` | Required | Delete comment (owner only) |
+| `POST` | `/api/comments/{id}/like` | Required | Like a comment |
+| `DELETE` | `/api/comments/{id}/like` | Required | Unlike a comment |
+| `GET` | `/api/notifications` | Required | Fetch notifications (`?limit=&offset=`) |
+| `GET` | `/api/notifications/unread-count` | Required | Unread count for bell badge |
+| `PATCH` | `/api/notifications/{id}/read` | Required | Mark one as read |
+| `PATCH` | `/api/notifications/read-all` | Required | Mark all as read |
+| `GET` | `/api/search?q=&type=&limit=` | Optional | Unified search (users, events, posts) |
 
 ### Key Design Patterns
 
@@ -117,6 +142,12 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 - **JOOQ multiset for tags:** Tags are loaded in one SQL round-trip (no N+1) using JOOQ's `multiset()` function.
 - **Tag upsert:** Two-step — INSERT tag ON CONFLICT DO NOTHING, then SELECT tag ID by name.
 - **Duplicate RSVP prevention:** The DB `UNIQUE (user_id, event_id)` constraint on `event_rsvps` rejects duplicates; `GlobalExceptionHandler` maps the resulting `DataIntegrityViolationException` to 409 CONFLICT.
+- **Post feed pagination:** Cursor-based (not offset-based). The cursor is the last post's `created_at` timestamp. `GET /api/posts/feed?cursor=&limit=20` returns newest first. Frontend uses infinite scroll with `IntersectionObserver`.
+- **Denormalized counters on posts:** `like_count`, `comment_count`, `repost_count` are incremented/decremented atomically on actions — no `COUNT()` queries needed for display.
+- **Notification event pattern:** Services publish `NotificationEvent` Spring events (e.g. `PostService.likePost()` → `like_post` event). `NotificationEventHandler` listens after commit (`@TransactionalEventListener(AFTER_COMMIT)`) and persists + pushes via STOMP. This decouples notification logic from business logic.
+- **Notification dedup:** Upsert on `UNIQUE(actor_id, type, target_id)` prevents duplicates from like→unlike→like cycles. Unlike/unfollow deletes the notification.
+- **Real-time notifications:** STOMP WebSocket (`/ws`) with SockJS fallback. Frontend `useNotificationCount()` hook auto-reconnects (5s backoff) and falls back to HTTP polling (30s) if WebSocket fails. Module-level cache survives page navigation with 5-minute TTL.
+- **Post images:** Uploaded to Supabase Storage (`posts/` bucket, path: `{userId}/{timestamp}-{random}.{ext}`). Displayed in CSS scroll-snap carousel with IntersectionObserver dot indicators. Natural sizing (no upscale).
 
 ## Database
 
@@ -134,6 +165,12 @@ Browser → Next.js (App Router) → Spring Boot REST API → Supabase (PostgreS
 | `event_rsvps` | "I'm going" for free events |
 | `tags` / `event_tags` | Tag definitions and many-to-many junction |
 | `portfolio_items` | Creator gallery items (images, metadata, ordering) |
+| `posts` | Social posts (text_content, original_post_id for reposts, denormalized counters, soft-delete via is_deleted) |
+| `post_images` | Post image URLs with display_order |
+| `post_likes` | Post like records (UNIQUE on post_id + user_id) |
+| `post_comments` | Nested comments (parent_id for replies, like_count, soft-delete) |
+| `comment_likes` | Comment like records |
+| `notifications` | Push notifications (recipient_id, actor_id, type, target_id, reference_id, is_read; UNIQUE on actor_id + type + target_id) |
 
 ### Role System
 
@@ -153,7 +190,6 @@ Event creation permissions (enforced in `EventService`, backed up by DB constrai
 Profile feature visibility (enforced by `RoleChecker` backend + `lib/roles.js` frontend):
 - Portfolio gallery: creator only
 - Creator type setting: creator only
-- Commission settings: creator or influencer
 - Support/tip links: everyone except pure organizer (creator+organizer combo keeps them)
 - Events "Going" tab: everyone except organizer
 - Events "Hosted" tab: organizer only (includes creator+organizer combo)
@@ -185,12 +221,34 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 - My Tickets page (`app/tickets/page.js`): merges paid tickets + free RSVPs sorted by event date, with per-user ticket status badge on the event detail card (`EventTicketCard` → `ticketApi.eventStatus()`)
 
 **Working (Creator/Profile features):**
-- Creator portfolio: `PortfolioController` CRUD endpoints, `PortfolioGrid`/`PortfolioCard`/`PortfolioUploadModal` frontend components
-- Creator settings: `PATCH /api/creator/profile` updates display name, bio, banner, creator type, commissions, support links — role-gated by `RoleChecker` in `CreatorService`
-- Role-based profile sections: portfolio (creator only), commissions (creator/influencer), support links (not organizer), events hosted tab (organizer only), events going tab (not organizer)
-- Profile tabs: `ProfileTabs` → `HomeTab` (placeholder) + `EventsTab` with role-based sub-tabs (`EventsGoingSection`, `EventsHostedSection`)
+- Creator portfolio: `PortfolioController` CRUD endpoints, `PortfolioGrid`/`PortfolioCard`/`PortfolioUploadModal` frontend components, portfolio likes (heart button + double-click-to-like in lightbox)
+- Creator settings: `PATCH /api/creator/profile` updates display name, bio, banner, creator type, support links — role-gated by `RoleChecker` in `CreatorService`
+- Role-based profile sections: portfolio (creator only), support links (not organizer), events hosted tab (organizer only), events going tab (not organizer)
+- Profile tabs: `ProfileTabs` → `HomeTab` (user's posts feed) + `EventsTab` with role-based sub-tabs (`EventsGoingSection`, `EventsHostedSection`)
 - Role badges: `RoleBadge` component shows all non-fan roles; multi-role users (creator+organizer) see multiple badges
 - Frontend role utilities: `lib/roles.js` mirrors backend `RoleChecker.java`
+
+**Working (Social Posts):**
+- Full post CRUD: create with text + multiple images, edit, soft-delete
+- Post feed with cursor-based pagination and infinite scroll
+- Likes, reposts, nested comments with replies
+- `PostComposer`/`PostComposerModal` for creating/editing posts with drag-to-reorder image grid
+- `PostCard` feed card with image carousel (CSS scroll-snap), expand/collapse text, action bar
+- `PostDetailModal` (Instagram-style) via global `PostModalContext` — opened from feed, notifications, or search
+- Dedicated `/posts/[id]` page for direct linking/sharing
+- Optimistic UI updates for likes/reposts
+
+**Working (Notifications):**
+- 7 notification types: `like_post`, `comment_post`, `reply_comment`, `like_comment`, `repost_post`, `like_portfolio`, `follow_user`
+- Real-time push via STOMP WebSocket (`/ws`) with SockJS fallback
+- `NotificationDropdown` with bell badge, mark-as-read, mark-all-read
+- `useNotificationCount()` hook: STOMP auto-reconnect + HTTP polling fallback (30s)
+- Post notifications open `PostDetailModal` via custom `anicon-open-post` event
+
+**Working (Search):**
+- Unified search across users, events, and posts via `GET /api/search`
+- `SearchDropdown` in header with debounced instant results (top 3 per category)
+- Full `/search?q=` results page with type filter
 
 **TODO (Deferred to Month 2-3):**
 - Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
@@ -221,3 +279,7 @@ The `app/events/[id]/page.js` server component is intentionally thin (no data fe
 <!-- * this is for feature 3: Creator Portfolio -->
 - Creator portfolio spec: @docs/FEATURE3_COMPLETE.md
 - Profile progress: @docs/PROFILE_PROGRESS.md
+<!-- * Social posts & notifications -->
+- Social posts progress: @docs/SOCIAL_POSTS_PROGRESS.md
+- Notification system: @docs/NOTIFICATION_PROGRESS.md
+- Global search plan: @docs/GLOBAL_SEARCH_PLAN.md
