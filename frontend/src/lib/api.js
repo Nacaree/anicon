@@ -477,6 +477,27 @@ export const notificationApi = {
     request("/api/notifications/read-all", { method: "PATCH" }),
 };
 
+// ============================================
+// SEARCH API
+// ============================================
+
+export const searchApi = {
+  /**
+   * Global search across users, events, and posts.
+   * bestEffortAuth: sends cached token if available for post liked state,
+   * but never blocks on getSession() — search works instantly for guests.
+   *
+   * @param {string} q     Search query string
+   * @param {string} type  "all" | "users" | "events" | "posts"
+   * @param {number} limit Max results per category
+   */
+  search: (q, type = "all", limit = 5) =>
+    request(
+      `/api/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`,
+      { method: "GET", bestEffortAuth: true },
+    ),
+};
+
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.
 // The API returns eventDate/eventTime/coverImageUrl; components expect date/time/imageUrl etc.
 function formatEventDate(isoDate) {

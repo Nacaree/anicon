@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/*").permitAll()
                         // Comments on posts are public
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                        // Search is public (optionally authenticated for post liked state)
+                        .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.
