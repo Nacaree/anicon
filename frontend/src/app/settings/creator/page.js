@@ -45,16 +45,22 @@ export default function CreatorSettingsPage() {
     { value: 'other', label: 'Other' },
   ];
 
-  // Populate form from existing profile data
+  // Track whether form has been initialized from profile data.
+  // Only populate once — subsequent profile changes (e.g. from TOKEN_REFRESHED
+  // triggering fetchProfile()) must NOT overwrite in-progress form edits,
+  // otherwise unsaved uploads (avatar, banner) get silently reverted.
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || initialized) return;
     setDisplayName(profile.displayName || '');
     setBio(profile.bio || '');
     setAvatarUrl(profile.avatarUrl || '');
     setBannerImageUrl(profile.bannerImageUrl || '');
     setSupportLinks(profile.supportLinks || []);
     setShowSupportLinksToggle(profile.showSupportLinks ?? true);
-  }, [profile]);
+    setInitialized(true);
+  }, [profile, initialized]);
 
   // Redirect to login if not authenticated
   useEffect(() => {

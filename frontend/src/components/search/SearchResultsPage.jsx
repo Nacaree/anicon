@@ -6,7 +6,6 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { searchApi } from "@/lib/api";
-import HashtagText from "@/components/posts/HashtagText";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -375,10 +374,9 @@ function PostResultCard({ post }) {
             @{post.author?.username}
           </span>
         </div>
-        <HashtagText
-          text={post.textContent}
-          className="text-sm text-gray-600 line-clamp-2 mt-0.5"
-        />
+        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+          {post.textContent}
+        </p>
         {/* Engagement counts */}
         <div className="flex gap-4 mt-1.5 text-xs text-gray-400">
           {post.likeCount > 0 && (

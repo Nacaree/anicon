@@ -16,6 +16,7 @@ import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
 import com.anicon.backend.gen.jooq.tables.PostComments;
 import com.anicon.backend.gen.jooq.tables.PostImages;
 import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.PostTags;
 import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tickets;
@@ -60,6 +61,8 @@ public class Indexes {
     public static final Index IDX_POST_IMAGES_POST = Internal.createIndex(DSL.name("idx_post_images_post"), PostImages.POST_IMAGES, new OrderField[] { PostImages.POST_IMAGES.POST_ID }, false);
     public static final Index IDX_POST_LIKES_POST = Internal.createIndex(DSL.name("idx_post_likes_post"), PostLikes.POST_LIKES, new OrderField[] { PostLikes.POST_LIKES.POST_ID }, false);
     public static final Index IDX_POST_LIKES_USER = Internal.createIndex(DSL.name("idx_post_likes_user"), PostLikes.POST_LIKES, new OrderField[] { PostLikes.POST_LIKES.USER_ID }, false);
+    public static final Index IDX_POST_TAGS_POST = Internal.createIndex(DSL.name("idx_post_tags_post"), PostTags.POST_TAGS, new OrderField[] { PostTags.POST_TAGS.POST_ID }, false);
+    public static final Index IDX_POST_TAGS_TAG = Internal.createIndex(DSL.name("idx_post_tags_tag"), PostTags.POST_TAGS, new OrderField[] { PostTags.POST_TAGS.TAG_ID }, false);
     public static final Index IDX_POSTS_FEED_CURSOR = Internal.createIndex(DSL.name("idx_posts_feed_cursor"), Posts.POSTS, new OrderField[] { Posts.POSTS.CREATED_AT.desc(), Posts.POSTS.ID.desc() }, false);
     public static final Index IDX_POSTS_ORIGINAL_POST = Internal.createIndex(DSL.name("idx_posts_original_post"), Posts.POSTS, new OrderField[] { Posts.POSTS.ORIGINAL_POST_ID }, false);
     public static final Index IDX_POSTS_USER_FEED = Internal.createIndex(DSL.name("idx_posts_user_feed"), Posts.POSTS, new OrderField[] { Posts.POSTS.USER_ID, Posts.POSTS.CREATED_AT.desc(), Posts.POSTS.ID.desc() }, false);

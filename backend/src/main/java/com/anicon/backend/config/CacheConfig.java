@@ -16,9 +16,9 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("profiles");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("profiles", "trending");
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES) // Cache profiles for 5 minutes
+                .expireAfterWrite(1, TimeUnit.MINUTES)
                 .maximumSize(1000));
         return cacheManager;
     }

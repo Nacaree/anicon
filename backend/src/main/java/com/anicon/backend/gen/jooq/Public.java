@@ -16,6 +16,7 @@ import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
 import com.anicon.backend.gen.jooq.tables.PostComments;
 import com.anicon.backend.gen.jooq.tables.PostImages;
 import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.PostTags;
 import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
 import com.anicon.backend.gen.jooq.tables.Tags;
@@ -105,6 +106,11 @@ public class Public extends SchemaImpl {
     public final PostLikes POST_LIKES = PostLikes.POST_LIKES;
 
     /**
+     * The table <code>public.post_tags</code>.
+     */
+    public final PostTags POST_TAGS = PostTags.POST_TAGS;
+
+    /**
      * The table <code>public.posts</code>.
      */
     public final Posts POSTS = Posts.POSTS;
@@ -157,6 +163,7 @@ public class Public extends SchemaImpl {
             PostComments.POST_COMMENTS,
             PostImages.POST_IMAGES,
             PostLikes.POST_LIKES,
+            PostTags.POST_TAGS,
             Posts.POSTS,
             Profiles.PROFILES,
             Tags.TAGS,

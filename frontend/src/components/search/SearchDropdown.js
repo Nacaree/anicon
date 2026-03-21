@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { searchApi } from "@/lib/api";
+import HashtagText from "@/components/posts/HashtagText";
 
 /**
  * Instant search dropdown rendered below the Header search input.
@@ -248,9 +249,10 @@ export default function SearchDropdown({ query, onClose }) {
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {post.author?.displayName || post.author?.username}
                     </div>
-                    <div className="text-xs text-gray-500 line-clamp-1">
-                      {post.textContent}
-                    </div>
+                    <HashtagText
+                      text={post.textContent}
+                      className="text-xs text-gray-500 line-clamp-1"
+                    />
                   </div>
                 </button>
               ))}

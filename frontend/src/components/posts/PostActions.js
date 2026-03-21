@@ -13,6 +13,7 @@ export default function PostActions({
   onLike,
   onComment,
   onRepost,
+  isOwnPost = false,
 }) {
   const { requireAuth } = useAuthGate();
   const [copied, setCopied] = useState(false);
@@ -85,25 +86,27 @@ export default function PostActions({
         {post.commentCount > 0 && <span>{post.commentCount}</span>}
       </button>
 
-      {/* Repost button */}
-      <button
-        onClick={handleRepost}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
-          hover:scale-[1.02] active:scale-[0.98] transition-all
-          hover:bg-green-50 dark:hover:bg-green-950/30
-          ${
-            post.repostedByCurrentUser
-              ? "text-green-500"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
-      >
-        <Repeat2
-          className={`w-5 h-5 ${
-            post.repostedByCurrentUser ? "text-green-500" : ""
-          }`}
-        />
-        {post.repostCount > 0 && <span>{post.repostCount}</span>}
-      </button>
+      {/* Repost button — hidden on your own posts (backend rejects it too) */}
+      {!isOwnPost && (
+        <button
+          onClick={handleRepost}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
+            hover:scale-[1.02] active:scale-[0.98] transition-all
+            hover:bg-green-50 dark:hover:bg-green-950/30
+            ${
+              post.repostedByCurrentUser
+                ? "text-green-500"
+                : "text-gray-500 dark:text-gray-400"
+            }`}
+        >
+          <Repeat2
+            className={`w-5 h-5 ${
+              post.repostedByCurrentUser ? "text-green-500" : ""
+            }`}
+          />
+          {post.repostCount > 0 && <span>{post.repostCount}</span>}
+        </button>
+      )}
 
       {/* Share button — copies post link to clipboard, pushed to far right */}
       <button

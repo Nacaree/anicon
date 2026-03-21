@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jooq.Condition;
@@ -23,7 +25,9 @@ import com.anicon.backend.notification.NotificationService;
 
 import com.anicon.backend.social.dto.*;
 
+import static com.anicon.backend.gen.jooq.tables.PostTags.POST_TAGS;
 import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
+import static com.anicon.backend.gen.jooq.tables.Tags.TAGS;
 
 @Service
 public class PostService {
@@ -49,6 +53,9 @@ public class PostService {
     private static final Field<OffsetDateTime> P_CREATED = DSL.field("posts.created_at", OffsetDateTime.class);
     private static final Field<OffsetDateTime> P_UPDATED = DSL.field("posts.updated_at", OffsetDateTime.class);
 
+    // Regex to extract #hashtags from post text — matches word characters after #
+    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#(\\w+)");
+
     public PostService(PostRepository postRepository,
                        PostImageRepository postImageRepository,
                        PostLikeRepository postLikeRepository,
@@ -61,6 +68,48 @@ public class PostService {
         this.dsl = dsl;
         this.eventPublisher = eventPublisher;
         this.notificationService = notificationService;
+    }
+
+    // ========================================
+    // HASHTAG SYNC — extract #tags from text and link via post_tags junction table
+    // ========================================
+
+    /**
+     * Extracts #hashtags from post text, upserts them into the shared tags table,
+     * and links them to the post via post_tags. Deletes old links first so edits
+     * are handled correctly. Same upsert pattern as EventService.createEvent().
+     */
+    private void syncPostTags(UUID postId, String textContent) {
+        // Clear old tag links for this post (safe for new posts — 0 rows deleted)
+        dsl.deleteFrom(POST_TAGS).where(POST_TAGS.POST_ID.eq(postId)).execute();
+
+        if (textContent == null) return;
+
+        // Extract unique hashtags, normalized to lowercase
+        Set<String> hashtags = new HashSet<>();
+        Matcher matcher = HASHTAG_PATTERN.matcher(textContent);
+        while (matcher.find()) {
+            hashtags.add(matcher.group(1).toLowerCase());
+        }
+
+        // Upsert each tag and link to post
+        for (String tagName : hashtags) {
+            dsl.insertInto(TAGS)
+                    .set(TAGS.NAME, tagName)
+                    .onConflict(TAGS.NAME)
+                    .doNothing()
+                    .execute();
+
+            UUID tagId = dsl.select(TAGS.ID)
+                    .from(TAGS)
+                    .where(TAGS.NAME.eq(tagName))
+                    .fetchOne(TAGS.ID);
+
+            dsl.insertInto(POST_TAGS)
+                    .set(POST_TAGS.POST_ID, postId)
+                    .set(POST_TAGS.TAG_ID, tagId)
+                    .execute();
+        }
     }
 
     // ========================================
@@ -88,7 +137,11 @@ public class PostService {
                 .userId(userId)
                 .textContent(text)
                 .build();
-        post = postRepository.save(post);
+        // saveAndFlush ensures the post row is visible to JOOQ before inserting post_tags
+        post = postRepository.saveAndFlush(post);
+
+        // Extract #hashtags from text and store in post_tags junction table
+        syncPostTags(post.getId(), text);
 
         // Save images (up to 10)
         List<PostImage> savedImages = new ArrayList<>();
@@ -332,7 +385,11 @@ public class PostService {
             }
         }
 
-        post = postRepository.save(post);
+        // saveAndFlush ensures the post row is visible to JOOQ before syncing post_tags
+        post = postRepository.saveAndFlush(post);
+
+        // Re-extract #hashtags from updated text and sync post_tags
+        syncPostTags(postId, post.getTextContent());
 
         return getPost(postId, userId);
     }
