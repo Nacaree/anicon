@@ -26,6 +26,7 @@ export default function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const searchContainerRef = useRef(null);
+  const desktopSearchInputRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
   // Close dropdown when clicking outside the search container
@@ -48,6 +49,31 @@ export default function Header() {
       mobileSearchInputRef.current.focus();
     }
   }, [showMobileSearch]);
+
+  // Global "/" hotkey to focus search bar (like Facebook/GitHub)
+  // Skips when the user is already typing in an input, textarea, or contentEditable
+  useEffect(() => {
+    function handleSlashKey(e) {
+      if (e.key !== "/") return;
+      const tag = e.target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        e.target.isContentEditable
+      ) return;
+
+      e.preventDefault();
+      // On desktop (sm+), focus the search input directly
+      if (desktopSearchInputRef.current) {
+        desktopSearchInputRef.current.focus();
+      } else {
+        // On mobile, open the overlay (which auto-focuses its input)
+        setShowMobileSearch(true);
+      }
+    }
+    document.addEventListener("keydown", handleSlashKey);
+    return () => document.removeEventListener("keydown", handleSlashKey);
+  }, []);
 
   // Shared keyboard handler for both desktop and mobile search inputs
   const handleSearchKeyDown = useCallback(
@@ -192,6 +218,7 @@ export default function Header() {
       >
         <div className="relative">
           <input
+            ref={desktopSearchInputRef}
             type="text"
             placeholder="Search"
             value={searchQuery}
