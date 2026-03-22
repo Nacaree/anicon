@@ -270,6 +270,7 @@ The `app/events/[id]/page.js` server component is intentionally thin (no data fe
 - **Never read or process `.env` files**
 - Respect all `.claudeignore` entries without exception
 - **Always add comments to new code** explaining what it does and why — especially for non-obvious logic, Next.js conventions (`loading.js`, route groups, Suspense), and architectural decisions. Comments should explain the *why*, not just the *what*.
+- **Mobile-first frontend:** All frontend work — whether building new components or making manual tweaks/adjustments — must be responsive and tested for mobile viewports. Judges will test AniCon on mobile devices. Use Tailwind responsive prefixes (`sm:`, `md:`, `lg:`) — design for small screens first, then layer on desktop styles. Every change must look and function correctly on phones (~375px width) before considering desktop. This applies equally to initial builds and follow-up modifications.
 
 ## Reference Docs
 <!-- * this is for feature 1: Event Ticketing -->
