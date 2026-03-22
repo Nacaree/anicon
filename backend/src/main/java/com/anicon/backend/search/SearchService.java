@@ -49,22 +49,35 @@ public class SearchService {
     public SearchResponse search(String query, String type, int limit, UUID currentUserId) {
         int clampedLimit = Math.min(Math.max(limit, 1), 20);
 
+        // Strip leading "@" — users type @username to find profiles, but usernames
+        // don't contain "@" so ILIKE would fail without this normalization.
+        // When query starts with "@", auto-scope to users-only for "all" searches.
+        boolean isMention = query.startsWith("@");
+        String normalizedQuery = isMention ? query.substring(1) : query;
+
+        if (normalizedQuery.isBlank()) {
+            return new SearchResponse(List.of(), List.of(), List.of(), List.of());
+        }
+
         List<UserResult> users = List.of();
         List<EventResult> events = List.of();
         List<PostResult> posts = List.of();
         List<ScrapedEventSearchResult> scrapedEvents = List.of();
 
         switch (type) {
-            case "users" -> users = searchUsers(query, clampedLimit);
-            case "events" -> events = searchEvents(query, clampedLimit);
-            case "posts" -> posts = searchPosts(query, clampedLimit, currentUserId);
-            case "scraped_events" -> scrapedEvents = searchScrapedEvents(query, clampedLimit);
+            case "users" -> users = searchUsers(normalizedQuery, clampedLimit);
+            case "events" -> events = searchEvents(normalizedQuery, clampedLimit);
+            case "posts" -> posts = searchPosts(normalizedQuery, clampedLimit, currentUserId);
+            case "scraped_events" -> scrapedEvents = searchScrapedEvents(normalizedQuery, clampedLimit);
             default -> {
-                // "all" or any unrecognized value — search everything
-                users = searchUsers(query, clampedLimit);
-                events = searchEvents(query, clampedLimit);
-                posts = searchPosts(query, clampedLimit, currentUserId);
-                scrapedEvents = searchScrapedEvents(query, clampedLimit);
+                // "all" or any unrecognized value — search everything.
+                // @mention queries auto-scope to users only since the intent is clear.
+                users = searchUsers(normalizedQuery, clampedLimit);
+                if (!isMention) {
+                    events = searchEvents(normalizedQuery, clampedLimit);
+                    posts = searchPosts(normalizedQuery, clampedLimit, currentUserId);
+                    scrapedEvents = searchScrapedEvents(normalizedQuery, clampedLimit);
+                }
             }
         }
 

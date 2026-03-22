@@ -3,6 +3,7 @@ package com.anicon.backend.social;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +15,10 @@ import com.anicon.backend.social.dto.*;
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
+
+    // Feed data is user-specific and real-time — must never be served from browser cache.
+    // Without this, browsers heuristically cache GET responses and serve stale feeds on refresh.
+    private static final CacheControl NO_CACHE = CacheControl.noStore();
 
     private final PostService postService;
 
@@ -42,7 +47,9 @@ public class PostController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") int limit) {
         UUID currentUserId = principal != null ? principal.getUserId() : null;
-        return ResponseEntity.ok(postService.getFeed(cursor, limit, currentUserId));
+        return ResponseEntity.ok()
+                .cacheControl(NO_CACHE)
+                .body(postService.getFeed(cursor, limit, currentUserId));
     }
 
     /**
@@ -56,7 +63,9 @@ public class PostController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") int limit) {
         UUID currentUserId = principal != null ? principal.getUserId() : null;
-        return ResponseEntity.ok(postService.getUserPosts(userId, cursor, limit, currentUserId));
+        return ResponseEntity.ok()
+                .cacheControl(NO_CACHE)
+                .body(postService.getUserPosts(userId, cursor, limit, currentUserId));
     }
 
     /**

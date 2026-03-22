@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { influencerApi } from '@/lib/api';
@@ -9,35 +9,52 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Plus, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, CheckCircle, Clock, XCircle, Upload } from 'lucide-react';
 import Link from 'next/link';
 
+// Predefined platform options for social media links
+const PLATFORMS = ['Instagram', 'TikTok', 'Facebook', 'YouTube', 'Twitter/X'];
+
+// Event types an applicant can choose from
+const EVENT_TYPES = [
+  'Watch parties',
+  'Meetups',
+  'Cosplay gatherings',
+  'Art workshops',
+  'Gaming sessions',
+  'Other',
+];
+
 // Application page for fans who want to become verified hosts (influencers).
-// Shows the form, pending status, or rejection info depending on application state.
+// Requires ID card, social proof, follower count, and event type selection.
 export default function BecomeHostPage() {
-  const { profile, isLoading: authLoading, fetchProfile } = useAuth();
+  const { user, profile, isLoading: authLoading, fetchProfile } = useAuth();
   const { isSidebarCollapsed } = useSidebar();
   const router = useRouter();
 
-  const [reason, setReason] = useState('');
-  const [communityInvolvement, setCommunityInvolvement] = useState('');
-  // Social proof links as key-value pairs: [{ platform, url }]
-  const [socialLinks, setSocialLinks] = useState([]);
+  // Form state
+  const [idCardFile, setIdCardFile] = useState(null);
+  const [idCardPreview, setIdCardPreview] = useState(null);
+  const [socialLinks, setSocialLinks] = useState([{ platform: '', url: '' }]);
+  const [followerCount, setFollowerCount] = useState('');
+  const [selectedEventTypes, setSelectedEventTypes] = useState([]);
+  const [contentLink, setContentLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Existing application data (fetched on mount)
   const [application, setApplication] = useState(null);
   const [loadingApp, setLoadingApp] = useState(true);
 
-  // Redirect: already an influencer → go to event creation
+  // Redirect: already an influencer -> go to event creation
   useEffect(() => {
     if (!authLoading && profile && isInfluencer(profile.roles)) {
       router.push('/host/create');
     }
   }, [authLoading, profile, router]);
 
-  // Redirect: not authenticated → login
+  // Redirect: not authenticated -> login
   useEffect(() => {
     if (!authLoading && !profile) {
       router.push('/login');
@@ -57,6 +74,28 @@ export default function BecomeHostPage() {
       .finally(() => setLoadingApp(false));
   }, [profile]);
 
+  // Handle ID card file selection with preview
+  const handleIdCardChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Only accept images
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file (JPG, PNG, etc.)');
+      return;
+    }
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be under 10MB');
+      return;
+    }
+
+    setIdCardFile(file);
+    setIdCardPreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
   const addSocialLink = () => {
     setSocialLinks([...socialLinks, { platform: '', url: '' }]);
   };
@@ -71,12 +110,52 @@ export default function BecomeHostPage() {
     setSocialLinks(socialLinks.filter((_, i) => i !== index));
   };
 
+  const toggleEventType = (type) => {
+    setSelectedEventTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  // Validate form before submission
+  const validateForm = () => {
+    if (!idCardFile) {
+      setError('Please upload your ID card photo');
+      return false;
+    }
+
+    // Check at least one valid social link
+    const validLinks = socialLinks.filter((l) => l.platform && l.url);
+    if (validLinks.length === 0) {
+      setError('Please add at least one social media link');
+      return false;
+    }
+
+    const count = parseInt(followerCount, 10);
+    if (!count || count < 100) {
+      setError('Minimum 100 followers required');
+      return false;
+    }
+
+    if (selectedEventTypes.length === 0) {
+      setError('Please select at least one event type');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
 
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+
     try {
+      // Upload ID card image to Supabase Storage first
+      const idCardImageUrl = await influencerApi.uploadIdCard(idCardFile, user.id);
+
       // Convert social links array to Map<String, String> for the backend
       const socialProofLinks = {};
       socialLinks.forEach((link) => {
@@ -86,9 +165,11 @@ export default function BecomeHostPage() {
       });
 
       const result = await influencerApi.submitApplication({
-        reason,
-        communityInvolvement: communityInvolvement || null,
-        socialProofLinks: Object.keys(socialProofLinks).length > 0 ? socialProofLinks : null,
+        idCardImageUrl,
+        socialProofLinks,
+        followerCount: parseInt(followerCount, 10),
+        eventTypes: selectedEventTypes,
+        contentLink: contentLink || null,
       });
 
       setApplication(result);
@@ -186,7 +267,7 @@ export default function BecomeHostPage() {
             <>
               <p className="text-muted-foreground">
                 Host community meetups, watch parties, and small gatherings for anime fans.
-                Once approved, you'll be able to create free mini-events.
+                To verify your identity and community presence, please complete the application below.
               </p>
 
               {canReapply && (
@@ -196,41 +277,59 @@ export default function BecomeHostPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Reason — required */}
+
+                {/* ID Card Upload — required */}
                 <section className="space-y-2">
                   <label className="text-sm font-medium">
-                    Why do you want to host events? <span className="text-red-500">*</span>
+                    ID Card / Passport Photo <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    required
-                    rows={4}
-                    maxLength={1000}
-                    placeholder="Tell us about the events you'd like to organize..."
-                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  <p className="text-xs text-muted-foreground">
+                    Upload a clear photo of your national ID or passport for identity verification. This will be kept private.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleIdCardChange}
+                    className="hidden"
                   />
+                  {idCardPreview ? (
+                    <div className="relative group">
+                      <img
+                        src={idCardPreview}
+                        alt="ID card preview"
+                        className="w-full max-h-48 object-contain rounded-lg border bg-muted"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdCardFile(null);
+                          setIdCardPreview(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-8 h-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Click to upload your ID card</span>
+                    </button>
+                  )}
                 </section>
 
-                {/* Community involvement — optional */}
-                <section className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Community involvement (optional)
-                  </label>
-                  <textarea
-                    value={communityInvolvement}
-                    onChange={(e) => setCommunityInvolvement(e.target.value)}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="Past events you've organized, communities you're part of..."
-                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </section>
-
-                {/* Social proof links — optional */}
+                {/* Social media links — at least 1 required */}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Social media links (optional)</label>
+                    <label className="text-sm font-medium">
+                      Social Media Links <span className="text-red-500">*</span>
+                    </label>
                     <Button
                       type="button"
                       variant="outline"
@@ -241,15 +340,21 @@ export default function BecomeHostPage() {
                       <Plus className="w-3 h-3" /> Add link
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Add at least one social media profile where you're active in the anime community.
+                  </p>
                   {socialLinks.map((link, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="Platform"
+                      <select
                         value={link.platform}
                         onChange={(e) => updateSocialLink(i, 'platform', e.target.value)}
-                        className="w-32 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      />
+                        className="w-36 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="">Platform</option>
+                        {PLATFORMS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
                       <input
                         type="url"
                         placeholder="https://..."
@@ -257,15 +362,75 @@ export default function BecomeHostPage() {
                         onChange={(e) => updateSocialLink(i, 'url', e.target.value)}
                         className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeSocialLink(i)}
-                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {socialLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSocialLink(i)}
+                          className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
+                </section>
+
+                {/* Follower count — required, min 100 */}
+                <section className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Total Follower Count <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Approximate total followers across all your social media platforms. Minimum 100.
+                  </p>
+                  <input
+                    type="number"
+                    min="100"
+                    value={followerCount}
+                    onChange={(e) => setFollowerCount(e.target.value)}
+                    placeholder="e.g. 500"
+                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </section>
+
+                {/* Event types — at least 1 required */}
+                <section className="space-y-3">
+                  <label className="text-sm font-medium">
+                    What type of events do you want to host? <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {EVENT_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => toggleEventType(type)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                          selectedEventTypes.includes(type)
+                            ? 'bg-primary text-primary-foreground shadow-md'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Content link — optional */}
+                <section className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Link to Your Best Content (optional)
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    A post, video, or article that showcases your involvement in the anime community.
+                  </p>
+                  <input
+                    type="url"
+                    value={contentLink}
+                    onChange={(e) => setContentLink(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
                 </section>
 
                 {/* Error message */}

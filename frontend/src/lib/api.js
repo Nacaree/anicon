@@ -11,6 +11,44 @@ class ApiError extends Error {
   }
 }
 
+// Maps HTTP status codes and error types to user-friendly messages.
+// Dispatches a global "anicon-error" custom event so any component
+// (like GlobalErrorToast in layout.js) can show a snackbar.
+function showFriendlyError(error) {
+  let message;
+
+  if (error.name === "AbortError") {
+    message = "Request timed out. Check your connection and try again.";
+  } else if (error instanceof ApiError) {
+    switch (error.status) {
+      case 429:
+        message = error.message || "You're doing that too fast. Please wait a moment and try again.";
+        break;
+      case 500:
+      case 502:
+      case 503:
+        message = "Something went wrong on our end. Please try again.";
+        break;
+      case 401:
+        // Auth errors are handled by the auth flow — don't show a toast
+        return;
+      case 409:
+        // Conflict errors (duplicate RSVP, already liked, etc.) are expected — don't toast
+        return;
+      default:
+        // For 4xx client errors, use the server's message if it's user-friendly
+        if (error.status >= 400 && error.status < 500) return;
+        message = "Something went wrong. Please try again.";
+    }
+  } else {
+    message = "Can't reach the server. Check your internet connection.";
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("anicon-error", { detail: { message } }));
+  }
+}
+
 // Module-level token cache — written by AuthContext immediately after getSession()
 // resolves during auth initialization, and on every TOKEN_REFRESHED / SIGNED_IN event.
 //
@@ -125,11 +163,13 @@ async function request(endpoint, options = {}, retries = 3) {
         return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
       }
 
-      throw new ApiError(
+      const apiError = new ApiError(
         data?.message || data?.error || "An error occurred",
         response.status,
         data,
       );
+      showFriendlyError(apiError);
+      throw apiError;
     }
 
     return data;
@@ -139,6 +179,10 @@ async function request(endpoint, options = {}, retries = 3) {
     if (retries > 0 && error.name !== "ApiError" && error.name !== "AbortError") {
       await wait(500);
       return request(endpoint, { ...fetchOptions, noAuth }, retries - 1);
+    }
+    // Show friendly error for network failures and timeouts (not ApiErrors — already shown above)
+    if (error.name !== "ApiError") {
+      showFriendlyError(error);
     }
     throw error;
   }
@@ -394,6 +438,19 @@ export const influencerApi = {
 
   // Get current user's most recent application status (requires auth)
   getMyApplication: () => api.get("/api/influencer-applications/my"),
+
+  // Upload ID card image to Supabase Storage (reuses posts bucket with applications/ prefix)
+  uploadIdCard: async (file, userId) => {
+    const ext = file.name.split(".").pop();
+    const filename = `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const path = `applications/${userId}/${filename}`;
+
+    const { error } = await supabase.storage.from("posts").upload(path, file);
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(path);
+    return publicUrl;
+  },
 };
 
 // Posts API — social feed CRUD, likes, reposts, comments

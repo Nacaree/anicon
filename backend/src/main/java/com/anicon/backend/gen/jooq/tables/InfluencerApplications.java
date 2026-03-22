@@ -78,17 +78,6 @@ public class InfluencerApplications extends TableImpl<InfluencerApplicationsReco
     public final TableField<InfluencerApplicationsRecord, ApplicationStatus> STATUS = createField(DSL.name("status"), SQLDataType.VARCHAR.defaultValue(DSL.field(DSL.raw("'pending'::application_status"), SQLDataType.VARCHAR)).asEnumDataType(ApplicationStatus.class), this, "");
 
     /**
-     * The column <code>public.influencer_applications.reason</code>.
-     */
-    public final TableField<InfluencerApplicationsRecord, String> REASON = createField(DSL.name("reason"), SQLDataType.CLOB.nullable(false), this, "");
-
-    /**
-     * The column
-     * <code>public.influencer_applications.community_involvement</code>.
-     */
-    public final TableField<InfluencerApplicationsRecord, String> COMMUNITY_INVOLVEMENT = createField(DSL.name("community_involvement"), SQLDataType.CLOB, this, "");
-
-    /**
      * The column <code>public.influencer_applications.follower_count</code>.
      */
     public final TableField<InfluencerApplicationsRecord, Integer> FOLLOWER_COUNT = createField(DSL.name("follower_count"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
@@ -133,6 +122,21 @@ public class InfluencerApplications extends TableImpl<InfluencerApplicationsReco
      * The column <code>public.influencer_applications.updated_at</code>.
      */
     public final TableField<InfluencerApplicationsRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
+
+    /**
+     * The column <code>public.influencer_applications.id_card_image_url</code>.
+     */
+    public final TableField<InfluencerApplicationsRecord, String> ID_CARD_IMAGE_URL = createField(DSL.name("id_card_image_url"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>public.influencer_applications.event_types</code>.
+     */
+    public final TableField<InfluencerApplicationsRecord, JSONB> EVENT_TYPES = createField(DSL.name("event_types"), SQLDataType.JSONB.defaultValue(DSL.field(DSL.raw("'[]'::jsonb"), SQLDataType.JSONB)), this, "");
+
+    /**
+     * The column <code>public.influencer_applications.content_link</code>.
+     */
+    public final TableField<InfluencerApplicationsRecord, String> CONTENT_LINK = createField(DSL.name("content_link"), SQLDataType.CLOB, this, "");
 
     private InfluencerApplications(Name alias, Table<InfluencerApplicationsRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

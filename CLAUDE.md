@@ -237,6 +237,7 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 - `PostDetailModal` (Instagram-style) via global `PostModalContext` — opened from feed, notifications, or search
 - Dedicated `/posts/[id]` page for direct linking/sharing
 - Optimistic UI updates for likes/reposts
+- Hashtag support: `HashtagText` component renders `#tags` as clickable orange links → `/search?q=#tag&tab=posts`
 
 **Working (Notifications):**
 - 7 notification types: `like_post`, `comment_post`, `reply_comment`, `like_comment`, `repost_post`, `like_portfolio`, `follow_user`
@@ -249,6 +250,11 @@ See `docs/DEPLOYMENT_GUIDE.md` for full env var list, Stripe webhook setup, and 
 - Unified search across users, events, and posts via `GET /api/search`
 - `SearchDropdown` in header with debounced instant results (top 3 per category)
 - Full `/search?q=` results page with type filter
+- `"/"` hotkey focuses search bar (desktop) or opens mobile search overlay (skips when user is in input/textarea)
+
+**Working (Home Page Layout):**
+- Left: Featured events carousel + event sections + social feed (PostComposer + PostFeed with infinite scroll)
+- Right: `RightPanel` with creator profile card, "Trending Now" section, and recommended users
 
 **TODO (Deferred to Month 2-3):**
 - Refund API, Close Transaction API, ticket types (standard/vip/early_bird)
@@ -284,3 +290,4 @@ The `app/events/[id]/page.js` server component is intentionally thin (no data fe
 - Social posts progress: @docs/SOCIAL_POSTS_PROGRESS.md
 - Notification system: @docs/NOTIFICATION_PROGRESS.md
 - Global search plan: @docs/GLOBAL_SEARCH_PLAN.md
+- Event scraping spec: @docs/EVENT_SCRAPING_PLAN_FINAL.md

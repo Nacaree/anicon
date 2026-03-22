@@ -64,7 +64,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             // Failure: Rate limit exceeded, return 429 Too Many Requests
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Too many requests. Please try again later.\"}");
+            response.getWriter().write("{\"message\": \"You're doing that too fast. Please wait a moment and try again.\"}");
         }
     }
 
