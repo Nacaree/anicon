@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/lib/hooks/useInfiniteScroll";
 import PostCard from "./PostCard";
+import ScrapedEventCard from "@/components/feed/ScrapedEventCard";
 
 /**
  * Generic infinite scroll feed container.
@@ -54,14 +55,18 @@ export default function PostFeed({ fetchFn, emptyMessage = "No posts yet", refre
 
   return (
     <div>
-      {items.map((post) => (
-        <PostCard
-          key={`${post.id}-${refreshKey}`}
-          post={post}
-          onPostDeleted={handlePostDeleted}
-          onOpenDetail={onOpenDetail}
-        />
-      ))}
+      {items.map((item) =>
+        item.__feedType === "scraped_event" ? (
+          <ScrapedEventCard key={item.id} event={item} />
+        ) : (
+          <PostCard
+            key={`${item.id}-${refreshKey}`}
+            post={item}
+            onPostDeleted={handlePostDeleted}
+            onOpenDetail={onOpenDetail}
+          />
+        )
+      )}
 
       {/* Sentinel element for IntersectionObserver to trigger loading more */}
       {hasMore && (

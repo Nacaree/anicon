@@ -8,6 +8,8 @@ import com.anicon.backend.gen.jooq.Keys;
 import com.anicon.backend.gen.jooq.Public;
 import com.anicon.backend.gen.jooq.tables.EventTags.EventTagsPath;
 import com.anicon.backend.gen.jooq.tables.Events.EventsPath;
+import com.anicon.backend.gen.jooq.tables.PostTags.PostTagsPath;
+import com.anicon.backend.gen.jooq.tables.Posts.PostsPath;
 import com.anicon.backend.gen.jooq.tables.records.TagsRecord;
 
 import java.util.Arrays;
@@ -158,12 +160,33 @@ public class Tags extends TableImpl<TagsRecord> {
         return _eventTags;
     }
 
+    private transient PostTagsPath _postTags;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.post_tags</code>
+     * table
+     */
+    public PostTagsPath postTags() {
+        if (_postTags == null)
+            _postTags = new PostTagsPath(this, null, Keys.POST_TAGS__POST_TAGS_TAG_ID_FKEY.getInverseKey());
+
+        return _postTags;
+    }
+
     /**
      * Get the implicit many-to-many join path to the <code>public.events</code>
      * table
      */
     public EventsPath events() {
         return eventTags().events();
+    }
+
+    /**
+     * Get the implicit many-to-many join path to the <code>public.posts</code>
+     * table
+     */
+    public PostsPath posts() {
+        return postTags().posts();
     }
 
     @Override

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import PostImageCarousel from "./PostImageCarousel";
 import PostActions from "./PostActions";
+import HashtagText from "./HashtagText";
 import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/lib/api";
 
@@ -17,8 +18,8 @@ import { postsApi } from "@/lib/api";
  */
 export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetail }) {
   const { user } = useAuth();
-  // For reposts, inherit the original post's like state so the heart shows red
-  const [post, setPost] = useState(() => mergeRepostState(initialPost));
+  // For reposts, inherit the original post's like/repost state into the wrapper
+  const [post, setPost] = useState(() => mergeRepostState(initialPost, user?.id));
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -27,8 +28,7 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
   const isRepost = post.originalPost !== undefined && post.originalPost !== null;
   // For reposts, display the original post's content
   const displayPost = isRepost ? post.originalPost : post;
-  // If the current user is the one who reposted, force repostedByCurrentUser true
-  const isOwnRepost = isRepost && user?.id === post.author?.id;
+
   // Original post was deleted (ON DELETE SET NULL made originalPost null)
   const isOrphanedRepost = isRepost && !post.originalPost;
   // For likes/unlikes/reposts on reposted posts, target the original post — not the repost wrapper
@@ -43,8 +43,8 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
 
   const handleLike = async () => {
     const wasLiked = post.likedByCurrentUser;
-    // Optimistic update — for reposts, update originalPost.likeCount since
-    // PostActions reads displayPost (the original), not the repost wrapper
+    // Optimistic update — for reposts, update BOTH the wrapper and originalPost
+    // because PostActions merges them with ||, so originalPost must also change
     setPost((p) => ({
       ...p,
       likedByCurrentUser: !wasLiked,
@@ -52,6 +52,7 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
       ...(p.originalPost ? {
         originalPost: {
           ...p.originalPost,
+          likedByCurrentUser: !wasLiked,
           likeCount: wasLiked ? p.originalPost.likeCount - 1 : p.originalPost.likeCount + 1,
         },
       } : {}),
@@ -63,7 +64,6 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
         await postsApi.likePost(targetPostId);
       }
     } catch {
-      // Revert on error
       setPost((p) => ({
         ...p,
         likedByCurrentUser: wasLiked,
@@ -71,6 +71,7 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
         ...(p.originalPost ? {
           originalPost: {
             ...p.originalPost,
+            likedByCurrentUser: wasLiked,
             likeCount: wasLiked ? p.originalPost.likeCount + 1 : p.originalPost.likeCount - 1,
           },
         } : {}),
@@ -80,10 +81,19 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
 
   const handleRepost = async () => {
     const wasReposted = post.repostedByCurrentUser;
+    // Optimistic update — for reposts, update BOTH the wrapper and originalPost
+    // because PostActions merges them with ||, so originalPost must also change
     setPost((p) => ({
       ...p,
       repostedByCurrentUser: !wasReposted,
       repostCount: wasReposted ? p.repostCount - 1 : p.repostCount + 1,
+      ...(p.originalPost ? {
+        originalPost: {
+          ...p.originalPost,
+          repostedByCurrentUser: !wasReposted,
+          repostCount: wasReposted ? p.originalPost.repostCount - 1 : p.originalPost.repostCount + 1,
+        },
+      } : {}),
     }));
     try {
       if (wasReposted) {
@@ -96,6 +106,13 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
         ...p,
         repostedByCurrentUser: wasReposted,
         repostCount: wasReposted ? p.repostCount + 1 : p.repostCount - 1,
+        ...(p.originalPost ? {
+          originalPost: {
+            ...p.originalPost,
+            repostedByCurrentUser: wasReposted,
+            repostCount: wasReposted ? p.originalPost.repostCount + 1 : p.originalPost.repostCount - 1,
+          },
+        } : {}),
       }));
     }
   };
@@ -241,11 +258,12 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
           {/* Text content */}
           {displayPost.textContent && (
             <div className="mb-3 pl-1">
-              <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-                {!expanded && displayPost.textContent.length > 280
+              <HashtagText
+                text={!expanded && displayPost.textContent.length > 280
                   ? displayPost.textContent.slice(0, 280) + "..."
                   : displayPost.textContent}
-              </p>
+                className="text-gray-800 dark:text-gray-200"
+              />
               {displayPost.textContent.length > 280 && (
                 <button
                   onClick={(e) => {
@@ -269,7 +287,8 @@ export default function PostCard({ post: initialPost, onPostDeleted, onOpenDetai
 
           {/* Action bar */}
           <PostActions
-            post={isRepost ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser || displayPost.likedByCurrentUser, repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || displayPost.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount } : post}
+            post={isRepost ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser, repostedByCurrentUser: post.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount } : post}
+            isOwnPost={user?.id === displayPost?.author?.id}
             onLike={handleLike}
             onComment={handleComment}
             onRepost={handleRepost}
@@ -327,11 +346,18 @@ function formatTimeAgo(isoString) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** For reposts, inherit the original post's like state into the wrapper */
-function mergeRepostState(post) {
+/**
+ * For reposts, inherit the original post's like/repost state into the wrapper.
+ * Also marks repostedByCurrentUser=true when the current user authored the
+ * repost wrapper (isOwnRepost), since the backend flag may only be set on
+ * the original — without this, handleRepost reads false and increments.
+ */
+function mergeRepostState(post, currentUserId) {
   if (!post?.originalPost) return post;
+  const isOwnRepost = currentUserId && post.author?.id === currentUserId;
   return {
     ...post,
     likedByCurrentUser: post.likedByCurrentUser || post.originalPost.likedByCurrentUser,
+    repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || post.originalPost.repostedByCurrentUser,
   };
 }

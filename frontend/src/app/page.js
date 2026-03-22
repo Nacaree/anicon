@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePostModal } from "@/context/PostModalContext";
-import { postsApi } from "@/lib/api";
+import { feedApi } from "@/lib/api";
 import PostComposer from "@/components/posts/PostComposer";
 import PostComposerModal from "@/components/posts/PostComposerModal";
 import PostFeed from "@/components/posts/PostFeed";
@@ -171,8 +171,17 @@ export default function Home() {
     };
   }, [openPost]);
 
-  // Fetch function for the public feed — passed to PostFeed
-  const fetchFeed = useCallback((cursor) => postsApi.getFeed(cursor), []);
+  // Fetch function for the unified feed — transforms polymorphic FeedItemResponse
+  // into the flat shape useInfiniteScroll expects ({ posts, nextCursor }).
+  // Each item gets a __feedType tag so PostFeed can render the correct card.
+  const fetchFeed = useCallback(async (cursor) => {
+    const result = await feedApi.getFeed(cursor);
+    const posts = (result?.items ?? []).map((item) => {
+      if (item.type === "post") return { ...item.post, __feedType: "post" };
+      return { ...item.scrapedEvent, __feedType: "scraped_event" };
+    });
+    return { posts, nextCursor: result?.nextCursor };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

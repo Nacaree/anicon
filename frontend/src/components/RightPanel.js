@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { profileApi } from "@/lib/api";
+import { profileApi, trendingApi } from "@/lib/api";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 
 // Featured creator username shown in the right panel card
 const FEATURED_CREATOR = "PichGamer89";
+
+// Reusable pulse skeleton block
+function Skeleton({ className = "" }) {
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
+}
 
 function AnimatedCard({ children, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -40,20 +45,103 @@ function AnimatedCard({ children, className = "" }) {
   );
 }
 
+// Skeleton for the featured creator card
+function CreatorCardSkeleton() {
+  return (
+    <div className="bg-white rounded-xl px-6 pt-0 pb-6 border border-gray-200">
+      <div className="relative">
+        <Skeleton className="rounded-t-xl h-25 -mx-6 mb-3" />
+        <Skeleton className="w-24 h-24 rounded-full absolute -bottom-11 -left-1 border-4 border-white" />
+      </div>
+      <div className="pt-10 space-y-2">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-40" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="w-4 h-4 rounded-full" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-10 w-full rounded-full mt-2" />
+      </div>
+    </div>
+  );
+}
+
+// Skeleton for the trending section
+function TrendingSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <Skeleton className="h-5 w-28 mb-4" />
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className={i < 3 ? "border-b border-gray-100 pb-3" : "pb-1"}>
+            <Skeleton className="h-4 w-28 mb-1" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton for the recommended users section
+function UsersSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <Skeleton className="h-5 w-36 mb-4" />
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-8 w-16 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function RightPanel() {
   const [creator, setCreator] = useState(null);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [trending, setTrending] = useState([]);
 
-  // Fetch the featured creator's profile on mount
+  // Loading states for per-section skeleton feedback
+  const [creatorLoading, setCreatorLoading] = useState(true);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  // Fetch the featured creator's profile, suggested users, and trending hashtags on mount
   useEffect(() => {
     profileApi.getProfileByUsername(FEATURED_CREATOR)
       .then(setCreator)
-      .catch((err) => console.error("Failed to load featured creator:", err));
+      .catch((err) => console.error("Failed to load featured creator:", err))
+      .finally(() => setCreatorLoading(false));
+
+    profileApi.getSuggestedUsers(3)
+      .then(setSuggestedUsers)
+      .catch((err) => console.error("Failed to load suggested users:", err))
+      .finally(() => setUsersLoading(false));
+
+    trendingApi.getTrending(4)
+      .then(setTrending)
+      .catch((err) => console.error("Failed to load trending:", err))
+      .finally(() => setTrendingLoading(false));
   }, []);
 
   return (
     <aside className="w-80 space-y-6 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Creator Profile Card */}
-      {creator && (
+      {creatorLoading ? (
+        <AnimatedCard><CreatorCardSkeleton /></AnimatedCard>
+      ) : creator && (
         <AnimatedCard>
           <div className="bg-white rounded-xl px-6 pt-0 pb-6 text-gray-900 border border-gray-200">
             <div className="relative">
@@ -76,8 +164,8 @@ export default function RightPanel() {
                 )}
               </div>
 
-              {/* Profile picture overlapping banner */}
-              <div className="absolute bottom-[-45] left-[-3] w-24 h-24 rounded-full shadow-md overflow-hidden">
+              {/* Profile picture overlapping banner — links to profile */}
+              <Link href={`/profiles/${creator.username}`} className="absolute bottom-[-45] left-[-3] w-24 h-24 rounded-full shadow-md overflow-hidden block hover:brightness-75 transition-all">
                 {creator.avatarUrl ? (
                   <img
                     src={creator.avatarUrl}
@@ -89,7 +177,7 @@ export default function RightPanel() {
                     {(creator.displayName || creator.username)?.[0]?.toUpperCase()}
                   </div>
                 )}
-              </div>
+              </Link>
             </div>
 
             {/* Creator Info Section */}
@@ -127,36 +215,69 @@ export default function RightPanel() {
         </AnimatedCard>
       )}
 
-      {/* Trending Now */}
-      <AnimatedCard>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-bold text-gray-800 mb-4">Trending now</h3>
-          <div className="space-y-1">
-            {/* Trending Item */}
-            <div className="border-b border-gray-100 pb-3">
-              <p className="text-orange-500 font-medium text-sm">#chainssawman</p>
-              <p className="text-xs text-gray-500">532 Posts</p>
-            </div>
-
-            <div className="border-b border-gray-100 pb-3">
-              <p className="text-orange-500 font-medium text-sm">#OneCosplays</p>
-              <p className="text-xs text-gray-500">645 Posts</p>
-            </div>
-
-            <div className="border-b border-gray-100 pb-3">
-              <p className="text-orange-500 font-medium text-sm">
-                #demonslayercosmode
-              </p>
-              <p className="text-xs text-gray-500">737 Posts</p>
-            </div>
-
-            <div className="pb-3">
-              <p className="text-orange-500 font-medium text-sm">#onePie3d3</p>
-              <p className="text-xs text-gray-500">467 Posts</p>
+      {/* Trending Now — real hashtags from posts in the last 7 days */}
+      {trendingLoading ? (
+        <AnimatedCard><TrendingSkeleton /></AnimatedCard>
+      ) : trending.length > 0 && (
+        <AnimatedCard>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <h3 className="font-bold text-gray-800 mb-4">Trending now</h3>
+            <div className="space-y-1">
+              {trending.map((tag, i) => (
+                <Link
+                  key={tag.hashtag}
+                  href={`/search?q=${encodeURIComponent("#" + tag.hashtag)}&tab=posts`}
+                  className={`block pb-3 hover:opacity-75 transition-opacity ${
+                    i < trending.length - 1 ? "border-b border-gray-100" : ""
+                  }`}
+                >
+                  <p className="text-orange-500 font-medium text-sm">#{tag.hashtag}</p>
+                  <p className="text-xs text-gray-500">
+                    {tag.postCount} {tag.postCount === 1 ? "Post" : "Posts"}
+                  </p>
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      </AnimatedCard>
+        </AnimatedCard>
+      )}
+
+      {/* Recommended Users — real users from the platform, ordered by followers */}
+      {usersLoading ? (
+        <AnimatedCard><UsersSkeleton /></AnimatedCard>
+      ) : suggestedUsers.length > 0 && (
+        <AnimatedCard>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <h3 className="font-bold text-gray-800 mb-4">Recommended users</h3>
+            <div className="space-y-4">
+              {suggestedUsers.map((user) => (
+                <div key={user.id} className="flex items-center gap-3">
+                  <Link href={`/profiles/${user.username}`} className="w-10 h-10 rounded-full shrink-0 overflow-hidden hover:brightness-75 transition-all">
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.displayName || user.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-sm font-bold">
+                        {(user.displayName || user.username)?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/profiles/${user.username}`} className="font-medium text-sm text-gray-800 hover:text-[#FF7927] transition-colors truncate block">
+                      {user.displayName || user.username}
+                    </Link>
+                    <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                  </div>
+                  <FollowButton userId={user.id} size="sm" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </AnimatedCard>
+      )}
 
       {/* Footer / Copyright */}
       <AnimatedCard>

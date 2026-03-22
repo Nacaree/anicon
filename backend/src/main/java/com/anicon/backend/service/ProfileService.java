@@ -1,5 +1,6 @@
 package com.anicon.backend.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.anicon.backend.dto.ProfileResponse;
+import static com.anicon.backend.gen.jooq.tables.Follows.FOLLOWS;
 import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
 
 /**
@@ -81,5 +83,34 @@ public class ProfileService {
                 .where(PROFILES.USERNAME.eq(username))
                 .fetchOptionalInto(ProfileResponse.class)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+    }
+
+    /**
+     * Returns suggested users ordered by follower count (most popular first).
+     * Excludes the current user if authenticated. Used by the right panel
+     * "Recommended users" section on the main page.
+     *
+     * @param currentUserId The authenticated user's ID (null for guests)
+     * @param limit         Max number of users to return
+     * @return List of ProfileResponse ordered by follower_count DESC
+     */
+    public List<ProfileResponse> getSuggestedUsers(UUID currentUserId, int limit) {
+        var condition = org.jooq.impl.DSL.noCondition();
+
+        if (currentUserId != null) {
+            // Exclude the current user and anyone they already follow
+            var followedIds = dsl.select(FOLLOWS.FOLLOWING_ID)
+                    .from(FOLLOWS)
+                    .where(FOLLOWS.FOLLOWER_ID.eq(currentUserId));
+
+            condition = PROFILES.ID.ne(currentUserId)
+                    .and(PROFILES.ID.notIn(followedIds));
+        }
+
+        return dsl.selectFrom(PROFILES)
+                .where(condition)
+                .orderBy(PROFILES.FOLLOWER_COUNT.desc())
+                .limit(limit)
+                .fetchInto(ProfileResponse.class);
     }
 }

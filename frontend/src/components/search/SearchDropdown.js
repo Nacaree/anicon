@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Globe, ExternalLink } from "lucide-react";
 import { searchApi } from "@/lib/api";
+import HashtagText from "@/components/posts/HashtagText";
 
 /**
  * Instant search dropdown rendered below the Header search input.
@@ -14,13 +16,13 @@ import { searchApi } from "@/lib/api";
  */
 export default function SearchDropdown({ query, onClose }) {
   const router = useRouter();
-  const [results, setResults] = useState({ users: [], events: [], posts: [] });
+  const [results, setResults] = useState({ users: [], events: [], posts: [], scrapedEvents: [] });
   const [loading, setLoading] = useState(false);
 
   // Debounced search — 300ms delay, cancelled on query change or unmount
   useEffect(() => {
     if (!query || query.length < 2) {
-      setResults({ users: [], events: [], posts: [] });
+      setResults({ users: [], events: [], posts: [], scrapedEvents: [] });
       return;
     }
 
@@ -39,7 +41,8 @@ export default function SearchDropdown({ query, onClose }) {
   const hasResults =
     results.users.length > 0 ||
     results.events.length > 0 ||
-    results.posts.length > 0;
+    results.posts.length > 0 ||
+    results.scrapedEvents?.length > 0;
 
   // Navigate to a result and close the dropdown
   const goTo = (path) => {
@@ -248,9 +251,10 @@ export default function SearchDropdown({ query, onClose }) {
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {post.author?.displayName || post.author?.username}
                     </div>
-                    <div className="text-xs text-gray-500 line-clamp-1">
-                      {post.textContent}
-                    </div>
+                    <HashtagText
+                      text={post.textContent}
+                      className="text-xs text-gray-500 line-clamp-1"
+                    />
                   </div>
                 </button>
               ))}
@@ -263,8 +267,81 @@ export default function SearchDropdown({ query, onClose }) {
               </Link>
             </div>
           )}
+
+          {/* Discovered (scraped events) section */}
+          {results.scrapedEvents?.length > 0 && (
+            <div
+              className={
+                results.users.length > 0 || results.events.length > 0 || results.posts.length > 0
+                  ? "border-t"
+                  : ""
+              }
+            >
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 pt-3 pb-1">
+                Discovered
+              </div>
+              {results.scrapedEvents.map((event) => (
+                <a
+                  key={event.id}
+                  href={event.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
+                  className="w-full px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors flex items-center gap-3 text-left block"
+                >
+                  {event.coverImageUrl ? (
+                    <img
+                      src={event.coverImageUrl}
+                      alt=""
+                      className="rounded-lg object-cover shrink-0 w-12 h-9"
+                    />
+                  ) : (
+                    <div className="w-12 h-9 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                      <Globe className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-900 truncate flex items-center gap-1">
+                      {event.title}
+                      <ExternalLink className="w-3 h-3 text-gray-400 shrink-0" />
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {event.eventDate &&
+                        new Date(
+                          event.eventDate + "T00:00:00",
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      {event.location && ` · ${event.location}`}
+                      {event.sourcePlatform && (
+                        <span className="ml-1 text-gray-400">
+                          · {SOURCE_LABELS[event.sourcePlatform] || event.sourcePlatform}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+              <Link
+                href={`/search?q=${encodeURIComponent(query)}&tab=discovered`}
+                onClick={onClose}
+                className="block text-sm text-[#FF7927] font-medium px-4 py-2 hover:bg-orange-50 transition-colors"
+              >
+                See all discovered events
+              </Link>
+            </div>
+          )}
         </>
       )}
     </div>
   );
 }
+
+/** Human-readable labels for scraped event source platforms */
+const SOURCE_LABELS = {
+  allevents: "AllEvents.in",
+  kawaiicon: "KAWAII-CON",
+  cjcc: "CJCC",
+  bestofpp: "Best of Phnom Penh",
+};

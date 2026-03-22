@@ -16,8 +16,10 @@ import com.anicon.backend.gen.jooq.tables.PortfolioLikes;
 import com.anicon.backend.gen.jooq.tables.PostComments;
 import com.anicon.backend.gen.jooq.tables.PostImages;
 import com.anicon.backend.gen.jooq.tables.PostLikes;
+import com.anicon.backend.gen.jooq.tables.PostTags;
 import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
+import com.anicon.backend.gen.jooq.tables.ScrapedEvents;
 import com.anicon.backend.gen.jooq.tables.Tags;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
@@ -90,6 +92,11 @@ public class Tables {
     public static final PostLikes POST_LIKES = PostLikes.POST_LIKES;
 
     /**
+     * The table <code>public.post_tags</code>.
+     */
+    public static final PostTags POST_TAGS = PostTags.POST_TAGS;
+
+    /**
      * The table <code>public.posts</code>.
      */
     public static final Posts POSTS = Posts.POSTS;
@@ -98,6 +105,11 @@ public class Tables {
      * The table <code>public.profiles</code>.
      */
     public static final Profiles PROFILES = Profiles.PROFILES;
+
+    /**
+     * The table <code>public.scraped_events</code>.
+     */
+    public static final ScrapedEvents SCRAPED_EVENTS = ScrapedEvents.SCRAPED_EVENTS;
 
     /**
      * The table <code>public.tags</code>.

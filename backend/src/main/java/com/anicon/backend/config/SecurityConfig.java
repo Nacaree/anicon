@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/creator/*/portfolio").permitAll()
                         // Profile event tabs are public — shows events a user is going to or hosting
                         .requestMatchers(HttpMethod.GET, "/api/users/*/events/**").permitAll()
+                        // Unified feed is public (optionally authenticated for post liked/reposted state)
+                        .requestMatchers(HttpMethod.GET, "/api/feed").permitAll()
                         // Post feed, user posts, and single post detail are public (optionally authenticated for liked/reposted state)
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed", "/api/posts/user/**").permitAll()
                         // Single post detail — must come after /feed and /user/** to avoid shadowing
@@ -57,6 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         // Search is public (optionally authenticated for post liked state)
                         .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
+                        // Trending hashtags are public — used by the right sidebar
+                        .requestMatchers(HttpMethod.GET, "/api/trending").permitAll()
                         // Stripe webhook — authenticated via HMAC signature, not JWT
                         .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         // Event status is optionally authenticated: guests get zeros, logged-in users get real counts.

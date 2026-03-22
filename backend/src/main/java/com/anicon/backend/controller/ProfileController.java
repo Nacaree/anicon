@@ -1,5 +1,6 @@
 package com.anicon.backend.controller;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -8,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.anicon.backend.dto.ProfileResponse;
@@ -92,6 +94,19 @@ public class ProfileController {
      * @return ProfileResponse if user exists
      * @throws IllegalArgumentException (400 Bad Request) if username not found
      */
+    /**
+     * Get suggested users for the right panel, ordered by follower count.
+     * Optionally authenticated — excludes the current user if logged in.
+     * This must be mapped BEFORE /{username} so "suggested" isn't treated as a username.
+     */
+    @GetMapping("/suggested")
+    public ResponseEntity<List<ProfileResponse>> getSuggestedUsers(
+            @AuthenticationPrincipal SupabaseUserPrincipal principal,
+            @RequestParam(defaultValue = "5") int limit) {
+        UUID currentUserId = principal != null ? principal.getUserId() : null;
+        return ResponseEntity.ok(profileService.getSuggestedUsers(currentUserId, Math.min(limit, 20)));
+    }
+
     @GetMapping("/{username}")
     public ResponseEntity<ProfileResponse> getProfileByUsername(@PathVariable String username) {
         // Fetch profile by unique username

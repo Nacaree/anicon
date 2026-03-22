@@ -217,19 +217,39 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
 
         {/* Composer body */}
         <div className="p-4">
-          {/* Text area — starts at 1 row and auto-grows as user types */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => {
-              handleTextChange(e);
-              e.target.style.height = "auto";
-              e.target.style.height = e.target.scrollHeight + "px";
-            }}
-            placeholder="Share your latest creation..."
-            className="w-full resize-none bg-transparent text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none text-[15px]"
-            rows={1}
-          />
+          {/* Text area with hashtag highlighting overlay.
+              The overlay div renders behind the transparent textarea, showing
+              hashtags in orange while the user types. Both layers share identical
+              sizing/font so text aligns perfectly. */}
+          <div className="relative">
+            {/* Highlight overlay — renders colored hashtags behind the textarea */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-[15px] text-gray-800 dark:text-gray-200"
+              style={{ wordBreak: "break-word" }}
+            >
+              {text ? text.split(/(#\w+)/g).map((part, i) =>
+                /^#\w+$/.test(part) ? (
+                  <span key={i} className="text-orange-500 font-medium">{part}</span>
+                ) : (
+                  <span key={i}>{part}</span>
+                )
+              ) : null}
+            </div>
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => {
+                handleTextChange(e);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
+              placeholder="Share your latest creation..."
+              className="w-full resize-none bg-transparent placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none text-[15px] relative"
+              style={text ? { color: "transparent", WebkitTextFillColor: "transparent", caretColor: "#1f2937" } : {}}
+              rows={1}
+            />
+          </div>
 
           {/* Image previews */}
           <ImageUploadGrid

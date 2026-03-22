@@ -12,6 +12,7 @@ import PostImageCarousel from "./PostImageCarousel";
 import PostActions from "./PostActions";
 import CommentSection from "./CommentSection";
 import CommentInput from "./CommentInput";
+import HashtagText from "./HashtagText";
 
 /**
  * Instagram-style post detail modal.
@@ -22,8 +23,8 @@ import CommentInput from "./CommentInput";
 export default function PostDetailModal({ post: initialPost, isOpen, onClose, onPostDeleted, onEdit }) {
   const { user, isAuthenticated } = useAuth();
   const { requireAuth } = useAuthGate();
-  // For reposts, inherit the original post's like state so the heart shows red
-  const [post, setPost] = useState(() => mergeRepostState(initialPost));
+  // For reposts, inherit the original post's like/repost state into the wrapper
+  const [post, setPost] = useState(() => mergeRepostState(initialPost, user?.id));
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Tracks the latest comment added from the sticky input, passed to CommentSection
@@ -38,14 +39,14 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
 
   // Sync post state when a new post is opened
   useEffect(() => {
-    if (initialPost) setPost(mergeRepostState(initialPost));
+    if (initialPost) setPost(mergeRepostState(initialPost, user?.id));
   }, [initialPost]);
 
   const isOwner = user?.id === post?.author?.id;
   const isRepost = post?.originalPost !== undefined && post?.originalPost !== null;
   const displayPost = isRepost ? post?.originalPost : post;
   const hasImages = displayPost?.images?.length > 0;
-  const isOwnRepost = isRepost && user?.id === post?.author?.id;
+
 
   // Push URL when modal opens, pop when it closes
   useEffect(() => {
@@ -91,40 +92,75 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
   // OPTIMISTIC HANDLERS
   // ========================================
 
+  // For likes/reposts on reposted posts, target the original post — not the repost wrapper
+  const targetPostId = isRepost && post?.originalPost ? post.originalPost.id : post?.id;
+
   const handleLike = async () => {
     const wasLiked = post.likedByCurrentUser;
+    // Optimistic update — for reposts, update BOTH the wrapper and originalPost
+    // because PostActions merges them with ||, so originalPost must also change
     setPost((p) => ({
       ...p,
       likedByCurrentUser: !wasLiked,
       likeCount: wasLiked ? p.likeCount - 1 : p.likeCount + 1,
+      ...(p.originalPost ? {
+        originalPost: {
+          ...p.originalPost,
+          likedByCurrentUser: !wasLiked,
+          likeCount: wasLiked ? p.originalPost.likeCount - 1 : p.originalPost.likeCount + 1,
+        },
+      } : {}),
     }));
     try {
-      if (wasLiked) await postsApi.unlikePost(post.id);
-      else await postsApi.likePost(post.id);
+      if (wasLiked) await postsApi.unlikePost(targetPostId);
+      else await postsApi.likePost(targetPostId);
     } catch {
       setPost((p) => ({
         ...p,
         likedByCurrentUser: wasLiked,
         likeCount: wasLiked ? p.likeCount + 1 : p.likeCount - 1,
+        ...(p.originalPost ? {
+          originalPost: {
+            ...p.originalPost,
+            likedByCurrentUser: wasLiked,
+            likeCount: wasLiked ? p.originalPost.likeCount + 1 : p.originalPost.likeCount - 1,
+          },
+        } : {}),
       }));
     }
   };
 
   const handleRepost = async () => {
     const wasReposted = post.repostedByCurrentUser;
+    // Optimistic update — for reposts, update BOTH the wrapper and originalPost
+    // because PostActions merges them with ||, so originalPost must also change
     setPost((p) => ({
       ...p,
       repostedByCurrentUser: !wasReposted,
       repostCount: wasReposted ? p.repostCount - 1 : p.repostCount + 1,
+      ...(p.originalPost ? {
+        originalPost: {
+          ...p.originalPost,
+          repostedByCurrentUser: !wasReposted,
+          repostCount: wasReposted ? p.originalPost.repostCount - 1 : p.originalPost.repostCount + 1,
+        },
+      } : {}),
     }));
     try {
-      if (wasReposted) await postsApi.undoRepost(post.id);
-      else await postsApi.repost(post.id);
+      if (wasReposted) await postsApi.undoRepost(targetPostId);
+      else await postsApi.repost(targetPostId);
     } catch {
       setPost((p) => ({
         ...p,
         repostedByCurrentUser: wasReposted,
         repostCount: wasReposted ? p.repostCount + 1 : p.repostCount - 1,
+        ...(p.originalPost ? {
+          originalPost: {
+            ...p.originalPost,
+            repostedByCurrentUser: wasReposted,
+            repostCount: wasReposted ? p.originalPost.repostCount + 1 : p.originalPost.repostCount - 1,
+          },
+        } : {}),
       }));
     }
   };
@@ -244,17 +280,19 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
 
   /** Text content with expand/collapse */
   const textContent = displayPost?.textContent && (
-    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words text-[15px]">
-      {displayPost.textContent}
-    </p>
+    <HashtagText
+      text={displayPost.textContent}
+      className="text-gray-800 dark:text-gray-200 text-[15px]"
+    />
   );
 
   /** Action bar (like, comment, repost) */
   const actionBar = (
     <PostActions
       post={isRepost
-        ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser || displayPost.likedByCurrentUser, repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || displayPost.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount }
+        ? { ...displayPost, likedByCurrentUser: post.likedByCurrentUser, repostedByCurrentUser: post.repostedByCurrentUser, likeCount: displayPost.likeCount, commentCount: displayPost.commentCount, repostCount: displayPost.repostCount }
         : post}
+      isOwnPost={user?.id === displayPost?.author?.id}
       onLike={handleLike}
       onComment={() => {}}
       onRepost={handleRepost}
@@ -404,11 +442,17 @@ function formatTimeAgo(isoString) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** For reposts, inherit the original post's like state into the wrapper */
-function mergeRepostState(post) {
+/**
+ * For reposts, inherit the original post's like/repost state into the wrapper.
+ * Also marks repostedByCurrentUser=true when the current user authored the
+ * repost wrapper, since the backend flag may only be set on the original.
+ */
+function mergeRepostState(post, currentUserId) {
   if (!post?.originalPost) return post;
+  const isOwnRepost = currentUserId && post.author?.id === currentUserId;
   return {
     ...post,
     likedByCurrentUser: post.likedByCurrentUser || post.originalPost.likedByCurrentUser,
+    repostedByCurrentUser: isOwnRepost || post.repostedByCurrentUser || post.originalPost.repostedByCurrentUser,
   };
 }

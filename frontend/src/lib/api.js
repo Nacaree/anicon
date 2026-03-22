@@ -198,6 +198,14 @@ export const profileApi = {
   // !might not get used
   getProfileById: (userId) =>
     request(`/api/profiles/user/${userId}`, { method: "GET", noAuth: true }),
+
+  // Suggested users for the right panel, ordered by follower count.
+  // Uses bestEffortAuth so logged-in users are excluded from results.
+  getSuggestedUsers: (limit = 5) =>
+    request(`/api/profiles/suggested?limit=${limit}`, {
+      method: "GET",
+      bestEffortAuth: true,
+    }),
 };
 
 // In-memory event cache populated by listEvents().
@@ -496,6 +504,41 @@ export const searchApi = {
       `/api/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`,
       { method: "GET", bestEffortAuth: true },
     ),
+};
+
+// ============================================
+// UNIFIED FEED API — Homepage feed (posts + scraped events)
+// ============================================
+
+export const feedApi = {
+  /**
+   * Get the unified feed of posts + scraped events, merged by created_at DESC.
+   * bestEffortAuth: sends cached token if available for post liked/reposted state,
+   * but never blocks on getSession() — feed loads instantly for guests.
+   *
+   * @param {string|null} cursor Pagination cursor from previous response
+   * @param {number} limit       Max items per page (default 20)
+   */
+  getFeed: (cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/feed?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+};
+
+// ============================================
+// TRENDING API — Sidebar "Trending now" section
+// ============================================
+
+export const trendingApi = {
+  /**
+   * Returns the most popular hashtags from posts in the last 7 days.
+   * Public endpoint — no auth needed.
+   *
+   * @param {number} limit Max number of trending hashtags (default 4)
+   */
+  getTrending: (limit = 4) =>
+    request(`/api/trending?limit=${limit}`, { method: "GET", noAuth: true }),
 };
 
 // Adapts a raw EventResponse from the backend to the shape frontend components expect.

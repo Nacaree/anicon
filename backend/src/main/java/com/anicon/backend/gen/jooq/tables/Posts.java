@@ -10,8 +10,10 @@ import com.anicon.backend.gen.jooq.Public;
 import com.anicon.backend.gen.jooq.tables.PostComments.PostCommentsPath;
 import com.anicon.backend.gen.jooq.tables.PostImages.PostImagesPath;
 import com.anicon.backend.gen.jooq.tables.PostLikes.PostLikesPath;
+import com.anicon.backend.gen.jooq.tables.PostTags.PostTagsPath;
 import com.anicon.backend.gen.jooq.tables.Posts.PostsPath;
 import com.anicon.backend.gen.jooq.tables.Profiles.ProfilesPath;
+import com.anicon.backend.gen.jooq.tables.Tags.TagsPath;
 import com.anicon.backend.gen.jooq.tables.records.PostsRecord;
 
 import java.time.OffsetDateTime;
@@ -259,6 +261,27 @@ public class Posts extends TableImpl<PostsRecord> {
             _postLikes = new PostLikesPath(this, null, Keys.POST_LIKES__POST_LIKES_POST_ID_FKEY.getInverseKey());
 
         return _postLikes;
+    }
+
+    private transient PostTagsPath _postTags;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.post_tags</code>
+     * table
+     */
+    public PostTagsPath postTags() {
+        if (_postTags == null)
+            _postTags = new PostTagsPath(this, null, Keys.POST_TAGS__POST_TAGS_POST_ID_FKEY.getInverseKey());
+
+        return _postTags;
+    }
+
+    /**
+     * Get the implicit many-to-many join path to the <code>public.tags</code>
+     * table
+     */
+    public TagsPath tags() {
+        return postTags().tags();
     }
 
     @Override
