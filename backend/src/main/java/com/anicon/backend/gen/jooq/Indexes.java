@@ -19,6 +19,7 @@ import com.anicon.backend.gen.jooq.tables.PostLikes;
 import com.anicon.backend.gen.jooq.tables.PostTags;
 import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
+import com.anicon.backend.gen.jooq.tables.ScrapedEvents;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
 
@@ -70,6 +71,10 @@ public class Indexes {
     public static final Index IDX_PROFILES_USERNAME = Internal.createIndex(DSL.name("idx_profiles_username"), Profiles.PROFILES, new OrderField[] { Profiles.PROFILES.USERNAME }, true);
     public static final Index IDX_RSVPS_EVENT = Internal.createIndex(DSL.name("idx_rsvps_event"), EventRsvps.EVENT_RSVPS, new OrderField[] { EventRsvps.EVENT_RSVPS.EVENT_ID }, false);
     public static final Index IDX_RSVPS_USER = Internal.createIndex(DSL.name("idx_rsvps_user"), EventRsvps.EVENT_RSVPS, new OrderField[] { EventRsvps.EVENT_RSVPS.USER_ID }, false);
+    public static final Index IDX_SCRAPED_EVENTS_CREATED_AT = Internal.createIndex(DSL.name("idx_scraped_events_created_at"), ScrapedEvents.SCRAPED_EVENTS, new OrderField[] { ScrapedEvents.SCRAPED_EVENTS.CREATED_AT.desc() }, false);
+    public static final Index IDX_SCRAPED_EVENTS_DATE = Internal.createIndex(DSL.name("idx_scraped_events_date"), ScrapedEvents.SCRAPED_EVENTS, new OrderField[] { ScrapedEvents.SCRAPED_EVENTS.EVENT_DATE }, false);
+    public static final Index IDX_SCRAPED_EVENTS_PLATFORM = Internal.createIndex(DSL.name("idx_scraped_events_platform"), ScrapedEvents.SCRAPED_EVENTS, new OrderField[] { ScrapedEvents.SCRAPED_EVENTS.SOURCE_PLATFORM }, false);
+    public static final Index IDX_SCRAPED_EVENTS_SOURCE_URL = Internal.createIndex(DSL.name("idx_scraped_events_source_url"), ScrapedEvents.SCRAPED_EVENTS, new OrderField[] { ScrapedEvents.SCRAPED_EVENTS.SOURCE_URL }, false);
     public static final Index IDX_TICKETS_CODE = Internal.createIndex(DSL.name("idx_tickets_code"), Tickets.TICKETS, new OrderField[] { Tickets.TICKETS.TICKET_CODE }, false);
     public static final Index IDX_TICKETS_EVENT = Internal.createIndex(DSL.name("idx_tickets_event"), Tickets.TICKETS, new OrderField[] { Tickets.TICKETS.EVENT_ID }, false);
     public static final Index IDX_TICKETS_USER = Internal.createIndex(DSL.name("idx_tickets_user"), Tickets.TICKETS, new OrderField[] { Tickets.TICKETS.USER_ID }, false);

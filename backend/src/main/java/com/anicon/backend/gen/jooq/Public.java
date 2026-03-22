@@ -19,6 +19,7 @@ import com.anicon.backend.gen.jooq.tables.PostLikes;
 import com.anicon.backend.gen.jooq.tables.PostTags;
 import com.anicon.backend.gen.jooq.tables.Posts;
 import com.anicon.backend.gen.jooq.tables.Profiles;
+import com.anicon.backend.gen.jooq.tables.ScrapedEvents;
 import com.anicon.backend.gen.jooq.tables.Tags;
 import com.anicon.backend.gen.jooq.tables.Tickets;
 import com.anicon.backend.gen.jooq.tables.Transactions;
@@ -121,6 +122,11 @@ public class Public extends SchemaImpl {
     public final Profiles PROFILES = Profiles.PROFILES;
 
     /**
+     * The table <code>public.scraped_events</code>.
+     */
+    public final ScrapedEvents SCRAPED_EVENTS = ScrapedEvents.SCRAPED_EVENTS;
+
+    /**
      * The table <code>public.tags</code>.
      */
     public final Tags TAGS = Tags.TAGS;
@@ -166,6 +172,7 @@ public class Public extends SchemaImpl {
             PostTags.POST_TAGS,
             Posts.POSTS,
             Profiles.PROFILES,
+            ScrapedEvents.SCRAPED_EVENTS,
             Tags.TAGS,
             Tickets.TICKETS,
             Transactions.TRANSACTIONS

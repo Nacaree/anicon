@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/creator/*/portfolio").permitAll()
                         // Profile event tabs are public — shows events a user is going to or hosting
                         .requestMatchers(HttpMethod.GET, "/api/users/*/events/**").permitAll()
+                        // Unified feed is public (optionally authenticated for post liked/reposted state)
+                        .requestMatchers(HttpMethod.GET, "/api/feed").permitAll()
                         // Post feed, user posts, and single post detail are public (optionally authenticated for liked/reposted state)
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed", "/api/posts/user/**").permitAll()
                         // Single post detail — must come after /feed and /user/** to avoid shadowing

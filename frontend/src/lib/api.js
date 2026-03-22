@@ -507,6 +507,26 @@ export const searchApi = {
 };
 
 // ============================================
+// UNIFIED FEED API — Homepage feed (posts + scraped events)
+// ============================================
+
+export const feedApi = {
+  /**
+   * Get the unified feed of posts + scraped events, merged by created_at DESC.
+   * bestEffortAuth: sends cached token if available for post liked/reposted state,
+   * but never blocks on getSession() — feed loads instantly for guests.
+   *
+   * @param {string|null} cursor Pagination cursor from previous response
+   * @param {number} limit       Max items per page (default 20)
+   */
+  getFeed: (cursor = null, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    return request(`/api/feed?${params}`, { method: "GET", bestEffortAuth: true });
+  },
+};
+
+// ============================================
 // TRENDING API — Sidebar "Trending now" section
 // ============================================
 

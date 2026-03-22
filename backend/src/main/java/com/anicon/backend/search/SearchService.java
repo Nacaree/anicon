@@ -18,6 +18,7 @@ import static com.anicon.backend.gen.jooq.tables.PostImages.POST_IMAGES;
 import static com.anicon.backend.gen.jooq.tables.PostLikes.POST_LIKES;
 import static com.anicon.backend.gen.jooq.tables.Posts.POSTS;
 import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
+import static com.anicon.backend.gen.jooq.tables.ScrapedEvents.SCRAPED_EVENTS;
 import static com.anicon.backend.gen.jooq.tables.Tags.TAGS;
 import static org.jooq.impl.DSL.*;
 
@@ -51,20 +52,23 @@ public class SearchService {
         List<UserResult> users = List.of();
         List<EventResult> events = List.of();
         List<PostResult> posts = List.of();
+        List<ScrapedEventSearchResult> scrapedEvents = List.of();
 
         switch (type) {
             case "users" -> users = searchUsers(query, clampedLimit);
             case "events" -> events = searchEvents(query, clampedLimit);
             case "posts" -> posts = searchPosts(query, clampedLimit, currentUserId);
+            case "scraped_events" -> scrapedEvents = searchScrapedEvents(query, clampedLimit);
             default -> {
                 // "all" or any unrecognized value — search everything
                 users = searchUsers(query, clampedLimit);
                 events = searchEvents(query, clampedLimit);
                 posts = searchPosts(query, clampedLimit, currentUserId);
+                scrapedEvents = searchScrapedEvents(query, clampedLimit);
             }
         }
 
-        return new SearchResponse(users, events, posts);
+        return new SearchResponse(users, events, posts, scrapedEvents);
     }
 
     // -----------------------------------------------------------------------
@@ -157,6 +161,40 @@ public class SearchService {
                         r.get(EVENTS.TICKET_PRICE),
                         r.get(EVENTS.CURRENT_ATTENDANCE),
                         r.get(tagsField)));
+    }
+
+    // -----------------------------------------------------------------------
+    // Scraped event search — matches title, description, and location.
+    // No date filter — past events are included for searchable archive.
+    // -----------------------------------------------------------------------
+
+    private List<ScrapedEventSearchResult> searchScrapedEvents(String query, int limit) {
+        String pattern = "%" + query + "%";
+
+        return dsl.select(
+                    SCRAPED_EVENTS.ID,
+                    SCRAPED_EVENTS.TITLE,
+                    SCRAPED_EVENTS.DESCRIPTION,
+                    SCRAPED_EVENTS.EVENT_DATE,
+                    SCRAPED_EVENTS.LOCATION,
+                    SCRAPED_EVENTS.COVER_IMAGE_URL,
+                    SCRAPED_EVENTS.SOURCE_PLATFORM,
+                    SCRAPED_EVENTS.SOURCE_URL)
+                .from(SCRAPED_EVENTS)
+                .where(SCRAPED_EVENTS.TITLE.likeIgnoreCase(pattern)
+                        .or(SCRAPED_EVENTS.DESCRIPTION.likeIgnoreCase(pattern))
+                        .or(SCRAPED_EVENTS.LOCATION.likeIgnoreCase(pattern)))
+                .orderBy(SCRAPED_EVENTS.CREATED_AT.desc())
+                .limit(limit)
+                .fetch(r -> new ScrapedEventSearchResult(
+                        r.get(SCRAPED_EVENTS.ID),
+                        r.get(SCRAPED_EVENTS.TITLE),
+                        r.get(SCRAPED_EVENTS.DESCRIPTION),
+                        r.get(SCRAPED_EVENTS.EVENT_DATE),
+                        r.get(SCRAPED_EVENTS.LOCATION),
+                        r.get(SCRAPED_EVENTS.COVER_IMAGE_URL),
+                        r.get(SCRAPED_EVENTS.SOURCE_PLATFORM),
+                        r.get(SCRAPED_EVENTS.SOURCE_URL)));
     }
 
     // -----------------------------------------------------------------------

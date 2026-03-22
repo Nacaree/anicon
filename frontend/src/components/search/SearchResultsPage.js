@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useSidebar } from "@/context/SidebarContext";
+import { Globe, ExternalLink } from "lucide-react";
 import { searchApi } from "@/lib/api";
 import HashtagText from "@/components/posts/HashtagText";
 
@@ -13,11 +14,12 @@ const TABS = [
   { key: "users", label: "People" },
   { key: "events", label: "Events" },
   { key: "posts", label: "Posts" },
+  { key: "discovered", label: "Discovered" },
 ];
 
 // Maps tab key → index for the sliding underline offset.
-// 4 tabs: indicator is w-1/4 and translates by 100% per step.
-const TAB_INDEX = { all: 0, users: 1, events: 2, posts: 3 };
+// 5 tabs: indicator is w-1/5 and translates by 100% per step.
+const TAB_INDEX = { all: 0, users: 1, events: 2, posts: 3, discovered: 4 };
 
 /**
  * Full search results page at /search?q=term&tab=all.
@@ -32,7 +34,7 @@ export default function SearchResultsPage() {
   const query = searchParams.get("q") || "";
   const tabParam = searchParams.get("tab") || "all";
   const [activeTab, setActiveTab] = useState(tabParam);
-  const [results, setResults] = useState({ users: [], events: [], posts: [] });
+  const [results, setResults] = useState({ users: [], events: [], posts: [], scrapedEvents: [] });
   const [loading, setLoading] = useState(false);
 
   // In-memory cache keyed by "query:type:limit". Prevents redundant API calls
@@ -48,12 +50,13 @@ export default function SearchResultsPage() {
   // Fetch results when query or tab changes
   useEffect(() => {
     if (!query.trim()) {
-      setResults({ users: [], events: [], posts: [] });
+      setResults({ users: [], events: [], posts: [], scrapedEvents: [] });
       return;
     }
 
     // "all" tab fetches everything with limit 5; specific tabs fetch limit 20
-    const type = activeTab === "all" ? "all" : activeTab;
+    // "discovered" tab maps to "scraped_events" type for the backend search API
+    const type = activeTab === "all" ? "all" : activeTab === "discovered" ? "scraped_events" : activeTab;
     const limit = activeTab === "all" ? 5 : 20;
     const cacheKey = `${query}:${type}:${limit}`;
 
@@ -83,7 +86,8 @@ export default function SearchResultsPage() {
   const hasResults =
     results.users.length > 0 ||
     results.events.length > 0 ||
-    results.posts.length > 0;
+    results.posts.length > 0 ||
+    results.scrapedEvents?.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -106,7 +110,7 @@ export default function SearchResultsPage() {
             <div className="relative inline-flex">
               {/* Sliding underline — translates horizontally to follow the active tab */}
               <div
-                className="absolute bottom-0 h-0.5 w-1/4 bg-[#FF7927] transition-transform duration-300 ease-in-out"
+                className="absolute bottom-0 h-0.5 w-1/5 bg-[#FF7927] transition-transform duration-300 ease-in-out"
                 style={{
                   transform: `translateX(${TAB_INDEX[activeTab] * 100}%)`,
                 }}
@@ -182,6 +186,20 @@ export default function SearchResultsPage() {
                   </div>
                 </ResultSection>
               )}
+              {results.scrapedEvents?.length > 0 && (
+                <ResultSection
+                  title="Discovered"
+                  onSeeAll={() => switchTab("discovered")}
+                >
+                  <div className="space-y-1">
+                    {results.scrapedEvents.map((event, i) => (
+                      <RevealOnScroll key={event.id} delay={Math.min(i * 50, 500)}>
+                        <DiscoveredEventCard event={event} />
+                      </RevealOnScroll>
+                    ))}
+                  </div>
+                </ResultSection>
+              )}
             </div>
           ) : (
             // Individual tab: show all results for the selected type
@@ -202,6 +220,12 @@ export default function SearchResultsPage() {
                 results.posts.map((post, i) => (
                   <RevealOnScroll key={post.id} delay={Math.min(i * 50, 500)}>
                     <PostResultCard post={post} />
+                  </RevealOnScroll>
+                ))}
+              {activeTab === "discovered" &&
+                results.scrapedEvents?.map((event, i) => (
+                  <RevealOnScroll key={event.id} delay={Math.min(i * 50, 500)}>
+                    <DiscoveredEventCard event={event} />
                   </RevealOnScroll>
                 ))}
             </div>
@@ -406,6 +430,62 @@ function PostResultCard({ post }) {
   );
 }
 
+/** Discovered (scraped) event result row — cover image, title, date, location, source badge, external link */
+function DiscoveredEventCard({ event }) {
+  const formattedDate = event.eventDate
+    ? new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  const sourceName = SCRAPED_SOURCE_LABELS[event.sourcePlatform] || event.sourcePlatform;
+
+  return (
+    <a
+      href={event.sourceUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all cursor-pointer text-left block"
+    >
+      {event.coverImageUrl ? (
+        <img
+          src={event.coverImageUrl}
+          alt=""
+          className="rounded-lg object-cover shrink-0 w-28 h-20"
+        />
+      ) : (
+        <div className="w-28 h-20 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+          <Globe className="w-6 h-6 text-gray-400" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5">
+          {event.title}
+          <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+        </div>
+        <div className="text-sm text-gray-500 truncate">
+          {formattedDate}
+          {event.location && ` · ${event.location}`}
+        </div>
+        <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+          <Globe className="w-3 h-3" />
+          {sourceName}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/** Human-readable labels for scraped event source platforms */
+const SCRAPED_SOURCE_LABELS = {
+  allevents: "AllEvents.in",
+  kawaiicon: "KAWAII-CON",
+  cjcc: "CJCC",
+  bestofpp: "Best of Phnom Penh",
+};
+
 /**
  * Scroll-reveal wrapper — fades and slides children in when they enter the viewport.
  * Uses IntersectionObserver (same pattern as EventsPageCard). Fires once per element.
@@ -448,6 +528,7 @@ function LoadingSkeleton({ activeTab }) {
   if (activeTab === "users") return <UserSkeletonList count={6} />;
   if (activeTab === "events") return <EventSkeletonList count={6} />;
   if (activeTab === "posts") return <PostSkeletonList count={6} />;
+  if (activeTab === "discovered") return <EventSkeletonList count={6} />;
 
   // "all" tab — show a mix of each type with section headers
   return (
