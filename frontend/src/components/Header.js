@@ -136,10 +136,10 @@ export default function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-transparent fixed top-0 left-0 right-0 z-50 flex items-center px-3 sm:px-4 md:px-6">
-      {/* Hamburger Menu Button */}
+      {/* Hamburger Menu Button — hidden on mobile where BottomNav replaces it */}
       <button
         onClick={toggleSidebar}
-        className="p-2 hover:bg-gray-100 rounded-full mr-2 sm:mr-3 md:mr-5 transition-colors"
+        className="hidden md:block p-2 hover:bg-gray-100 rounded-full mr-2 sm:mr-3 md:mr-5 transition-colors"
       >
         <svg
           className="w-6 h-6 text-gray-600"

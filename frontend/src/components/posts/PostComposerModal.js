@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, ImagePlus } from "lucide-react";
+import { X, ChevronLeft, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { postsApi } from "@/lib/api";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImageUploadGrid from "./ImageUploadGrid";
 
 /**
@@ -196,27 +195,35 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in-0 duration-200">
+    <div className="fixed inset-0 z-60 flex items-stretch md:items-center justify-center animate-in fade-in-0 duration-200">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
-      {/* Modal content */}
-      <div className="relative z-10 w-full max-w-xl mx-4 rounded-xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 animate-in fade-in-0 zoom-in-95 duration-200">
+      {/* Modal content — full-screen on mobile, centered card on desktop */}
+      <div className="relative z-10 w-full h-full md:h-auto md:max-w-xl md:mx-4 md:rounded-xl flex flex-col bg-white dark:bg-gray-900 shadow-2xl border-0 md:border border-gray-200 dark:border-gray-800 animate-in fade-in-0 zoom-in-95 duration-200">
         {/* Header */}
         <div className="relative flex items-center justify-center px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+          {/* Mobile: back chevron on left */}
+          <button
+            onClick={handleClose}
+            className="absolute left-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors md:hidden"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
           <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
             {isEditing ? "Edit Post" : "Create Post"}
           </h2>
+          {/* Desktop: X button on right */}
           <button
             onClick={handleClose}
-            className="absolute right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-110 active:scale-95"
+            className="absolute right-4 w-8 h-8 hidden md:flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-110 active:scale-95"
           >
             <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
-        {/* Composer body */}
-        <div className="p-4">
+        {/* Composer body — flex-1 so it fills remaining space on mobile full-screen */}
+        <div className="p-4 flex-1 overflow-y-auto">
           {/* Text area with hashtag highlighting overlay.
               The overlay div renders behind the transparent textarea, showing
               hashtags in orange while the user types. Both layers share identical
@@ -301,35 +308,37 @@ export default function PostComposerModal({ isOpen, onClose, onPostCreated, init
         </div>
       </div>
 
-      {/* Discard confirmation modal — matches the "Not going?" modal design */}
-      <Dialog open={showDiscard} onOpenChange={setShowDiscard}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Discard post ?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-500">
-            Your changes will be lost if you discard.
-          </p>
-          <div className="flex gap-3 mt-2">
-            <button
-              onClick={() => setShowDiscard(false)}
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
-                transition-all duration-300 hover:scale-[1.02]
-                hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
-            >
-              Keep editing
-            </button>
-            <button
-              onClick={handleDiscard}
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
-                transition-all duration-300 hover:scale-[1.02]
-                hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
-            >
-              Discard
-            </button>
+      {/* Discard confirmation — custom inline modal so it renders above the
+          composer (z-60) without fighting with Radix Dialog's portal z-index */}
+      {showDiscard && (
+        <div className="fixed inset-0 z-70 flex items-end md:items-center justify-center animate-in fade-in-0 duration-150">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDiscard(false)} />
+          <div className="relative z-10 w-full max-w-none md:max-w-sm mx-0 md:mx-4 rounded-t-2xl md:rounded-xl bg-white dark:bg-gray-900 shadow-2xl border-t md:border border-gray-200 dark:border-gray-800 p-6 animate-in duration-200 slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Discard post?</h3>
+            <p className="text-sm text-gray-500 mt-2">
+              Your changes will be lost if you discard.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowDiscard(false)}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-full
+                  transition-all duration-300 hover:scale-[1.02]
+                  hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)] active:scale-[0.98]"
+              >
+                Keep editing
+              </button>
+              <button
+                onClick={handleDiscard}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-full
+                  transition-all duration-300 hover:scale-[1.02]
+                  hover:shadow-[0_4px_20px_rgba(239,68,68,0.4)] active:scale-[0.98]"
+              >
+                Discard
+              </button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }

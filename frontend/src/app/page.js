@@ -12,6 +12,7 @@ import { feedApi } from "@/lib/api";
 import PostComposer from "@/components/posts/PostComposer";
 import PostComposerModal from "@/components/posts/PostComposerModal";
 import PostFeed from "@/components/posts/PostFeed";
+import BottomNav from "@/components/BottomNav";
 
 const FeaturedEvents = dynamic(
   () => import("@/components/FeaturedEvents"),
@@ -192,7 +193,7 @@ export default function Home() {
       <div
         className={`${
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
-        } pt-16 transition-all duration-300`}
+        } pt-16 pb-16 md:pb-0 transition-all duration-300`}
       >
         {/* Featured Events - Full Width Section */}
         <section className="w-full px-4 sm:px-6 md:px-8 pt-4 pb-8">
@@ -278,6 +279,7 @@ export default function Home() {
         initialFiles={composerInitialFiles}
         editingPost={editingPost}
       />
+      <BottomNav />
     </div>
   );
 }

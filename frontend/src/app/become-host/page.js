@@ -7,6 +7,7 @@ import { influencerApi } from '@/lib/api';
 import { isInfluencer, canApplyForInfluencer } from '@/lib/roles';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -197,7 +198,7 @@ export default function BecomeHostPage() {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
-        <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+        <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
           <Header />
           <div className="max-w-2xl mx-auto px-6 pt-16 pb-6 text-center space-y-4">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
@@ -212,6 +213,7 @@ export default function BecomeHostPage() {
             </Link>
           </div>
         </div>
+        <BottomNav />
       </div>
     );
   }
@@ -226,7 +228,7 @@ export default function BecomeHostPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+      <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
         <Header />
         <div className="max-w-2xl mx-auto px-6 pt-16 pb-6 space-y-8">
 
@@ -350,9 +352,9 @@ export default function BecomeHostPage() {
                     Add at least one social media profile where you're active in the anime community.
                   </p>
                   {socialLinks.map((link, i) => (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div key={i} className="flex flex-col sm:flex-row gap-2 sm:items-center">
                       <Select value={link.platform} onValueChange={(val) => updateSocialLink(i, 'platform', val)}>
-                        <SelectTrigger className="w-36 rounded-lg">
+                        <SelectTrigger className="w-full sm:w-36 rounded-lg">
                           <SelectValue placeholder="Platform" />
                         </SelectTrigger>
                         <SelectContent>
@@ -466,6 +468,7 @@ export default function BecomeHostPage() {
           <div className="h-8" />
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

@@ -81,7 +81,7 @@ export default function PostImageCarousel({ images, className = "" }) {
           {current > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); scrollTo(current - 1); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
               aria-label="Previous image"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -90,7 +90,7 @@ export default function PostImageCarousel({ images, className = "" }) {
           {current < count - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); scrollTo(current + 1); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
               aria-label="Next image"
             >
               <ChevronRight className="w-5 h-5" />
@@ -106,13 +106,11 @@ export default function PostImageCarousel({ images, className = "" }) {
             <button
               key={i}
               onClick={(e) => { e.stopPropagation(); scrollTo(i); }}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                i === current
-                  ? "bg-white w-3"
-                  : "bg-white/50 hover:bg-white/80"
-              }`}
+              className="p-2 flex items-center justify-center"
               aria-label={`Go to image ${i + 1}`}
-            />
+            >
+              <span className={`block rounded-full transition-all ${i === current ? "w-3 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"}`} />
+            </button>
           ))}
         </div>
       )}

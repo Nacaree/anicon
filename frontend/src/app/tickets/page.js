@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth } from "@/context/AuthContext";
@@ -490,9 +491,9 @@ function PaidTicketRow({ item }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm relative hover:shadow-md transition-shadow flex min-h-[180px]">
-      {/* Left image strip — own overflow-hidden + left rounding */}
-      <div className="relative w-56 sm:w-72 shrink-0 rounded-l-xl overflow-hidden bg-gradient-to-br from-orange-100 to-orange-200">
+    <div className="bg-white rounded-xl shadow-sm relative hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:min-h-[180px]">
+      {/* Left image strip — stacks on top on mobile, left side on desktop */}
+      <div className="relative w-full sm:w-56 md:w-72 h-40 sm:h-auto shrink-0 rounded-t-xl sm:rounded-t-none sm:rounded-l-xl overflow-hidden bg-gradient-to-br from-orange-100 to-orange-200">
         {item.eventCoverImageUrl ? (
           <img
             src={item.eventCoverImageUrl}
@@ -619,7 +620,7 @@ function PaidTicketRow({ item }) {
           self-stretch fills the full row height; notches at -top-3/-bottom-3
           replicate the punched-hole effect used in PaidTicketCard. */}
       {item.ticketCode && (
-        <div className="relative self-stretch w-6 shrink-0">
+        <div className="relative self-stretch w-6 shrink-0 hidden sm:block">
           <div
             className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 border-2 border-gray-200 z-10"
             style={{ clipPath: "inset(46% 0 0 0)" }}
@@ -634,7 +635,7 @@ function PaidTicketRow({ item }) {
 
       {/* Ticket stub — wide enough to show the full code without truncation */}
       {item.ticketCode && (
-        <div className="bg-gray-50/60 rounded-r-xl px-4 py-4 flex flex-col justify-center items-center gap-2 w-28 sm:w-48 shrink-0">
+        <div className="bg-gray-50/60 rounded-b-xl sm:rounded-b-none sm:rounded-r-xl px-4 py-4 flex flex-col justify-center items-center gap-2 w-full sm:w-28 md:w-48 shrink-0">
           <p className="text-xs text-gray-400 uppercase tracking-wider">
             Ticket Code
           </p>
@@ -672,9 +673,9 @@ function RsvpRow({ item, onCancel }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm relative hover:shadow-md transition-shadow flex min-h-[180px]">
-      {/* Left image strip */}
-      <div className="relative w-56 sm:w-72 shrink-0 rounded-l-xl overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50">
+    <div className="bg-white rounded-xl shadow-sm relative hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:min-h-45">
+      {/* Left image strip — stacks on top on mobile, left side on desktop */}
+      <div className="relative w-full sm:w-56 md:w-72 h-40 sm:h-auto shrink-0 rounded-t-xl sm:rounded-t-none sm:rounded-l-xl overflow-hidden bg-linear-to-br from-emerald-50 to-teal-50">
         {item.eventCoverImageUrl ? (
           <img
             src={item.eventCoverImageUrl}
@@ -783,13 +784,13 @@ function RsvpRow({ item, onCancel }) {
       </div>
 
       {/* Guest pass stub — dashed left border is the tear line; notches bleed outside card */}
-      <div className="relative bg-emerald-50/40 rounded-r-xl px-4 py-4 flex flex-col justify-center items-center gap-2 w-28 sm:w-48 shrink-0 border-l-2 border-dashed border-emerald-200">
+      <div className="relative bg-emerald-50/40 rounded-b-xl sm:rounded-b-none sm:rounded-r-xl px-4 py-4 flex flex-col justify-center items-center gap-2 w-full sm:w-28 md:w-48 shrink-0 sm:border-l-2 border-t-2 sm:border-t-0 border-dashed border-emerald-200">
         <div
-          className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-gray-50 border-2 border-emerald-200 z-10"
+          className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-gray-50 border-2 border-emerald-200 z-10 hidden sm:block"
           style={{ clipPath: "inset(46% 0 0 0)" }}
         />
         <div
-          className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-gray-50 border-2 border-emerald-200 z-10"
+          className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-gray-50 border-2 border-emerald-200 z-10 hidden sm:block"
           style={{ clipPath: "inset(0 0 46% 0)" }}
         />
         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -1228,7 +1229,7 @@ export default function MyTicketsPage() {
       <div
         className={`${
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
-        } pt-16 transition-all duration-300`}
+        } pt-16 pb-16 md:pb-0 transition-all duration-300`}
       >
         <div className="px-4 sm:px-6 md:px-8 py-8 max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">My Tickets</h1>
@@ -1542,6 +1543,7 @@ export default function MyTicketsPage() {
           )}
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

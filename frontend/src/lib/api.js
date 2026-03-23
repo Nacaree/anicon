@@ -217,10 +217,6 @@ export const authApi = {
   // Get current user info and profile (auto-creates profile if needed)
   getCurrentUser: () => api.get("/api/auth/me"),
 
-  // Resend verification email (public endpoint)
-  resendVerification: (email) =>
-    api.post("/api/auth/resend-verification", { email }),
-
   // Send magic link (public endpoint)
   sendMagicLink: (email, redirectTo) =>
     api.post("/api/auth/magic-link", { email, redirectTo }),

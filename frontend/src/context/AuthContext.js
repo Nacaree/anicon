@@ -214,9 +214,24 @@ export function AuthProvider({ children }) {
     setProfile(null);
   };
 
-  // Resend verification email
+  // Verify email using a 6-digit OTP code instead of clicking a link.
+  // Mobile-friendly: user stays on the same page, no app-switching needed.
+  // On success, Supabase triggers onAuthStateChange → SIGNED_IN automatically.
+  const verifyOtp = async (email, token) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'signup',
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  // Resend verification email — calls Supabase directly (not the backend API)
+  // because Supabase Auth owns email sending via the configured SMTP provider.
   const resendVerification = async (email) => {
-    await authApi.resendVerification(email);
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw error;
   };
 
   // Send password reset email
@@ -273,6 +288,7 @@ export function AuthProvider({ children }) {
     signIn,
     signInWithMagicLink,
     signOut,
+    verifyOtp,
     resendVerification,
     resetPassword,
     updatePassword,

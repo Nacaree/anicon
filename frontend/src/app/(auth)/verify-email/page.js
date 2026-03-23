@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -8,13 +8,26 @@ import { useAuth } from '@/context/AuthContext';
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
-  const { resendVerification } = useAuth();
+  const { verifyOtp, resendVerification } = useAuth();
+
+  // 6-digit OTP code state
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef([]);
+
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState('');
   const [countdown, setCountdown] = useState(0);
 
+  // Auto-focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  // Countdown timer for resend cooldown
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -22,6 +35,73 @@ function VerifyEmailContent() {
     }
   }, [countdown]);
 
+  // Handle single digit input
+  const handleDigitChange = (index, value) => {
+    // Only allow single digits
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newDigits = [...digits];
+    newDigits[index] = digit;
+    setDigits(newDigits);
+    setVerifyError('');
+
+    // Auto-advance to next input when a digit is entered
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle paste — fill all 6 inputs from clipboard
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+
+    const newDigits = [...digits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pasted[i] || '';
+    }
+    setDigits(newDigits);
+    setVerifyError('');
+
+    // Focus the input after the last pasted digit
+    const focusIndex = Math.min(pasted.length, 5);
+    inputRefs.current[focusIndex]?.focus();
+  };
+
+  // Handle backspace — move focus to previous input
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    // Submit on Enter if all digits are filled
+    if (e.key === 'Enter') {
+      const code = digits.join('');
+      if (code.length === 6) {
+        handleVerify();
+      }
+    }
+  };
+
+  // Verify the OTP code
+  const handleVerify = async () => {
+    const code = digits.join('');
+    if (code.length !== 6 || !email) return;
+
+    setIsVerifying(true);
+    setVerifyError('');
+
+    try {
+      await verifyOtp(email, code);
+      // Force full page reload to commit session cookies before middleware runs
+      // (same pattern as login page)
+      window.location.href = '/';
+    } catch (err) {
+      setVerifyError(err.message || 'Invalid or expired code. Please try again.');
+      setIsVerifying(false);
+    }
+  };
+
+  // Resend verification email
   const handleResend = async () => {
     if (!email || countdown > 0) return;
 
@@ -32,13 +112,20 @@ function VerifyEmailContent() {
     try {
       await resendVerification(email);
       setResendSuccess(true);
-      setCountdown(60); // 60 second cooldown
+      setCountdown(60);
+      // Clear any old code
+      setDigits(['', '', '', '', '', '']);
+      setVerifyError('');
+      inputRefs.current[0]?.focus();
     } catch (err) {
       setResendError(err.message || 'Failed to resend verification email');
     } finally {
       setIsResending(false);
     }
   };
+
+  const code = digits.join('');
+  const isCodeComplete = code.length === 6;
 
   return (
     <div className="text-center">
@@ -49,24 +136,57 @@ function VerifyEmailContent() {
           </svg>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
-        <p className="text-gray-600 mb-2">
-          We sent a verification link to
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify your email</h2>
+        <p className="text-gray-600 mb-1">
+          We sent a 6-digit code to
         </p>
         {email && (
           <p className="font-medium text-gray-900 mb-4">{email}</p>
         )}
         <p className="text-gray-500 text-sm">
-          Click the link in the email to verify your account and complete signup.
+          Enter the code below to verify your account.
         </p>
       </div>
 
-      {resendSuccess && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-          Verification email sent! Check your inbox.
+      {/* 6-digit OTP input */}
+      <div className="flex justify-center gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
+        {digits.map((digit, index) => (
+          <input
+            key={index}
+            ref={(el) => (inputRefs.current[index] = el)}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleDigitChange(index, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            className={`w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold border-2 rounded-xl outline-none transition-all ${
+              verifyError
+                ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                : digit
+                ? 'border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200'
+                : 'border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Error message */}
+      {verifyError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {verifyError}
         </div>
       )}
 
+      {/* Resend success message */}
+      {resendSuccess && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+          New code sent! Check your inbox.
+        </div>
+      )}
+
+      {/* Resend error message */}
       {resendError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
           {resendError}
@@ -74,6 +194,16 @@ function VerifyEmailContent() {
       )}
 
       <div className="space-y-3">
+        {/* Verify button */}
+        <button
+          onClick={handleVerify}
+          disabled={!isCodeComplete || isVerifying || !email}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isVerifying ? 'Verifying...' : 'Verify'}
+        </button>
+
+        {/* Resend button */}
         <button
           onClick={handleResend}
           disabled={isResending || countdown > 0 || !email}
@@ -82,8 +212,8 @@ function VerifyEmailContent() {
           {isResending
             ? 'Sending...'
             : countdown > 0
-            ? `Resend in ${countdown}s`
-            : 'Resend verification email'}
+            ? `Resend code in ${countdown}s`
+            : 'Resend code'}
         </button>
 
         <Link
@@ -103,7 +233,7 @@ function VerifyEmailContent() {
 
       <div className="mt-8 p-4 bg-gray-50 rounded-lg">
         <p className="text-sm text-gray-600">
-          <strong>Didn&apos;t receive the email?</strong>
+          <strong>Didn&apos;t receive the code?</strong>
         </p>
         <ul className="text-sm text-gray-500 mt-2 space-y-1">
           <li>Check your spam or junk folder</li>

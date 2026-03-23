@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
+import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/context/SidebarContext";
@@ -168,10 +169,11 @@ export default function EventDetailClient({ id }) {
       <div
         className={`${
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
-        } pt-16 transition-all duration-300`}
+        } pt-16 pb-16 md:pb-0 transition-all duration-300`}
       >
         {children}
       </div>
+      <BottomNav />
     </div>
   );
 
