@@ -80,9 +80,22 @@ class AllEventsScraper(BaseScraper):
                 if not post_url:
                     continue
 
-                # Try to find the cover image
+                # Try to find the cover image (check lazy-load attrs for Vue.js rendered pages)
                 img_el = card.query_selector("img")
-                image_url = img_el.get_attribute("src") if img_el else None
+                image_url = None
+                if img_el:
+                    image_url = (
+                        img_el.get_attribute("src")
+                        or img_el.get_attribute("data-src")
+                        or img_el.get_attribute("data-lazy-src")
+                        or img_el.get_attribute("data-original")
+                    )
+                # Normalize relative URLs to absolute
+                if image_url and not image_url.startswith("http"):
+                    image_url = "https://allevents.in" + image_url
+                # Skip placeholder images (data URIs, 1x1 pixel trackers)
+                if image_url and (image_url.startswith("data:") or "1x1" in image_url):
+                    image_url = None
 
                 posts.append(RawPost(
                     text=text,

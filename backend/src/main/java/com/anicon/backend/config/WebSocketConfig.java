@@ -45,11 +45,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         for (int i = 0; i < origins.length; i++) {
             origins[i] = origins[i].strip();
         }
-        registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins)
-                .withSockJS();
-
-        // Also register without SockJS for native WebSocket clients
+        // Native WebSocket only — SockJS removed because all modern browsers
+        // support WebSocket natively, and the SockJS handler was shadowing the
+        // native registration on the same /ws path (causing silent connection failures)
         registry.addEndpoint("/ws")
                 .setAllowedOrigins(origins);
     }

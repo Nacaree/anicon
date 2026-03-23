@@ -47,12 +47,10 @@ def upsert_event(client, event_data: dict) -> bool:
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Set created_at to event_date for feed ordering — events appear at their
-        # actual date in the timeline, not when they were scraped
-        if event_data.get("event_date"):
-            row["created_at"] = event_data["event_date"] + "T00:00:00+00:00"
-        else:
-            row["created_at"] = datetime.now(timezone.utc).isoformat()
+        # Use current time for created_at so scraped events interleave naturally
+        # with user posts in the feed (not pinned to event_date, which causes
+        # future events to permanently sit above all user posts)
+        row["created_at"] = datetime.now(timezone.utc).isoformat()
 
         # Upsert — on conflict (source_url), update all fields except created_at
         # so re-scraping refreshes data but doesn't move events in the timeline

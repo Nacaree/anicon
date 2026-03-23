@@ -75,20 +75,32 @@ public class InfluencerApplicationService {
             }
         }
 
-        // Build and save the application
+        // Build and save the application with all verification data
         InfluencerApplication application = InfluencerApplication.builder()
                 .profileId(userId)
-                .reason(request.reason())
-                .communityInvolvement(request.communityInvolvement())
-                .socialProofLinks(request.socialProofLinks() != null ? request.socialProofLinks() : java.util.Map.of())
+                .idCardImageUrl(request.idCardImageUrl())
+                .socialProofLinks(request.socialProofLinks())
+                .followerCount(request.followerCount())
+                .eventTypes(request.eventTypes() != null ? request.eventTypes() : java.util.List.of())
+                .contentLink(request.contentLink())
                 .build();
 
         InfluencerApplication saved = applicationRepository.save(application);
 
-        // Update influencer_status on the profile so frontend can show pending state
+        // Auto-approve: for the thesis demo there's no admin panel, so grant
+        // influencer role immediately on application submission.
+        saved.setStatus(ApplicationStatus.APPROVED);
+        saved.setReviewedAt(OffsetDateTime.now());
+        applicationRepository.save(saved);
+
+        // Add influencer to the profile's roles array and mark as approved
         dsl.update(PROFILES)
+                .set(PROFILES.ROLES, org.jooq.impl.DSL.field(
+                        "array_append({0}, {1})", UserRole[].class,
+                        PROFILES.ROLES, org.jooq.impl.DSL.inline("influencer")))
                 .set(PROFILES.INFLUENCER_STATUS,
-                        com.anicon.backend.gen.jooq.enums.ApplicationStatus.pending)
+                        com.anicon.backend.gen.jooq.enums.ApplicationStatus.approved)
+                .set(PROFILES.INFLUENCER_VERIFIED_AT, OffsetDateTime.now())
                 .where(PROFILES.ID.eq(userId))
                 .execute();
 
@@ -109,9 +121,11 @@ public class InfluencerApplicationService {
                 app.getId(),
                 app.getProfileId(),
                 app.getStatus().getValue(),
-                app.getReason(),
-                app.getCommunityInvolvement(),
+                app.getIdCardImageUrl(),
                 app.getSocialProofLinks(),
+                app.getFollowerCount(),
+                app.getEventTypes(),
+                app.getContentLink(),
                 app.getRejectionReason(),
                 app.getCanReapplyAt(),
                 app.getCreatedAt()

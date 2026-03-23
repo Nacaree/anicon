@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, MessageCircle, Repeat2, Share, Check } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Heart, MessageCircle, Repeat2, Share, Check, Link2 } from "lucide-react";
 import { useAuthGate } from "@/context/AuthGateContext";
 
 /**
@@ -25,7 +26,7 @@ export default function PostActions({
     const url = `${window.location.origin}/posts/${postId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2500);
     });
   };
 
@@ -122,6 +123,18 @@ export default function PostActions({
           <Share className="w-5 h-5" />
         )}
       </button>
+
+      {/* Snackbar — portaled to document.body so it renders above everything at the top of the screen */}
+      {copied &&
+        createPortal(
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-100 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2 bg-[#FF7927] text-white pl-3 pr-4 py-2.5 rounded-full shadow-[0_4px_20px_rgba(255,121,39,0.4)]">
+              <Link2 className="w-4 h-4" />
+              <span className="text-sm font-medium">Link copied to clipboard</span>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

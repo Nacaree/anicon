@@ -142,7 +142,8 @@ export function useNotificationCount() {
         startPolling();
       },
 
-      onWebSocketError: () => {
+      onWebSocketError: (event) => {
+        console.warn("WebSocket connection failed:", event);
         wsConnectedRef.current = false;
         startPolling();
       },

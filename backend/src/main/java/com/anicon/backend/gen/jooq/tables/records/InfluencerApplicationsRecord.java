@@ -66,47 +66,17 @@ public class InfluencerApplicationsRecord extends UpdatableRecordImpl<Influencer
     }
 
     /**
-     * Setter for <code>public.influencer_applications.reason</code>.
-     */
-    public void setReason(String value) {
-        set(3, value);
-    }
-
-    /**
-     * Getter for <code>public.influencer_applications.reason</code>.
-     */
-    public String getReason() {
-        return (String) get(3);
-    }
-
-    /**
-     * Setter for
-     * <code>public.influencer_applications.community_involvement</code>.
-     */
-    public void setCommunityInvolvement(String value) {
-        set(4, value);
-    }
-
-    /**
-     * Getter for
-     * <code>public.influencer_applications.community_involvement</code>.
-     */
-    public String getCommunityInvolvement() {
-        return (String) get(4);
-    }
-
-    /**
      * Setter for <code>public.influencer_applications.follower_count</code>.
      */
     public void setFollowerCount(Integer value) {
-        set(5, value);
+        set(3, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.follower_count</code>.
      */
     public Integer getFollowerCount() {
-        return (Integer) get(5);
+        return (Integer) get(3);
     }
 
     /**
@@ -114,7 +84,7 @@ public class InfluencerApplicationsRecord extends UpdatableRecordImpl<Influencer
      * <code>public.influencer_applications.social_proof_links</code>.
      */
     public void setSocialProofLinks(JSONB value) {
-        set(6, value);
+        set(4, value);
     }
 
     /**
@@ -122,105 +92,147 @@ public class InfluencerApplicationsRecord extends UpdatableRecordImpl<Influencer
      * <code>public.influencer_applications.social_proof_links</code>.
      */
     public JSONB getSocialProofLinks() {
-        return (JSONB) get(6);
+        return (JSONB) get(4);
     }
 
     /**
      * Setter for <code>public.influencer_applications.reviewed_by</code>.
      */
     public void setReviewedBy(UUID value) {
-        set(7, value);
+        set(5, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.reviewed_by</code>.
      */
     public UUID getReviewedBy() {
-        return (UUID) get(7);
+        return (UUID) get(5);
     }
 
     /**
      * Setter for <code>public.influencer_applications.reviewed_at</code>.
      */
     public void setReviewedAt(OffsetDateTime value) {
-        set(8, value);
+        set(6, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.reviewed_at</code>.
      */
     public OffsetDateTime getReviewedAt() {
-        return (OffsetDateTime) get(8);
+        return (OffsetDateTime) get(6);
     }
 
     /**
      * Setter for <code>public.influencer_applications.rejection_reason</code>.
      */
     public void setRejectionReason(String value) {
-        set(9, value);
+        set(7, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.rejection_reason</code>.
      */
     public String getRejectionReason() {
-        return (String) get(9);
+        return (String) get(7);
     }
 
     /**
      * Setter for <code>public.influencer_applications.admin_notes</code>.
      */
     public void setAdminNotes(String value) {
-        set(10, value);
+        set(8, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.admin_notes</code>.
      */
     public String getAdminNotes() {
-        return (String) get(10);
+        return (String) get(8);
     }
 
     /**
      * Setter for <code>public.influencer_applications.can_reapply_at</code>.
      */
     public void setCanReapplyAt(OffsetDateTime value) {
-        set(11, value);
+        set(9, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.can_reapply_at</code>.
      */
     public OffsetDateTime getCanReapplyAt() {
-        return (OffsetDateTime) get(11);
+        return (OffsetDateTime) get(9);
     }
 
     /**
      * Setter for <code>public.influencer_applications.created_at</code>.
      */
     public void setCreatedAt(OffsetDateTime value) {
-        set(12, value);
+        set(10, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.created_at</code>.
      */
     public OffsetDateTime getCreatedAt() {
-        return (OffsetDateTime) get(12);
+        return (OffsetDateTime) get(10);
     }
 
     /**
      * Setter for <code>public.influencer_applications.updated_at</code>.
      */
     public void setUpdatedAt(OffsetDateTime value) {
-        set(13, value);
+        set(11, value);
     }
 
     /**
      * Getter for <code>public.influencer_applications.updated_at</code>.
      */
     public OffsetDateTime getUpdatedAt() {
-        return (OffsetDateTime) get(13);
+        return (OffsetDateTime) get(11);
+    }
+
+    /**
+     * Setter for <code>public.influencer_applications.id_card_image_url</code>.
+     */
+    public void setIdCardImageUrl(String value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>public.influencer_applications.id_card_image_url</code>.
+     */
+    public String getIdCardImageUrl() {
+        return (String) get(12);
+    }
+
+    /**
+     * Setter for <code>public.influencer_applications.event_types</code>.
+     */
+    public void setEventTypes(JSONB value) {
+        set(13, value);
+    }
+
+    /**
+     * Getter for <code>public.influencer_applications.event_types</code>.
+     */
+    public JSONB getEventTypes() {
+        return (JSONB) get(13);
+    }
+
+    /**
+     * Setter for <code>public.influencer_applications.content_link</code>.
+     */
+    public void setContentLink(String value) {
+        set(14, value);
+    }
+
+    /**
+     * Getter for <code>public.influencer_applications.content_link</code>.
+     */
+    public String getContentLink() {
+        return (String) get(14);
     }
 
     // -------------------------------------------------------------------------
@@ -246,14 +258,12 @@ public class InfluencerApplicationsRecord extends UpdatableRecordImpl<Influencer
     /**
      * Create a detached, initialised InfluencerApplicationsRecord
      */
-    public InfluencerApplicationsRecord(UUID id, UUID profileId, ApplicationStatus status, String reason, String communityInvolvement, Integer followerCount, JSONB socialProofLinks, UUID reviewedBy, OffsetDateTime reviewedAt, String rejectionReason, String adminNotes, OffsetDateTime canReapplyAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public InfluencerApplicationsRecord(UUID id, UUID profileId, ApplicationStatus status, Integer followerCount, JSONB socialProofLinks, UUID reviewedBy, OffsetDateTime reviewedAt, String rejectionReason, String adminNotes, OffsetDateTime canReapplyAt, OffsetDateTime createdAt, OffsetDateTime updatedAt, String idCardImageUrl, JSONB eventTypes, String contentLink) {
         super(InfluencerApplications.INFLUENCER_APPLICATIONS);
 
         setId(id);
         setProfileId(profileId);
         setStatus(status);
-        setReason(reason);
-        setCommunityInvolvement(communityInvolvement);
         setFollowerCount(followerCount);
         setSocialProofLinks(socialProofLinks);
         setReviewedBy(reviewedBy);
@@ -263,6 +273,9 @@ public class InfluencerApplicationsRecord extends UpdatableRecordImpl<Influencer
         setCanReapplyAt(canReapplyAt);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setIdCardImageUrl(idCardImageUrl);
+        setEventTypes(eventTypes);
+        setContentLink(contentLink);
         resetTouchedOnNotNull();
     }
 }

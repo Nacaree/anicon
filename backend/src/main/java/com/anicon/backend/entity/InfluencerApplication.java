@@ -33,21 +33,28 @@ public class InfluencerApplication {
     @Builder.Default
     private ApplicationStatus status = ApplicationStatus.PENDING;
 
-    // Application data
-    @Column(nullable = false, columnDefinition = "text")
-    private String reason;
-
-    @Column(name = "community_involvement", columnDefinition = "text")
-    private String communityInvolvement;
-
-    @Column(name = "follower_count")
-    @Builder.Default
-    private Integer followerCount = 0;
+    // Application data — identity verification + social proof
+    @Column(name = "id_card_image_url", columnDefinition = "text")
+    private String idCardImageUrl;
 
     @Column(name = "social_proof_links", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default
     private Map<String, String> socialProofLinks = Map.of();
+
+    @Column(name = "follower_count")
+    @Builder.Default
+    private Integer followerCount = 0;
+
+    // Event types the applicant wants to host (e.g. ["Watch parties", "Meetups"])
+    @Column(name = "event_types", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Builder.Default
+    private java.util.List<String> eventTypes = java.util.List.of();
+
+    // Optional link to showcase content
+    @Column(name = "content_link", columnDefinition = "text")
+    private String contentLink;
 
     // Review data
     @Column(name = "reviewed_by", columnDefinition = "uuid")

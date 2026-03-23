@@ -29,6 +29,8 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Tracks the latest comment added from the sticky input, passed to CommentSection
   const [externalComment, setExternalComment] = useState(null);
+  // Heart burst animation on double-click (Instagram-style, same as portfolio lightbox)
+  const [showHeartAnim, setShowHeartAnim] = useState(false);
 
   // Submit a comment from the sticky input and pass it to CommentSection
   const handleExternalComment = async (text) => {
@@ -163,6 +165,15 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
         } : {}),
       }));
     }
+  };
+
+  // Instagram-style double-click on image — only likes, never unlikes
+  const handleDoubleClick = () => {
+    setShowHeartAnim(true);
+    setTimeout(() => setShowHeartAnim(false), 800);
+
+    if (post.likedByCurrentUser) return; // Already liked — just show the animation
+    requireAuth(() => handleLike());
   };
 
   const handleDelete = () => {
@@ -320,9 +331,33 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
         /* ===== SIDE-BY-SIDE LAYOUT (Instagram-style) ===== */
         <div className="relative z-10 flex w-full max-w-6xl h-[90vh] mx-4 rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
           {/* Left: Image — fixed, no scroll, black background for contrast.
-              max-w-[calc(100%-400px)] ensures the comment panel always stays visible. */}
-          <div className="flex-1 min-w-0 max-w-[calc(100%-400px)] bg-black flex items-center justify-center overflow-hidden">
+              max-w-[calc(100%-400px)] ensures the comment panel always stays visible.
+              Double-click to like (Instagram-style) — only likes, never unlikes. */}
+          <div
+            className="relative flex-1 min-w-0 max-w-[calc(100%-400px)] bg-black flex items-center justify-center overflow-hidden"
+            onDoubleClick={handleDoubleClick}
+          >
             <PostImageCarousel images={displayPost.images} className="w-full h-full rounded-none bg-black" />
+
+            {/* Heart burst animation on double-click — orange gradient to red, same as portfolio lightbox */}
+            {showHeartAnim && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <svg className="w-20 h-20 drop-shadow-lg animate-heart-burst" viewBox="0 0 24 24" fill="none">
+                  <defs>
+                    <linearGradient id="post-heart-burst-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FF7927" />
+                      <stop offset="100%" stopColor="#ef4444" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                    fill="url(#post-heart-burst-gradient)"
+                    stroke="url(#post-heart-burst-gradient)"
+                    strokeWidth="1"
+                  />
+                </svg>
+              </div>
+            )}
           </div>
 
           {/* Right: Author + text + actions + comments — scrollable */}

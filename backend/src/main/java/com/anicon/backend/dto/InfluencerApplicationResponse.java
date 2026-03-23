@@ -1,6 +1,7 @@
 package com.anicon.backend.dto;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -12,9 +13,11 @@ public record InfluencerApplicationResponse(
     UUID id,
     UUID profileId,
     String status,
-    String reason,
-    String communityInvolvement,
+    String idCardImageUrl,
     Map<String, String> socialProofLinks,
+    Integer followerCount,
+    List<String> eventTypes,
+    String contentLink,
     String rejectionReason,
     OffsetDateTime canReapplyAt,
     OffsetDateTime createdAt

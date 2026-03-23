@@ -83,6 +83,12 @@ class CJCCScraper(BaseScraper):
                 if not image_url:
                     img_lazy = article.find("img", attrs={"data-src": True})
                     image_url = img_lazy["data-src"] if img_lazy else None
+                # Normalize relative URLs to absolute
+                if image_url and not image_url.startswith("http"):
+                    image_url = "https://cjcc.edu.kh" + image_url
+                # Skip placeholder images
+                if image_url and (image_url.startswith("data:") or "1x1" in image_url):
+                    image_url = None
 
                 posts.append(RawPost(
                     text=text[:2000],
