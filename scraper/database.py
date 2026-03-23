@@ -47,16 +47,17 @@ def upsert_event(client, event_data: dict) -> bool:
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Use current time for created_at so scraped events interleave naturally
-        # with user posts in the feed (not pinned to event_date, which causes
-        # future events to permanently sit above all user posts)
-        row["created_at"] = datetime.now(timezone.utc).isoformat()
+        # Don't set created_at — let the DB default (now()) handle it on insert.
+        # The is_already_scraped() check in main.py prevents re-inserts, so
+        # created_at is only set once when the event is first discovered.
+        # This avoids scraped events jumping back to the top of the feed
+        # every time the scraper re-runs.
 
-        # Upsert — on conflict (source_url), update all fields except created_at
-        # so re-scraping refreshes data but doesn't move events in the timeline
+        # Use INSERT (not upsert) since we already dedup via is_already_scraped().
+        # This ensures created_at is only set once by the DB default.
         result = (
             client.table("scraped_events")
-            .upsert(row, on_conflict="source_url")
+            .insert(row)
             .execute()
         )
 
