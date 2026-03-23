@@ -48,7 +48,10 @@ export default function EventSections() {
       .finally(() => setLoading(false));
   }, []);
 
-  const trendingEvents = events.slice(0, 10);
+  // Sort by highest attendance first — actually trending, not just first 10
+  const trendingEvents = [...events]
+    .sort((a, b) => (b.currentAttendance || 0) - (a.currentAttendance || 0))
+    .slice(0, 10);
   const cosplayEvents = events.filter((e) =>
     e.tags?.some((t) => t.toLowerCase().includes("cosplay"))
   );

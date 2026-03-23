@@ -47,15 +47,22 @@ export default function ScrapedEventCard({ event }) {
         )}
       </div>
 
-      {/* Cover image — 16:9 aspect ratio */}
-      {event.coverImageUrl && (
+      {/* Cover image — 16:9 aspect ratio, with fallback placeholder */}
+      {event.coverImageUrl ? (
         <div className="relative w-full aspect-[16/9] bg-gray-100 dark:bg-gray-800">
+          {/* referrerPolicy prevents external sites from blocking the image via hotlink protection */}
           <img
             src={event.coverImageUrl}
             alt={event.title}
             className="w-full h-full object-cover"
             loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => { e.target.style.display = "none"; }}
           />
+        </div>
+      ) : (
+        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-gray-800 flex items-center justify-center">
+          <Calendar className="w-10 h-10 text-orange-300 dark:text-orange-800" />
         </div>
       )}
 

@@ -439,11 +439,13 @@ export const influencerApi = {
   // Get current user's most recent application status (requires auth)
   getMyApplication: () => api.get("/api/influencer-applications/my"),
 
-  // Upload ID card image to Supabase Storage (reuses posts bucket with applications/ prefix)
+  // Upload ID card image to Supabase Storage (reuses posts bucket).
+  // Path must start with userId/ to satisfy the bucket's RLS policy:
+  // auth.uid()::text = (storage.foldername(name))[1]
   uploadIdCard: async (file, userId) => {
     const ext = file.name.split(".").pop();
     const filename = `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-    const path = `applications/${userId}/${filename}`;
+    const path = `${userId}/applications/${filename}`;
 
     const { error } = await supabase.storage.from("posts").upload(path, file);
     if (error) throw error;

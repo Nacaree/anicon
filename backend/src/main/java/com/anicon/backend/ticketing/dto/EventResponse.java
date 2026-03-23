@@ -38,6 +38,7 @@ public class EventResponse {
     private UUID id;
     private String title;
     private String location;
+    private String locationUrl;
     private LocalDate eventDate;
     private LocalTime eventTime;
 
@@ -62,6 +63,8 @@ public class EventResponse {
     private String coverImageUrl;
 
     private String description;
+
+    private Boolean isPromoted;
 
     private List<String> tags;
 

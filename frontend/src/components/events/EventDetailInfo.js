@@ -112,12 +112,14 @@ export default function EventDetailInfo({ event, loading = false }) {
       >
         <h2 className="text-lg font-bold text-gray-900 mb-3">Details</h2>
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3 max-w-md">
-          {/* Status */}
+          {/* Status — compare event date to today */}
           <div className="text-sm text-gray-600">
             Event Status:{" "}
-            <span className="text-green-500 font-medium">Active</span>
-            {" / "}
-            <span className="text-red-500 font-medium">Ended</span>
+            {new Date(event.eventDate) >= new Date(new Date().toISOString().split('T')[0]) ? (
+              <span className="text-green-500 font-medium">Active</span>
+            ) : (
+              <span className="text-red-500 font-medium">Ended</span>
+            )}
           </div>
 
           {/* Price */}
@@ -135,7 +137,11 @@ export default function EventDetailInfo({ event, loading = false }) {
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            $ {event.ticketPrice?.toFixed(2)} per Ticket
+            {event.isFree ? (
+              <span className="text-green-500 font-medium">Free</span>
+            ) : (
+              <span>${event.ticketPrice?.toFixed(2)} per Ticket</span>
+            )}
           </div>
 
           {/* Location Link */}
@@ -159,7 +165,13 @@ export default function EventDetailInfo({ event, loading = false }) {
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            {event.locationUrl}
+            {event.locationUrl ? (
+              <a href={event.locationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                View on Google Maps
+              </a>
+            ) : (
+              <span className="text-gray-400">No map link</span>
+            )}
           </div>
 
           {/* Time */}

@@ -103,6 +103,7 @@ public class EventService {
             EventsRecord event = tx.insertInto(EVENTS)
                     .set(EVENTS.TITLE, req.getTitle())
                     .set(EVENTS.LOCATION, req.getLocation())
+                    .set(EVENTS.LOCATION_URL, req.getLocationUrl())
                     .set(EVENTS.EVENT_DATE, req.getEventDate())
                     .set(EVENTS.EVENT_TIME, req.getEventTime())
                     .set(EVENTS.ORGANIZER_ID, callerId)
@@ -163,11 +164,11 @@ public class EventService {
         var tagsField = tagsSubquery();
 
         var record = dsl.select(
-                        EVENTS.ID, EVENTS.TITLE, EVENTS.LOCATION,
+                        EVENTS.ID, EVENTS.TITLE, EVENTS.LOCATION, EVENTS.LOCATION_URL,
                         EVENTS.EVENT_DATE, EVENTS.EVENT_TIME, EVENTS.ORGANIZER_ID,
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
-                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.IS_PROMOTED, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
                         PROFILES.USERNAME, PROFILES.DISPLAY_NAME, PROFILES.AVATAR_URL,
                         PROFILES.ROLES, PROFILES.FOLLOWER_COUNT, PROFILES.FOLLOWING_COUNT,
                         tagsField)
@@ -193,11 +194,11 @@ public class EventService {
         var tagsField = tagsSubquery();
 
         return dsl.select(
-                        EVENTS.ID, EVENTS.TITLE, EVENTS.LOCATION,
+                        EVENTS.ID, EVENTS.TITLE, EVENTS.LOCATION, EVENTS.LOCATION_URL,
                         EVENTS.EVENT_DATE, EVENTS.EVENT_TIME, EVENTS.ORGANIZER_ID,
                         EVENTS.EVENT_TYPE, EVENTS.CATEGORY, EVENTS.IS_FREE,
                         EVENTS.TICKET_PRICE, EVENTS.MAX_CAPACITY, EVENTS.CURRENT_ATTENDANCE,
-                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
+                        EVENTS.COVER_IMAGE_URL, EVENTS.DESCRIPTION, EVENTS.IS_PROMOTED, EVENTS.CREATED_AT, EVENTS.UPDATED_AT,
                         PROFILES.USERNAME, PROFILES.DISPLAY_NAME, PROFILES.AVATAR_URL,
                         PROFILES.ROLES, PROFILES.FOLLOWER_COUNT, PROFILES.FOLLOWING_COUNT,
                         tagsField)
@@ -281,6 +282,7 @@ public class EventService {
                 .id(r.getId())
                 .title(r.getTitle())
                 .location(r.getLocation())
+                .locationUrl(r.getLocationUrl())
                 .eventDate(r.getEventDate())
                 .eventTime(r.getEventTime())
                 .organizerId(r.getOrganizerId())
@@ -292,6 +294,7 @@ public class EventService {
                 .currentAttendance(r.getCurrentAttendance())
                 .coverImageUrl(r.getCoverImageUrl())
                 .description(r.getDescription())
+                .isPromoted(r.getIsPromoted())
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .tags(tags)
@@ -326,6 +329,7 @@ public class EventService {
                 .id(r.get(EVENTS.ID))
                 .title(r.get(EVENTS.TITLE))
                 .location(r.get(EVENTS.LOCATION))
+                .locationUrl(r.get(EVENTS.LOCATION_URL))
                 .eventDate(r.get(EVENTS.EVENT_DATE))
                 .eventTime(r.get(EVENTS.EVENT_TIME))
                 .organizerId(r.get(EVENTS.ORGANIZER_ID))
@@ -337,6 +341,7 @@ public class EventService {
                 .currentAttendance(r.get(EVENTS.CURRENT_ATTENDANCE))
                 .coverImageUrl(r.get(EVENTS.COVER_IMAGE_URL))
                 .description(r.get(EVENTS.DESCRIPTION))
+                .isPromoted(r.get(EVENTS.IS_PROMOTED))
                 .createdAt(r.get(EVENTS.CREATED_AT))
                 .updatedAt(r.get(EVENTS.UPDATED_AT))
                 .tags(r.get(tagsField))

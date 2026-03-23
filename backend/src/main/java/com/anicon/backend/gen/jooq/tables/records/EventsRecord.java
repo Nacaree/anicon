@@ -249,6 +249,34 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
         return (String) get(15);
     }
 
+    /**
+     * Setter for <code>public.events.location_url</code>.
+     */
+    public void setLocationUrl(String value) {
+        set(16, value);
+    }
+
+    /**
+     * Getter for <code>public.events.location_url</code>.
+     */
+    public String getLocationUrl() {
+        return (String) get(16);
+    }
+
+    /**
+     * Setter for <code>public.events.is_promoted</code>.
+     */
+    public void setIsPromoted(Boolean value) {
+        set(17, value);
+    }
+
+    /**
+     * Getter for <code>public.events.is_promoted</code>.
+     */
+    public Boolean getIsPromoted() {
+        return (Boolean) get(17);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -272,7 +300,7 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
     /**
      * Create a detached, initialised EventsRecord
      */
-    public EventsRecord(UUID id, String title, String location, LocalDate eventDate, LocalTime eventTime, UUID organizerId, EventType eventType, String category, Boolean isFree, BigDecimal ticketPrice, Integer maxCapacity, Integer currentAttendance, String coverImageUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt, String description) {
+    public EventsRecord(UUID id, String title, String location, LocalDate eventDate, LocalTime eventTime, UUID organizerId, EventType eventType, String category, Boolean isFree, BigDecimal ticketPrice, Integer maxCapacity, Integer currentAttendance, String coverImageUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt, String description, String locationUrl, Boolean isPromoted) {
         super(Events.EVENTS);
 
         setId(id);
@@ -291,6 +319,8 @@ public class EventsRecord extends UpdatableRecordImpl<EventsRecord> {
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
         setDescription(description);
+        setLocationUrl(locationUrl);
+        setIsPromoted(isPromoted);
         resetTouchedOnNotNull();
     }
 }

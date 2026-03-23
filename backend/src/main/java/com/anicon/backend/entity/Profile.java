@@ -10,8 +10,6 @@ import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -75,10 +73,9 @@ public class Profile {
     @Builder.Default
     private Boolean showSupportLinks = true;
 
-    // Influencer fields
-    @Enumerated(EnumType.STRING)
+    // Influencer fields — stored as string to avoid JPA/PostgreSQL enum mismatch
     @Column(name = "influencer_status", columnDefinition = "application_status")
-    private ApplicationStatus influencerStatus;
+    private String influencerStatus;
 
     @Column(name = "influencer_verified_at")
     private OffsetDateTime influencerVerifiedAt;

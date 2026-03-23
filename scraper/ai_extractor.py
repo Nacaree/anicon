@@ -81,6 +81,13 @@ def extract_event(text: str, source_name: str) -> dict | None:
         result_text = response.text.strip()
         result = json.loads(result_text)
 
+        # Gemini sometimes returns a JSON array instead of an object — unwrap it
+        if isinstance(result, list):
+            if len(result) > 0 and isinstance(result[0], dict):
+                result = result[0]
+            else:
+                return None
+
         # Check if Gemini determined this is an event
         if not result.get("is_event"):
             return None
