@@ -14,7 +14,8 @@ from config import BESTOFPP_KEYWORDS
 logger = logging.getLogger(__name__)
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; AniCon Event Scraper; +https://anicon.online)"
+    "User-Agent": "Mozilla/5.0 (compatible; AniCon Event Scraper; +https://anicon.online)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
 
