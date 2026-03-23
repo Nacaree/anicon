@@ -10,19 +10,55 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Upload, X } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TimePicker } from '@/components/ui/time-picker';
+import { Loader2, ArrowLeft, Upload, X, CalendarIcon, Clock, Users } from 'lucide-react';
+import { TagInput } from '@/components/creator/TagInput';
+import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 // Event categories available for mini-events
 const CATEGORIES = [
   { value: 'meetup', label: 'Meetup' },
   { value: 'screening', label: 'Watch Party / Screening' },
   { value: 'workshop', label: 'Workshop' },
+  { value: 'cosplay', label: 'Cosplay' },
   { value: 'competition', label: 'Competition' },
   { value: 'convention', label: 'Convention' },
   { value: 'concert', label: 'Concert' },
 ];
+
+// Time options in 30-minute increments — PM first (events are usually in the afternoon/evening)
+const TIME_OPTIONS = [];
+// PM: 12:00 PM → 11:30 PM
+for (let h = 12; h < 24; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    const hour = h.toString().padStart(2, '0');
+    const min = m.toString().padStart(2, '0');
+    const value = `${hour}:${min}`;
+    const displayHour = h > 12 ? h - 12 : h;
+    const label = `${displayHour}:${min} PM`;
+    TIME_OPTIONS.push({ value, label });
+  }
+}
+// AM: 12:00 AM → 11:30 AM
+for (let h = 0; h < 12; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    const hour = h.toString().padStart(2, '0');
+    const min = m.toString().padStart(2, '0');
+    const value = `${hour}:${min}`;
+    const displayHour = h === 0 ? 12 : h;
+    const label = `${displayHour}:${min} AM`;
+    TIME_OPTIONS.push({ value, label });
+  }
+}
+
+// Max attendees options
+const CAPACITY_OPTIONS = [5, 10, 15, 20, 25, 30, 40, 50];
 
 // Page for verified hosts (influencers) to create free mini-events.
 // Creators and organizers can also use this page.
@@ -31,20 +67,22 @@ export default function CreateMiniEventPage() {
   const { isSidebarCollapsed } = useSidebar();
   const router = useRouter();
 
-  // Form state
+  // Form state — date stored as Date object for the calendar, converted to string on submit
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const [eventDate, setEventDate] = useState(null);
   const [eventTime, setEventTime] = useState('');
   const [location, setLocation] = useState('');
+  const [locationUrl, setLocationUrl] = useState('');
   const [category, setCategory] = useState('meetup');
-  const [maxCapacity, setMaxCapacity] = useState('');
+  const [maxCapacity, setMaxCapacity] = useState('5');
   const [coverImageUrl, setCoverImageUrl] = useState('');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [error, setError] = useState(null);
+  const [dateOpen, setDateOpen] = useState(false);
 
   // Redirect: not authenticated → login
   useEffect(() => {
@@ -101,19 +139,31 @@ export default function CreateMiniEventPage() {
     setSubmitting(true);
     setError(null);
 
+    if (!eventDate) {
+      setError('Please select a date');
+      setSubmitting(false);
+      return;
+    }
+    if (!eventTime) {
+      setError('Please select a time');
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      // Parse tags from comma-separated string
-      const tagList = tags
-        .split(',')
-        .map((t) => t.trim().toLowerCase())
-        .filter(Boolean);
+      // Tags are already an array from TagInput component
+      const tagList = tags;
+
+      // Convert Date object to YYYY-MM-DD string for the backend
+      const dateString = format(eventDate, 'yyyy-MM-dd');
 
       const result = await eventApi.createEvent({
         title,
         description: description || null,
-        eventDate,
+        eventDate: dateString,
         eventTime,
         location,
+        locationUrl,
         category,
         // Mini-events are always free — hardcoded
         eventType: 'mini_event',
@@ -135,8 +185,8 @@ export default function CreateMiniEventPage() {
 
   if (authLoading) return null;
 
-  // Today's date as min value for the date picker
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -153,7 +203,7 @@ export default function CreateMiniEventPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold">Host a Meetup</h1>
+              <h1 className="text-2xl font-bold">Host a Mini-Event</h1>
               <p className="text-sm text-muted-foreground">Create a free community gathering for anime fans</p>
             </div>
           </div>
@@ -221,41 +271,84 @@ export default function CreateMiniEventPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
-                placeholder="What's the meetup about? What should people bring?"
+                placeholder="What's the event about? What should people bring?"
                 className="w-full px-3 py-2 rounded-lg border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </section>
 
-            {/* Date + Time — side by side */}
+            {/* Date + Time — shadcn popover calendar + select */}
             <div className="grid grid-cols-2 gap-4">
               <section className="space-y-2">
                 <label className="text-sm font-medium">
                   Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                  required
-                  min={today}
-                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className={cn(
+                        "w-full justify-start text-left font-normal rounded-lg h-10",
+                        !eventDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {eventDate ? format(eventDate, 'MMM d, yyyy') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={eventDate}
+                      onSelect={(date) => {
+                        setEventDate(date);
+                        setDateOpen(false);
+                      }}
+                      disabled={(date) => date < today}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </section>
+
               <section className="space-y-2">
                 <label className="text-sm font-medium">
                   Time <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="time"
-                  value={eventTime}
-                  onChange={(e) => setEventTime(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
+                {/* Hybrid: preset time slots + custom time input */}
+                <Select
+                  value={TIME_OPTIONS.some(t => t.value === eventTime) ? eventTime : 'custom'}
+                  onValueChange={(val) => {
+                    if (val === 'custom') {
+                      setEventTime('');
+                    } else {
+                      setEventTime(val);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="Pick a time" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">Custom...</SelectItem>
+                    {TIME_OPTIONS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Scroll-wheel time picker when custom is selected */}
+                {!TIME_OPTIONS.some(t => t.value === eventTime) && (
+                  <div className="mt-2">
+                    <TimePicker value={eventTime} onChange={setEventTime} placeholder="Pick exact time" />
+                  </div>
+                )}
               </section>
             </div>
 
-            {/* Location */}
+            {/* Location name + Google Maps link */}
             <section className="space-y-2">
               <label className="text-sm font-medium">
                 Location <span className="text-red-500">*</span>
@@ -269,53 +362,82 @@ export default function CreateMiniEventPage() {
                 className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </section>
-
-            {/* Category + Max Capacity — side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              <section className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
-              </section>
-              <section className="space-y-2">
-                <label className="text-sm font-medium">Max Attendees</label>
-                <input
-                  type="number"
-                  value={maxCapacity}
-                  onChange={(e) => setMaxCapacity(e.target.value)}
-                  min={2}
-                  max={50}
-                  placeholder="No limit"
-                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <p className="text-[11px] text-muted-foreground">Recommended: 5-20 for a cozy meetup</p>
-              </section>
-            </div>
-
-            {/* Tags */}
             <section className="space-y-2">
-              <label className="text-sm font-medium">Tags</label>
+              <label className="text-sm font-medium">
+                Google Maps Link <span className="text-red-500">*</span>
+              </label>
               <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="e.g., naruto, cosplay, watch-party (comma separated)"
+                type="url"
+                value={locationUrl}
+                onChange={(e) => setLocationUrl(e.target.value)}
+                required
+                placeholder="https://maps.google.com/..."
                 className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </section>
 
-            {/* Free event badge — informational */}
-            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
-              <span className="text-lg">🎉</span>
-              Community meetups are always free. Attendees can join with one click.
+            {/* Category + Max Capacity — shadcn selects */}
+            <div className="grid grid-cols-2 gap-4">
+              <section className="space-y-2">
+                <label className="text-sm font-medium">Category</label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </section>
+
+              <section className="space-y-2">
+                <label className="text-sm font-medium">Max Attendees</label>
+                {/* Hybrid: dropdown presets + custom number input */}
+                <Select
+                  value={CAPACITY_OPTIONS.includes(Number(maxCapacity)) ? maxCapacity : 'custom'}
+                  onValueChange={(val) => {
+                    if (val === 'custom') {
+                      setMaxCapacity('');
+                    } else {
+                      setMaxCapacity(val);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="Select" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">Custom...</SelectItem>
+                    {CAPACITY_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n} people</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Show number input when custom is selected */}
+                {!CAPACITY_OPTIONS.includes(Number(maxCapacity)) && (
+                  <input
+                    type="number"
+                    value={maxCapacity}
+                    onChange={(e) => setMaxCapacity(e.target.value)}
+                    min={2}
+                    placeholder="Enter number"
+                    autoFocus
+                    className="w-full mt-2 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                )}
+              </section>
             </div>
+
+            {/* Tags — reuses the chip-style TagInput from portfolio */}
+            <section className="space-y-2">
+              <label className="text-sm font-medium">Tags <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <TagInput tags={tags} onChange={setTags} />
+            </section>
 
             {/* Error */}
             {error && (
@@ -334,7 +456,7 @@ export default function CreateMiniEventPage() {
                   Creating...
                 </>
               ) : (
-                'Create Meetup'
+                'Create Mini-Event'
               )}
             </Button>
           </form>

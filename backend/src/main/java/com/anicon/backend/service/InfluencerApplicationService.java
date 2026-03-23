@@ -1,38 +1,42 @@
 package com.anicon.backend.service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.anicon.backend.dto.InfluencerApplicationRequest;
 import com.anicon.backend.dto.InfluencerApplicationResponse;
-import com.anicon.backend.entity.ApplicationStatus;
-import com.anicon.backend.entity.InfluencerApplication;
+import com.anicon.backend.gen.jooq.enums.ApplicationStatus;
 import com.anicon.backend.gen.jooq.enums.UserRole;
-import com.anicon.backend.repository.InfluencerApplicationRepository;
+import com.anicon.backend.gen.jooq.tables.records.InfluencerApplicationsRecord;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import static com.anicon.backend.gen.jooq.tables.InfluencerApplications.INFLUENCER_APPLICATIONS;
 import static com.anicon.backend.gen.jooq.tables.Profiles.PROFILES;
 
 /**
  * Handles influencer (verified host) application submissions and status checks.
- * Uses JPA for application CRUD and JOOQ for profile column updates
- * (same mixed pattern as CreatorService).
+ * Uses JOOQ exclusively — no JPA entities or repositories.
  */
 @Service
 public class InfluencerApplicationService {
 
-    private final InfluencerApplicationRepository applicationRepository;
     private final DSLContext dsl;
+    private final ObjectMapper objectMapper;
 
-    public InfluencerApplicationService(InfluencerApplicationRepository applicationRepository,
-                                         DSLContext dsl) {
-        this.applicationRepository = applicationRepository;
+    public InfluencerApplicationService(DSLContext dsl, ObjectMapper objectMapper) {
         this.dsl = dsl;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -59,52 +63,58 @@ public class InfluencerApplicationService {
         }
 
         // Check for existing pending application
-        if (applicationRepository.existsByProfileIdAndStatus(userId, ApplicationStatus.PENDING)) {
+        boolean hasPending = dsl.fetchExists(
+                dsl.selectFrom(INFLUENCER_APPLICATIONS)
+                        .where(INFLUENCER_APPLICATIONS.PROFILE_ID.eq(userId))
+                        .and(INFLUENCER_APPLICATIONS.STATUS.eq(ApplicationStatus.pending))
+        );
+        if (hasPending) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have a pending application");
         }
 
         // Check reapply cooldown if previously rejected
-        Optional<InfluencerApplication> latest = applicationRepository.findLatestByProfileId(userId);
-        if (latest.isPresent()) {
-            InfluencerApplication prev = latest.get();
-            if (prev.getStatus() == ApplicationStatus.REJECTED
-                    && prev.getCanReapplyAt() != null
-                    && OffsetDateTime.now().isBefore(prev.getCanReapplyAt())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "You cannot reapply until " + prev.getCanReapplyAt());
-            }
+        InfluencerApplicationsRecord latest = dsl.selectFrom(INFLUENCER_APPLICATIONS)
+                .where(INFLUENCER_APPLICATIONS.PROFILE_ID.eq(userId))
+                .orderBy(INFLUENCER_APPLICATIONS.CREATED_AT.desc())
+                .limit(1)
+                .fetchOne();
+
+        if (latest != null
+                && latest.getStatus() == ApplicationStatus.rejected
+                && latest.getCanReapplyAt() != null
+                && OffsetDateTime.now().isBefore(latest.getCanReapplyAt())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "You cannot reapply until " + latest.getCanReapplyAt());
         }
 
-        // Build and save the application with all verification data
-        InfluencerApplication application = InfluencerApplication.builder()
-                .profileId(userId)
-                .idCardImageUrl(request.idCardImageUrl())
-                .socialProofLinks(request.socialProofLinks())
-                .followerCount(request.followerCount())
-                .eventTypes(request.eventTypes() != null ? request.eventTypes() : java.util.List.of())
-                .contentLink(request.contentLink())
-                .build();
-
-        InfluencerApplication saved = applicationRepository.save(application);
+        // Insert the application with all verification data
+        InfluencerApplicationsRecord record = dsl.newRecord(INFLUENCER_APPLICATIONS);
+        record.setProfileId(userId);
+        record.setIdCardImageUrl(request.idCardImageUrl());
+        record.setSocialProofLinks(JSONB.jsonb(toJson(request.socialProofLinks())));
+        record.setFollowerCount(request.followerCount());
+        record.setEventTypes(JSONB.jsonb(toJson(request.eventTypes())));
+        record.setContentLink(request.contentLink());
+        record.setStatus(ApplicationStatus.pending);
+        record.store();
 
         // Auto-approve: for the thesis demo there's no admin panel, so grant
         // influencer role immediately on application submission.
-        saved.setStatus(ApplicationStatus.APPROVED);
-        saved.setReviewedAt(OffsetDateTime.now());
-        applicationRepository.save(saved);
+        record.setStatus(ApplicationStatus.approved);
+        record.setReviewedAt(OffsetDateTime.now());
+        record.store();
 
-        // Add influencer to the profile's roles array and mark as approved
+        // Replace roles with {influencer} — can't append because {fan,influencer}
+        // violates the valid_role_combo constraint (only single roles or {creator,organizer} allowed)
         dsl.update(PROFILES)
                 .set(PROFILES.ROLES, org.jooq.impl.DSL.field(
-                        "array_append({0}, {1})", UserRole[].class,
-                        PROFILES.ROLES, org.jooq.impl.DSL.inline("influencer")))
-                .set(PROFILES.INFLUENCER_STATUS,
-                        com.anicon.backend.gen.jooq.enums.ApplicationStatus.approved)
+                        "'{influencer}'::user_role[]", UserRole[].class))
+                .set(PROFILES.INFLUENCER_STATUS, ApplicationStatus.approved)
                 .set(PROFILES.INFLUENCER_VERIFIED_AT, OffsetDateTime.now())
                 .where(PROFILES.ID.eq(userId))
                 .execute();
 
-        return toResponse(saved);
+        return toResponse(record);
     }
 
     /**
@@ -112,23 +122,55 @@ public class InfluencerApplicationService {
      * Returns empty if they have never applied.
      */
     public Optional<InfluencerApplicationResponse> getMyApplication(UUID userId) {
-        return applicationRepository.findLatestByProfileId(userId)
-                .map(this::toResponse);
+        return Optional.ofNullable(
+                dsl.selectFrom(INFLUENCER_APPLICATIONS)
+                        .where(INFLUENCER_APPLICATIONS.PROFILE_ID.eq(userId))
+                        .orderBy(INFLUENCER_APPLICATIONS.CREATED_AT.desc())
+                        .limit(1)
+                        .fetchOne()
+        ).map(this::toResponse);
     }
 
-    private InfluencerApplicationResponse toResponse(InfluencerApplication app) {
+    private InfluencerApplicationResponse toResponse(InfluencerApplicationsRecord r) {
         return new InfluencerApplicationResponse(
-                app.getId(),
-                app.getProfileId(),
-                app.getStatus().getValue(),
-                app.getIdCardImageUrl(),
-                app.getSocialProofLinks(),
-                app.getFollowerCount(),
-                app.getEventTypes(),
-                app.getContentLink(),
-                app.getRejectionReason(),
-                app.getCanReapplyAt(),
-                app.getCreatedAt()
+                r.getId(),
+                r.getProfileId(),
+                r.getStatus().getLiteral(),
+                r.getIdCardImageUrl(),
+                parseJsonMap(r.getSocialProofLinks()),
+                r.getFollowerCount(),
+                parseJsonList(r.getEventTypes()),
+                r.getContentLink(),
+                r.getRejectionReason(),
+                r.getCanReapplyAt(),
+                r.getCreatedAt()
         );
+    }
+
+    // JSON serialization helpers for JOOQ JSONB fields
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize to JSON", e);
+        }
+    }
+
+    private Map<String, String> parseJsonMap(JSONB jsonb) {
+        if (jsonb == null || jsonb.data() == null) return Map.of();
+        try {
+            return objectMapper.readValue(jsonb.data(), new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            return Map.of();
+        }
+    }
+
+    private List<String> parseJsonList(JSONB jsonb) {
+        if (jsonb == null || jsonb.data() == null) return List.of();
+        try {
+            return objectMapper.readValue(jsonb.data(), new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
     }
 }

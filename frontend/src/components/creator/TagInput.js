@@ -34,7 +34,6 @@ export function TagInput({ tags = [], onChange }) {
 
   return (
     <div>
-      <p className="text-xs text-muted-foreground mb-2">Tags (optional)</p>
       <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-background min-h-[38px] focus-within:ring-2 focus-within:ring-primary/50">
         {tags.map((tag) => (
           <span

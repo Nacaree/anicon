@@ -20,6 +20,10 @@ public class CreateEventRequest {
     @NotBlank
     private String location;
 
+    /** Google Maps link for the event location */
+    @NotBlank
+    private String locationUrl;
+
     @NotNull
     @FutureOrPresent
     private LocalDate eventDate;

@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ArrowLeft, Plus, Trash2, CheckCircle, Clock, XCircle, Upload } from 'lucide-react';
 import Link from 'next/link';
 
@@ -210,6 +211,33 @@ export default function BecomeHostPage() {
     );
   }
 
+  // Approved — show success screen with CTA to create an event
+  const isApproved = application?.status === 'approved';
+  if (isApproved) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+          <Header />
+          <div className="max-w-2xl mx-auto px-6 pt-24 pb-6 text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+              <CheckCircle className="w-10 h-10 text-green-500" />
+            </div>
+            <h1 className="text-2xl font-bold">You're now an Influencer!</h1>
+            <p className="text-muted-foreground">
+              Your application has been approved. You can now create free mini-events for the anime community.
+            </p>
+            <Link href="/host/create">
+              <Button className="rounded-full px-8 hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]">
+                Create Your First Event
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Render pending/rejected/form based on application state
   const isPending = application?.status === 'pending';
   const isRejected = application?.status === 'rejected';
@@ -231,7 +259,7 @@ export default function BecomeHostPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">Become a Verified Host</h1>
+            <h1 className="text-2xl font-bold">Become an Influencer</h1>
           </div>
 
           {/* Pending state — application is under review */}
@@ -276,7 +304,7 @@ export default function BecomeHostPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
 
                 {/* ID Card Upload — required */}
                 <section className="space-y-2">
@@ -345,16 +373,16 @@ export default function BecomeHostPage() {
                   </p>
                   {socialLinks.map((link, i) => (
                     <div key={i} className="flex gap-2 items-center">
-                      <select
-                        value={link.platform}
-                        onChange={(e) => updateSocialLink(i, 'platform', e.target.value)}
-                        className="w-36 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      >
-                        <option value="">Platform</option>
-                        {PLATFORMS.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
+                      <Select value={link.platform} onValueChange={(val) => updateSocialLink(i, 'platform', val)}>
+                        <SelectTrigger className="w-36 rounded-lg">
+                          <SelectValue placeholder="Platform" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PLATFORMS.map((p) => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <input
                         type="url"
                         placeholder="https://..."
@@ -398,7 +426,7 @@ export default function BecomeHostPage() {
                   <label className="text-sm font-medium">
                     What type of events do you want to host? <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {EVENT_TYPES.map((type) => (
                       <button
                         key={type}

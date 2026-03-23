@@ -151,6 +151,16 @@ public class Events extends TableImpl<EventsRecord> {
      */
     public final TableField<EventsRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.CLOB, this, "");
 
+    /**
+     * The column <code>public.events.location_url</code>.
+     */
+    public final TableField<EventsRecord, String> LOCATION_URL = createField(DSL.name("location_url"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>public.events.is_promoted</code>.
+     */
+    public final TableField<EventsRecord, Boolean> IS_PROMOTED = createField(DSL.name("is_promoted"), SQLDataType.BOOLEAN.defaultValue(DSL.field(DSL.raw("false"), SQLDataType.BOOLEAN)), this, "");
+
     private Events(Name alias, Table<EventsRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
