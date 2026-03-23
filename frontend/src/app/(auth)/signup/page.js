@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const validateForm = () => {
     const errors = {};
@@ -44,6 +45,10 @@ export default function SignupPage() {
     // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!acceptedTerms) {
+      errors.terms = "You must agree to the Terms of Service and Privacy Policy";
     }
 
     setFieldErrors(errors);
@@ -311,6 +316,36 @@ export default function SignupPage() {
             <p className="mt-1 text-sm text-red-600">
               {fieldErrors.confirmPassword}
             </p>
+          )}
+        </div>
+
+        {/* Terms & Privacy acceptance checkbox */}
+        <div className="mb-6">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => {
+                setAcceptedTerms(e.target.checked);
+                if (fieldErrors.terms) {
+                  setFieldErrors((prev) => ({ ...prev, terms: "" }));
+                }
+              }}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500 accent-orange-500"
+            />
+            <span className="text-sm text-gray-600">
+              I agree to the{" "}
+              <a href="/terms" target="_blank" className="text-orange-500 hover:text-orange-600 underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" target="_blank" className="text-orange-500 hover:text-orange-600 underline">
+                Privacy Policy
+              </a>
+            </span>
+          </label>
+          {fieldErrors.terms && (
+            <p className="mt-1 text-sm text-red-600 pl-6">{fieldErrors.terms}</p>
           )}
         </div>
 

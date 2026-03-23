@@ -7,6 +7,7 @@ import { creatorApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { canHaveSupportLinks } from '@/lib/roles';
@@ -195,7 +196,7 @@ export default function CreatorSettingsPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+      <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
         <Header />
         <div className="max-w-2xl mx-auto px-6 pt-16 pb-6 space-y-8">
 
@@ -235,7 +236,7 @@ export default function CreatorSettingsPage() {
 
           {/* Profile Picture + Banner Image — side by side to save vertical space */}
           <section className="space-y-3">
-            <div className="flex gap-6">
+            <div className="flex flex-col sm:flex-row gap-6">
               {/* Profile Picture */}
               <div className="space-y-2 shrink-0">
                 <h2 className="text-lg font-semibold">Profile Picture</h2>
@@ -300,9 +301,9 @@ export default function CreatorSettingsPage() {
           {/* Support Links — everyone except pure organizers */}
           {showSupportLinks && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold">Support / Tip Links</h2>
+                <h2 className="text-lg font-semibold whitespace-nowrap">Support / Tip Links</h2>
                 {/* Toggle to show/hide support links on the public profile */}
                 <button
                   type="button"
@@ -333,11 +334,11 @@ export default function CreatorSettingsPage() {
               </Button>
             </div>
             {supportLinks.map((link, i) => (
-              <div key={i} className={`flex gap-2 items-start ${!showSupportLinksToggle ? 'opacity-50' : ''}`}>
+              <div key={i} className={`flex flex-col sm:flex-row gap-2 sm:items-start ${!showSupportLinksToggle ? 'opacity-50' : ''}`}>
                 <select
                   value={link.type}
                   onChange={(e) => updateSupportLink(i, 'type', e.target.value)}
-                  className="w-28 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full sm:w-28 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   {supportLinkTypes.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -348,7 +349,7 @@ export default function CreatorSettingsPage() {
                   placeholder="Label"
                   value={link.label}
                   onChange={(e) => updateSupportLink(i, 'label', e.target.value)}
-                  className="w-28 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full sm:w-28 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <input
                   type="url"
@@ -393,6 +394,7 @@ export default function CreatorSettingsPage() {
           <div className="h-8" />
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

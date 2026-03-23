@@ -286,16 +286,12 @@ export default function RightPanel() {
             <p>© 2025 AniCon. All rights reserved.</p>
           </div>
           <div className="flex justify-center gap-3 text-gray-400 text-xs">
-            <a href="#" className="hover:text-[#FF7927] transition-colors">
+            <a href="/privacy" className="hover:text-[#FF7927] transition-colors">
               Privacy
             </a>
             <span>•</span>
-            <a href="#" className="hover:text-[#FF7927] transition-colors">
+            <a href="/terms" className="hover:text-[#FF7927] transition-colors">
               Terms
-            </a>
-            <span>•</span>
-            <a href="#" className="hover:text-[#FF7927] transition-colors">
-              About
             </a>
           </div>
         </div>

@@ -1,42 +1,22 @@
-# Plan: Redirect to homepage with success toast after influencer application
+# Fix: Stale profile after influencer application
 
 ## Context
-The current influencer application flow shows a full "You're now an Influencer!" success page after submission. The user finds this goofy and wants a cleaner flow: submit → redirect to homepage → show a success snackbar.
+After submitting the influencer application, navigating back to `/become-host` still shows the form instead of redirecting to `/host/create`. Only a hard refresh fixes it.
 
-The backend auto-approves applications immediately (thesis demo mode), so there's no pending state to worry about — the user becomes an influencer the moment they submit.
+**Root cause:** Backend Caffeine cache on profiles (1-minute TTL). `InfluencerApplicationService.submitApplication()` updates roles in the DB but never invalidates the profile cache. So the next `fetchProfile()` call gets the stale cached profile with `roles = {fan}`.
 
-## Changes
+## Fix
 
-### 1. Create `GlobalSuccessToast.js` (new file)
-**File:** `frontend/src/components/GlobalSuccessToast.js`
+### `backend/src/main/java/com/anicon/backend/service/InfluencerApplicationService.java`
 
-- Clone `GlobalErrorToast.js` pattern but for success messages
-- Listen for `"anicon-success"` custom events
-- Green styling: `bg-green-500` with `shadow-[0_4px_20px_rgba(34,197,94,0.4)]`
-- Use `CheckCircle` icon instead of `AlertCircle`
-- Auto-dismiss after 4 seconds (same as error toast)
-- Same positioning: fixed top-center
+After updating the profile roles (line 115), evict the profile cache entry for this user:
 
-### 2. Register in `providers.js`
-**File:** `frontend/src/app/providers.js`
+1. Inject Spring's `CacheManager`
+2. After the `dsl.update(PROFILES)` call, evict the cache entry: `cacheManager.getCache("profiles").evict(userId)`
 
-- Import and render `<GlobalSuccessToast />` alongside `<GlobalErrorToast />`
-
-### 3. Simplify `become-host/page.js` submit flow
-**File:** `frontend/src/app/become-host/page.js`
-
-- In `handleSubmit`: after successful submission + `fetchProfile()`, dispatch `"anicon-success"` event with message "You're now an Influencer!" and `router.push("/")`
-- Remove the approved success screen (lines 214-239) — no longer needed since we redirect immediately
-- Keep pending/rejected states as-is (they still make sense as fallbacks)
-
-## Files to modify
-1. `frontend/src/components/GlobalSuccessToast.js` — **CREATE** (clone of GlobalErrorToast with green styling)
-2. `frontend/src/app/providers.js` — **MODIFY** (add GlobalSuccessToast)
-3. `frontend/src/app/become-host/page.js` — **MODIFY** (redirect + dispatch success event on submit)
+This ensures the next `fetchProfile()` from the frontend hits the DB and gets the fresh `roles = {influencer}`.
 
 ## Verification
-1. Go to `/become-host` as a fan user
-2. Fill out and submit the form
-3. Should redirect to homepage with a green "You're now an Influencer!" toast at the top
-4. Toast auto-dismisses after 4 seconds
-5. Profile should reflect influencer role (already handled by `fetchProfile()`)
+1. Submit influencer application as a fan
+2. Get redirected to homepage with success toast
+3. Navigate to `/become-host` — should redirect to `/host/create` immediately (no hard refresh needed)

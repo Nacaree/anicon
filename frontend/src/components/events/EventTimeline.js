@@ -140,8 +140,12 @@ export default function EventTimeline({ events = [], loading = false }) {
       : "bg-gray-300";
 
   const scroll = (dir) => {
-    scrollRef.current?.scrollBy({
-      left: dir === "left" ? -400 : 400,
+    const el = scrollRef.current;
+    if (!el) return;
+    // Scroll ~80% of visible width — proportional on any screen size
+    const amount = el.clientWidth * 0.8;
+    el.scrollBy({
+      left: dir === "left" ? -amount : amount,
       behavior: "smooth",
     });
   };
@@ -190,12 +194,12 @@ export default function EventTimeline({ events = [], loading = false }) {
             <span className="text-xl">🎪</span>
             EVENT TIMELINE
           </h2>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar min-w-0">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`text-sm px-3 py-1 rounded-full transition-colors ${
+                className={`text-sm px-3 py-1 rounded-full transition-colors shrink-0 whitespace-nowrap ${
                   activeCategory === cat
                     ? "text-[#FF7927] font-semibold"
                     : "text-gray-500 hover:text-gray-700"
@@ -218,8 +222,8 @@ export default function EventTimeline({ events = [], loading = false }) {
           {/* Outer div handles scroll; inner div is min full-width so filler works */}
           <div
             ref={scrollRef}
-            className="overflow-x-auto"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className="overflow-x-auto snap-x snap-proximity"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
           >
             <div className="flex" style={{ minWidth: "100%" }}>
               {/* Filler: extends the first month's line and gradient to the left edge */}
@@ -239,7 +243,7 @@ export default function EventTimeline({ events = [], loading = false }) {
                   line: "bg-gray-400",
                 };
                 return (
-                  <div key={key} className="shrink-0 relative">
+                  <div key={key} className="shrink-0 relative snap-start">
                     {/* Gradient overlay starting at the line's center (top-4.5 = h-9 / 2) */}
                     <div className={`absolute inset-x-0 bottom-0 top-[18.5px] ${colors.bg}`} />
 
@@ -285,9 +289,10 @@ export default function EventTimeline({ events = [], loading = false }) {
             </div>
           </div>
 
+{/* Scroll arrows — desktop only, hidden on mobile (touch scroll + snap is sufficient) */}
           <button
             onClick={() => scroll("left")}
-            className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 ${
+            className={`hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center transition-opacity duration-300 hover:bg-gray-50 ${
               showButtons ? "opacity-100" : "opacity-0"
             }`}
             aria-label="Scroll left"
@@ -309,7 +314,7 @@ export default function EventTimeline({ events = [], loading = false }) {
 
           <button
             onClick={() => scroll("right")}
-            className={`absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 ${
+            className={`hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center transition-opacity duration-300 hover:bg-gray-50 ${
               showButtons ? "opacity-100" : "opacity-0"
             }`}
             aria-label="Scroll right"

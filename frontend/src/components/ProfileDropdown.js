@@ -38,8 +38,8 @@ export default function ProfileDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="w-8 h-8 rounded-full overflow-hidden focus:outline-none hover:opacity-80 transition-opacity">
-          <Avatar className="w-8 h-8">
+        <button className="w-10 h-10 rounded-full overflow-hidden focus:outline-none hover:opacity-80 transition-opacity">
+          <Avatar className="w-10 h-10">
             <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />
             <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
               {initials}

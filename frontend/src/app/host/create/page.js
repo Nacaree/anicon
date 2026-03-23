@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { canCreateMiniEvent } from '@/lib/roles';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import { useSidebar } from '@/context/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -191,7 +192,7 @@ export default function CreateMiniEventPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+      <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
         <Header />
         <div className="max-w-2xl mx-auto px-6 pt-16 pb-6 space-y-8">
 
@@ -277,7 +278,7 @@ export default function CreateMiniEventPage() {
             </section>
 
             {/* Date + Time — shadcn popover calendar + select */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <section className="space-y-2">
                 <label className="text-sm font-medium">
                   Date <span className="text-red-500">*</span>
@@ -377,7 +378,7 @@ export default function CreateMiniEventPage() {
             </section>
 
             {/* Category + Max Capacity — shadcn selects */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <section className="space-y-2">
                 <label className="text-sm font-medium">Category</label>
                 <Select value={category} onValueChange={setCategory}>
@@ -464,6 +465,7 @@ export default function CreateMiniEventPage() {
           <div className="h-8" />
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

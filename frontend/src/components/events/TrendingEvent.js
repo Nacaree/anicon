@@ -53,12 +53,25 @@ export default function TrendingEvent({ event = null, loading = false }) {
 
       {/* Outer wrapper — md:py-3 creates 12px overflow space so the image can
           extend past the card edges on desktop without being clipped. */}
-      <div className="relative md:py-3">
+      <div className="relative py-3">
         {/* Depth shadow — sits behind the main card, shifted right+down.
             Uses a blurred copy of the event image so its color naturally
             matches without any canvas / CORS pixel-read required. */}
         {/* overflow-hidden removed — letting blur fade naturally avoids the hard clipping line at the bottom edge */}
         {/* trending-aura handles translate(8px,8px) internally so we drop the Tailwind translate classes */}
+        {/* Mobile aura — matches promoted card style (softer blur, smaller scale) */}
+        {event.imageUrl && (
+          <div className="md:hidden absolute top-0 bottom-0 left-0 right-0 rounded-3xl promoted-aura">
+            <img
+              src={event.imageUrl}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="w-full h-full object-cover scale-125 pointer-events-none promoted-hue-drift"
+            />
+          </div>
+        )}
+        {/* Desktop aura — deeper blur + larger scale for the wider layout */}
         <div className="hidden md:block absolute top-3 bottom-3 left-0 right-0 rounded-2xl trending-aura">
           {event.imageUrl ? (
             <img
@@ -83,7 +96,7 @@ export default function TrendingEvent({ event = null, loading = false }) {
 
           {/* Shimmer sweep — right panel only; delayed 2.4s after image shimmer so it enters
               exactly as the image shimmer exits, creating a baton-pass effect. */}
-          <div className="absolute top-0 bottom-0 left-[50%] right-0 rounded-r-2xl overflow-hidden pointer-events-none z-20">
+          <div className="hidden md:block absolute top-0 bottom-0 left-[50%] right-0 rounded-r-2xl overflow-hidden pointer-events-none z-20">
             <div className="trending-shimmer-right absolute inset-0 w-1/2 bg-linear-to-r from-transparent via-white/25 to-transparent" />
           </div>
 

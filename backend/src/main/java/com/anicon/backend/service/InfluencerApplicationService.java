@@ -17,6 +17,8 @@ import com.anicon.backend.dto.InfluencerApplicationResponse;
 import com.anicon.backend.gen.jooq.enums.ApplicationStatus;
 import com.anicon.backend.gen.jooq.enums.UserRole;
 import com.anicon.backend.gen.jooq.tables.records.InfluencerApplicationsRecord;
+import org.springframework.cache.CacheManager;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,10 +35,12 @@ public class InfluencerApplicationService {
 
     private final DSLContext dsl;
     private final ObjectMapper objectMapper;
+    private final CacheManager cacheManager;
 
-    public InfluencerApplicationService(DSLContext dsl, ObjectMapper objectMapper) {
+    public InfluencerApplicationService(DSLContext dsl, ObjectMapper objectMapper, CacheManager cacheManager) {
         this.dsl = dsl;
         this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
     }
 
     /**
@@ -113,6 +117,9 @@ public class InfluencerApplicationService {
                 .set(PROFILES.INFLUENCER_VERIFIED_AT, OffsetDateTime.now())
                 .where(PROFILES.ID.eq(userId))
                 .execute();
+
+        // Evict this user's cached profile so the next fetch returns the updated roles
+        cacheManager.getCache("profiles").evict(userId);
 
         return toResponse(record);
     }

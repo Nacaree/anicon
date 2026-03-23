@@ -103,11 +103,11 @@ export default function CommentCard({ comment, postId, onCommentAdded, onComment
           </div>
 
           {/* Action row */}
-          <div className="flex items-center gap-3 mt-1 ml-2">
+          <div className="flex items-center gap-1 mt-1 ml-1">
             {/* Like */}
             <button
               onClick={() => requireAuth(handleLike)}
-              className="flex items-center gap-1 text-xs hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 text-xs py-2 px-2 rounded-full hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               <Heart
                 className={`w-3.5 h-3.5 ${
@@ -123,7 +123,7 @@ export default function CommentCard({ comment, postId, onCommentAdded, onComment
             {isTopLevel && (
               <button
                 onClick={() => requireAuth(() => setShowReplyInput(!showReplyInput))}
-                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="text-xs text-gray-400 py-2 px-2 rounded-full hover:text-gray-600 hover:bg-gray-50 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors"
               >
                 Reply
               </button>
@@ -133,7 +133,7 @@ export default function CommentCard({ comment, postId, onCommentAdded, onComment
             {isOwner && (
               <button
                 onClick={handleDelete}
-                className="text-xs text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                className="text-xs text-gray-400 py-2 px-2 rounded-full hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors opacity-0 group-hover:opacity-100"
               >
                 Delete
               </button>

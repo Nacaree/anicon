@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { X, MoreHorizontal, Pencil, Trash2, Repeat2 } from "lucide-react";
+import { X, ChevronLeft, MoreHorizontal, Pencil, Trash2, Repeat2 } from "lucide-react";
 import { RoleBadge } from "@/components/profile/RoleBadge";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGate } from "@/context/AuthGateContext";
@@ -248,7 +248,7 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <MoreHorizontal className="w-5 h-5 text-gray-400" />
           </button>
@@ -315,26 +315,26 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
   // ========================================
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in-0 duration-200">
+    <div className="fixed inset-0 z-60 flex items-center justify-center animate-in fade-in-0 duration-200">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Close button — outside the modal card */}
+      {/* Close button — desktop only, outside the modal card */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-colors"
+        className="hidden md:block absolute top-4 right-4 z-20 p-2.5 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-colors"
       >
         <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
       </button>
 
       {hasImages ? (
         /* ===== SIDE-BY-SIDE LAYOUT (Instagram-style) ===== */
-        <div className="relative z-10 flex w-full max-w-6xl h-[90vh] mx-4 rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className="relative z-10 flex flex-col md:flex-row w-full md:max-w-6xl h-full md:h-[90vh] md:mx-4 md:rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
           {/* Left: Image — fixed, no scroll, black background for contrast.
               max-w-[calc(100%-400px)] ensures the comment panel always stays visible.
               Double-click to like (Instagram-style) — only likes, never unlikes. */}
           <div
-            className="relative flex-1 min-w-0 max-w-[calc(100%-400px)] bg-black flex items-center justify-center overflow-hidden"
+            className="relative w-full h-[45vh] md:h-auto md:flex-1 md:min-w-0 md:max-w-[calc(100%-400px)] bg-black flex items-center justify-center overflow-hidden shrink-0"
             onDoubleClick={handleDoubleClick}
           >
             <PostImageCarousel images={displayPost.images} className="w-full h-full rounded-none bg-black" />
@@ -361,7 +361,14 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
           </div>
 
           {/* Right: Author + text + actions + comments — scrollable */}
-          <div className="w-[400px] flex-shrink-0 flex flex-col">
+          <div className="w-full md:w-100 flex-1 md:flex-initial md:shrink-0 flex flex-col min-h-0">
+            {/* Mobile close header — back arrow, visible only on mobile */}
+            <div className="flex items-center h-11 px-2 border-b border-gray-100 dark:border-gray-800 md:hidden">
+              <button onClick={onClose} className="p-2 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+              <span className="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-gray-100 pr-8">Post</span>
+            </div>
             {/* Author header + caption */}
             <div className="px-4 pt-4 pb-2">
               {repostHeader}
@@ -400,7 +407,14 @@ export default function PostDetailModal({ post: initialPost, isOpen, onClose, on
         </div>
       ) : (
         /* ===== SINGLE-COLUMN LAYOUT (text-only posts) ===== */
-        <div className="relative z-10 w-full max-w-2xl max-h-[90vh] mx-4 flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className="relative z-10 w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] md:mx-4 flex flex-col min-h-0 md:rounded-xl bg-white dark:bg-gray-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+          {/* Mobile close header */}
+          <div className="flex items-center h-11 px-2 border-b border-gray-100 dark:border-gray-800 md:hidden">
+            <button onClick={onClose} className="p-2 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <span className="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-gray-100 pr-8">Post</span>
+          </div>
           <div className="p-4">
             {repostHeader}
             {authorHeader}

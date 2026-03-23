@@ -8,7 +8,7 @@ import { canCreateMiniEvent } from "@/lib/roles";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isSidebarCollapsed: isCollapsed, isMobileMenuOpen, closeMobileMenu } = useSidebar();
+  const { isSidebarCollapsed: isCollapsed } = useSidebar();
   const { profile } = useAuth();
 
   // Determine whether to show "Host" (can create events) or "Become a Host" (fan)
@@ -61,20 +61,10 @@ export default function Sidebar() {
   ];
 
   return (
-    <>
-      {/* Mobile Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300
-        ${isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-        onClick={closeMobileMenu}
-      ></div>
-
-      {/* Sidebar */}
       <div
         className={`${
           isCollapsed ? "w-64 md:w-20" : "w-64"
-        } bg-white h-screen fixed left-0 top-16 flex-col py-4 border-transparent transition-all duration-300 z-50 flex overflow-hidden
-        ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+        } bg-white h-screen fixed left-0 top-16 flex-col py-4 border-transparent transition-all duration-300 z-50 hidden md:flex overflow-hidden`}
       >
         {/* Navigation Menu */}
         <nav className={`flex flex-col gap-2 w-full px-2 transition-all duration-300 ${isCollapsed ? "md:px-[14px]" : ""}`}>
@@ -84,7 +74,6 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={closeMobileMenu}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg overflow-hidden transition-colors ${
                   isActive
                     ? "bg-[#FF7927] text-white"
@@ -100,6 +89,5 @@ export default function Sidebar() {
           })}
         </nav>
       </div>
-    </>
   );
 }

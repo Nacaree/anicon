@@ -63,7 +63,7 @@ export function PortfolioCard({ item, isOwner = false, onDelete, onEdit, onClick
         >
           <button
             onClick={() => { setMenuOpen(!menuOpen); setConfirmDelete(false); }}
-            className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70 transition-colors"
+            className="bg-black/50 text-white p-2.5 rounded-full hover:bg-black/70 transition-colors"
           >
             <MoreVertical className="w-4 h-4" />
           </button>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import PromotedEvents from "@/components/events/PromotedEvents";
 import EventTimeline from "@/components/events/EventTimeline";
 import EventsCategorySection from "@/components/events/EventsCategorySection";
@@ -89,7 +90,7 @@ export default function EventsPage() {
       <Sidebar />
       <Header />
 
-      <div className={`${sidebarOffset} pt-16 transition-all duration-300`}>
+      <div className={`${sidebarOffset} pt-16 pb-16 md:pb-0 transition-all duration-300`}>
         {/* Promoted Events — only events flagged as is_promoted in the database */}
         <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
           <PromotedEvents events={events.filter(e => e.isPromoted).slice(0, 2)} loading={loading} />
@@ -194,6 +195,7 @@ export default function EventsPage() {
           />
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

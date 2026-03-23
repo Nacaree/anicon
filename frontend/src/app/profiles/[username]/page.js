@@ -7,6 +7,7 @@ import { profileApi, creatorApi } from '@/lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import { useSidebar } from '@/context/SidebarContext';
 import { SupportLinksDisplay } from '@/components/creator/SupportLinksDisplay';
 import { PortfolioGrid } from '@/components/creator/PortfolioGrid';
@@ -134,7 +135,7 @@ export default function ProfilePage() {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
-        <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+        <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
           <Header />
           <div className="animate-pulse">
             <div className="h-[320px] md:h-[400px] bg-muted" />
@@ -149,6 +150,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        <BottomNav />
       </div>
     );
   }
@@ -157,12 +159,13 @@ export default function ProfilePage() {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
-        <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+        <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
           <Header />
           <div className="max-w-[940px] mx-auto px-4 text-center py-20">
             <p className="text-muted-foreground text-lg">{error || 'Profile not found'}</p>
           </div>
         </div>
+        <BottomNav />
       </div>
     );
   }
@@ -170,14 +173,14 @@ export default function ProfilePage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
+      <div className={`flex-1 pb-16 md:pb-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-18' : 'md:ml-60'}`}>
         <Header />
         <div className="space-y-0">
 
           {/* Banner — spans full width like Facebook cover photo */}
           <div
             ref={bannerRef}
-            className={`relative h-[320px] md:h-[400px] overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`relative h-50 sm:h-80 md:h-100 overflow-hidden bg-muted ${repositioning ? 'cursor-grab active:cursor-grabbing' : ''}`}
             onMouseDown={repositioning ? handleDragStart : undefined}
             onTouchStart={repositioning ? handleDragStart : undefined}
           >
@@ -239,18 +242,18 @@ export default function ProfilePage() {
           <div className="max-w-[940px] mx-auto px-4">
 
             {/* Avatar + Name row — avatar overlaps the banner */}
-            <div className="flex items-start justify-between pb-4">
-              <div className="flex gap-5">
-                <div className="shrink-0 -mt-[60px] size-[200px] rounded-full overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.15)]">
-                  <Avatar className="!size-[200px]">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between pb-4">
+              <div className="flex flex-col items-center md:flex-row md:items-start gap-3 md:gap-5">
+                <div className="shrink-0 -mt-7.5 sm:-mt-12.5 md:-mt-15 size-25 sm:size-35 md:size-50 rounded-full overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.15)]">
+                  <Avatar className="!size-full">
                     <AvatarImage src={profile.avatarUrl} alt={profile.displayName} className="object-cover" />
                     <AvatarFallback className="text-3xl bg-muted">{initials}</AvatarFallback>
                   </Avatar>
                 </div>
-                <div className="pt-4 space-y-1.5">
+                <div className="pt-2 md:pt-4 space-y-1.5 text-center md:text-left">
                   <div>
-                    <div className="flex items-center gap-2.5">
-                      <h1 className="text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
+                    <div className="flex items-center justify-center md:justify-start gap-2.5">
+                      <h1 className="text-[22px] sm:text-[28px] font-bold leading-tight">{profile.displayName || profile.username}</h1>
                       <RoleBadge roles={profile.roles} />
                     </div>
                     <p className="text-muted-foreground mt-0.5">@{profile.username}</p>
@@ -281,7 +284,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Action buttons — Edit Profile for owner, Follow for visitors */}
-              <div className="pt-5">
+              <div className="pt-2 md:pt-5 w-full md:w-auto flex justify-center md:justify-end">
                 {isOwner ? (
                   <Link href="/settings/creator">
                     <Button
@@ -304,7 +307,7 @@ export default function ProfilePage() {
               {/* Bio + meta info */}
               <div className="space-y-3">
                 {profile.bio && (
-                  <p className="text-foreground">{profile.bio}</p>
+                  <p className="text-foreground text-center md:text-left">{profile.bio}</p>
                 )}
 
                 {/* Social links */}
@@ -355,6 +358,7 @@ export default function ProfilePage() {
 
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }
