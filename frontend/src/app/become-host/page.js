@@ -165,7 +165,7 @@ export default function BecomeHostPage() {
         }
       });
 
-      const result = await influencerApi.submitApplication({
+      await influencerApi.submitApplication({
         idCardImageUrl,
         socialProofLinks,
         followerCount: parseInt(followerCount, 10),
@@ -173,12 +173,17 @@ export default function BecomeHostPage() {
         contentLink: contentLink || null,
       });
 
-      setApplication(result);
-      // Refresh profile so AuthContext picks up the new influencerStatus
+      // Refresh profile so AuthContext picks up the new influencer role
       await fetchProfile();
+      // Redirect to homepage with a success toast
+      router.push('/');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('anicon-success', {
+          detail: { message: "You're now an Influencer! You can host mini-events." },
+        }));
+      }, 300);
     } catch (err) {
       setError(err.message || 'Failed to submit application');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -203,33 +208,6 @@ export default function BecomeHostPage() {
             <Link href="/host/create">
               <Button className="rounded-full hover:scale-[1.02] active:scale-[0.98] transition-all">
                 Create an Event
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Approved — show success screen with CTA to create an event
-  const isApproved = application?.status === 'approved';
-  if (isApproved) {
-    return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-[72px]' : 'ml-[240px]'}`}>
-          <Header />
-          <div className="max-w-2xl mx-auto px-6 pt-24 pb-6 text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
-              <CheckCircle className="w-10 h-10 text-green-500" />
-            </div>
-            <h1 className="text-2xl font-bold">You're now an Influencer!</h1>
-            <p className="text-muted-foreground">
-              Your application has been approved. You can now create free mini-events for the anime community.
-            </p>
-            <Link href="/host/create">
-              <Button className="rounded-full px-8 hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_4px_20px_rgba(255,121,39,0.4)]">
-                Create Your First Event
               </Button>
             </Link>
           </div>

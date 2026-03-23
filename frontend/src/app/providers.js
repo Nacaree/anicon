@@ -6,6 +6,7 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { PostModalProvider } from '@/context/PostModalContext';
 import AuthGateModal from '@/components/AuthGateModal';
 import GlobalErrorToast from '@/components/GlobalErrorToast';
+import GlobalSuccessToast from '@/components/GlobalSuccessToast';
 
 export function Providers({ children }) {
   return (
@@ -16,6 +17,7 @@ export function Providers({ children }) {
             {children}
             <AuthGateModal />
             <GlobalErrorToast />
+            <GlobalSuccessToast />
           </PostModalProvider>
         </SidebarProvider>
       </AuthGateProvider>
