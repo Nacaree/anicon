@@ -42,6 +42,7 @@ export default function BecomeHostPage() {
   const [selectedEventTypes, setSelectedEventTypes] = useState([]);
   const [contentLink, setContentLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -174,17 +175,17 @@ export default function BecomeHostPage() {
         contentLink: contentLink || null,
       });
 
-      // Hard refresh to /host/create so the full page reload picks up the new
-      // influencer role from the server (client-side router.push doesn't reliably
-      // re-evaluate auth guards after a role change within the same session).
-      window.location.href = '/host/create';
+      // Signal success — the useEffect guard (lines 53-57) will detect the new
+      // influencer role after React commits the profile state update and
+      // automatically router.push('/host/create'). No manual navigation needed.
+      setSuccess(true);
     } catch (err) {
       setError(err.message || 'Failed to submit application');
       setSubmitting(false);
     }
   };
 
-  if (authLoading || loadingApp) return null;
+  if (authLoading || loadingApp || success) return null;
 
   const roles = profile?.roles || [];
 
