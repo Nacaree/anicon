@@ -174,15 +174,10 @@ export default function BecomeHostPage() {
         contentLink: contentLink || null,
       });
 
-      // Refresh profile so AuthContext picks up the new influencer role
-      await fetchProfile();
-      // Redirect to event creation page now that user has influencer role
-      router.push('/host/create');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('anicon-success', {
-          detail: { message: "You're now an Influencer! You can host mini-events." },
-        }));
-      }, 300);
+      // Hard refresh to /host/create so the full page reload picks up the new
+      // influencer role from the server (client-side router.push doesn't reliably
+      // re-evaluate auth guards after a role change within the same session).
+      window.location.href = '/host/create';
     } catch (err) {
       setError(err.message || 'Failed to submit application');
       setSubmitting(false);
