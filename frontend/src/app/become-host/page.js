@@ -175,9 +175,10 @@ export default function BecomeHostPage() {
         contentLink: contentLink || null,
       });
 
-      // Signal success — the useEffect guard (lines 53-57) will detect the new
-      // influencer role after React commits the profile state update and
-      // automatically router.push('/host/create'). No manual navigation needed.
+      // Fetch updated profile so AuthContext picks up the new influencer role
+      await fetchProfile();
+      // The useEffect guard (lines 53-57) will detect isInfluencer(profile.roles)
+      // and router.push('/host/create') after React commits the state update.
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Failed to submit application');
