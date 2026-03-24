@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { userEventsApi } from '@/lib/api';
-import EventCard from '@/components/EventCard';
+import EventCard from '@/components/events/EventCard';
 
 /**
  * Grid of events the user has hosted/organized.

@@ -15,7 +15,7 @@ import PostFeed from "@/components/posts/PostFeed";
 import BottomNav from "@/components/BottomNav";
 
 const FeaturedEvents = dynamic(
-  () => import("@/components/FeaturedEvents"),
+  () => import("@/components/events/FeaturedEvents"),
   {
     ssr: false,
     loading: () => (
@@ -39,7 +39,7 @@ const FeaturedEvents = dynamic(
 );
 
 const EventSections = dynamic(
-  () => import("@/components/EventSections"),
+  () => import("@/components/events/EventSections"),
   {
     ssr: false,
     loading: () => (

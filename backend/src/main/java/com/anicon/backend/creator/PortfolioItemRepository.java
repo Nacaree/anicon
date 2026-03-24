@@ -10,6 +10,4 @@ import org.springframework.stereotype.Repository;
 public interface PortfolioItemRepository extends JpaRepository<PortfolioItem, UUID> {
 
     List<PortfolioItem> findByUserIdOrderByDisplayOrderAsc(UUID userId);
-
-    boolean existsByIdAndUserId(UUID id, UUID userId);
 }
