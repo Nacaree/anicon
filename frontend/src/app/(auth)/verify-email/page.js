@@ -10,8 +10,8 @@ function VerifyEmailContent() {
   const email = searchParams.get('email') || '';
   const { verifyOtp, resendVerification } = useAuth();
 
-  // 6-digit OTP code state
-  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  // 8-digit OTP code state (Supabase sends 8-digit codes)
+  const [digits, setDigits] = useState(['', '', '', '', '', '', '', '']);
   const inputRefs = useRef([]);
 
   const [isVerifying, setIsVerifying] = useState(false);
@@ -45,7 +45,7 @@ function VerifyEmailContent() {
     setVerifyError('');
 
     // Auto-advance to next input when a digit is entered
-    if (digit && index < 5) {
+    if (digit && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -53,18 +53,18 @@ function VerifyEmailContent() {
   // Handle paste — fill all 6 inputs from clipboard
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8);
     if (!pasted) return;
 
     const newDigits = [...digits];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       newDigits[i] = pasted[i] || '';
     }
     setDigits(newDigits);
     setVerifyError('');
 
     // Focus the input after the last pasted digit
-    const focusIndex = Math.min(pasted.length, 5);
+    const focusIndex = Math.min(pasted.length, 7);
     inputRefs.current[focusIndex]?.focus();
   };
 
@@ -76,7 +76,7 @@ function VerifyEmailContent() {
     // Submit on Enter if all digits are filled
     if (e.key === 'Enter') {
       const code = digits.join('');
-      if (code.length === 6) {
+      if (code.length === 8) {
         handleVerify();
       }
     }
@@ -85,7 +85,7 @@ function VerifyEmailContent() {
   // Verify the OTP code
   const handleVerify = async () => {
     const code = digits.join('');
-    if (code.length !== 6 || !email) return;
+    if (code.length !== 8 || !email) return;
 
     setIsVerifying(true);
     setVerifyError('');
@@ -114,7 +114,7 @@ function VerifyEmailContent() {
       setResendSuccess(true);
       setCountdown(60);
       // Clear any old code
-      setDigits(['', '', '', '', '', '']);
+      setDigits(['', '', '', '', '', '', '', '']);
       setVerifyError('');
       inputRefs.current[0]?.focus();
     } catch (err) {
@@ -125,7 +125,7 @@ function VerifyEmailContent() {
   };
 
   const code = digits.join('');
-  const isCodeComplete = code.length === 6;
+  const isCodeComplete = code.length === 8;
 
   return (
     <div className="text-center">
@@ -138,7 +138,7 @@ function VerifyEmailContent() {
 
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify your email</h2>
         <p className="text-gray-600 mb-1">
-          We sent a 6-digit code to
+          We sent an 8-digit code to
         </p>
         {email && (
           <p className="font-medium text-gray-900 mb-4">{email}</p>
@@ -148,8 +148,8 @@ function VerifyEmailContent() {
         </p>
       </div>
 
-      {/* 6-digit OTP input */}
-      <div className="flex justify-center gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
+      {/* 8-digit OTP input */}
+      <div className="flex justify-center gap-1.5 sm:gap-2 mb-6" onPaste={handlePaste}>
         {digits.map((digit, index) => (
           <input
             key={index}
@@ -161,7 +161,7 @@ function VerifyEmailContent() {
             value={digit}
             onChange={(e) => handleDigitChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
-            className={`w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold border-2 rounded-xl outline-none transition-all ${
+            className={`w-9 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-2xl font-bold border-2 rounded-lg sm:rounded-xl outline-none transition-all ${
               verifyError
                 ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
                 : digit

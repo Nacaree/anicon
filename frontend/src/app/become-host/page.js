@@ -176,8 +176,8 @@ export default function BecomeHostPage() {
 
       // Refresh profile so AuthContext picks up the new influencer role
       await fetchProfile();
-      // Redirect to homepage with a success toast
-      router.push('/');
+      // Redirect to event creation page now that user has influencer role
+      router.push('/host/create');
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('anicon-success', {
           detail: { message: "You're now an Influencer! You can host mini-events." },

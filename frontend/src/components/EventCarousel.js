@@ -136,7 +136,7 @@ export default function EventCarousel({
       {/* Left navigation button — fades in on hover, hidden at scroll start */}
       <button
         onClick={() => scroll("left")}
-        className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
+        className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -ml-5 ${
           showButtons && canScrollPrev
             ? "opacity-100"
             : "opacity-0 pointer-events-none"
@@ -161,7 +161,7 @@ export default function EventCarousel({
       {/* Right navigation button — fades in on hover, hidden at scroll end */}
       <button
         onClick={() => scroll("right")}
-        className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
+        className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg hidden sm:flex items-center justify-center transition-opacity duration-300 hover:bg-gray-50 -mr-5 ${
           showButtons && canScrollNext
             ? "opacity-100"
             : "opacity-0 pointer-events-none"
