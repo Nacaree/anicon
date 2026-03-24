@@ -189,7 +189,7 @@ export default function FeaturedEvents() {
           }
         />
         {/* Dark overlay — dims the background so cards remain readable */}
-        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-black/65 sm:bg-black/45" />
 
         {/* Skeleton shimmer while events are loading */}
         {loading && (
