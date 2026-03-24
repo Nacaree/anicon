@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import EventsPageCard from "./EventsPageCard";
-import EventCarousel from "@/components/EventCarousel";
+import EventCarousel from "@/components/events/EventCarousel";
 
 export default function EventsCategorySection({
   title,
