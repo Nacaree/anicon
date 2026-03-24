@@ -197,7 +197,7 @@ export default function FeaturedEvents() {
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-100 md:w-125 lg:w-150 bg-white/20 animate-pulse shrink-0"
+                className="rounded-xl h-40 sm:h-48 md:h-64 w-[280px] sm:w-100 md:w-125 lg:w-150 bg-white/20 animate-pulse shrink-0"
               />
             ))}
           </div>

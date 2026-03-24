@@ -13,7 +13,7 @@ export default function FeaturedEventCard({
   const monthLabel = month ? month.split(" ")[0] : null;
 
   const card = (
-    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0">
+    <div className="relative rounded-xl h-40 sm:h-48 md:h-64 w-[280px] sm:w-[400px] md:w-[500px] lg:w-[600px] overflow-hidden group cursor-pointer flex-shrink-0">
       {/* object-top keeps subjects visible on the wide/short landscape crop */}
       {imageUrl ? (
         <img

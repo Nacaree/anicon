@@ -29,7 +29,7 @@ const FeaturedEvents = dynamic(
         <div className="relative rounded-xl overflow-hidden p-6 bg-gray-200 h-48 sm:h-56 md:h-72">
           <div className="flex gap-4 overflow-hidden">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-xl h-40 sm:h-48 md:h-64 w-full sm:w-100 md:w-125 lg:w-150 bg-gray-300/50 shrink-0" />
+              <div key={i} className="rounded-xl h-40 sm:h-48 md:h-64 w-[280px] sm:w-100 md:w-125 lg:w-150 bg-gray-300/50 shrink-0" />
             ))}
           </div>
         </div>
