@@ -149,6 +149,11 @@ class AllEventsScraper(BaseScraper):
                 if not post_url:
                     continue
 
+                # Scroll card into viewport so Vue's IntersectionObserver
+                # fires and loads the real image URL (replaces base64 placeholder)
+                card.scroll_into_view_if_needed()
+                page.wait_for_timeout(300)
+
                 # Extract cover image using fallback cascade
                 image_url = self._extract_image_url(card)
                 # Normalize relative URLs to absolute

@@ -14,7 +14,10 @@ import sys
 
 from database import get_client, upsert_event, is_already_scraped
 from ai_extractor import extract_event
-from scrapers import AllEventsScraper, KawaiiConScraper, CJCCScraper, BestOfPPScraper
+from scrapers import (
+    AllEventsScraper, KawaiiConScraper, CJCCScraper, BestOfPPScraper,
+    EventbriteScraper, MeetupScraper,
+)
 
 # Configure logging — structured output for Railway logs
 logging.basicConfig(
@@ -85,6 +88,8 @@ def main():
         KawaiiConScraper(),
         CJCCScraper(),
         BestOfPPScraper(),
+        EventbriteScraper(),
+        MeetupScraper(),
     ]
 
     total_scraped = 0

@@ -46,7 +46,7 @@ Respond with JSON only. Schema:
   "event_time": "HH:MM" or null,
   "end_time": "HH:MM" or null,
   "location": string or null,
-  "tags": [string] (relevant tags like "anime", "cosplay", "japanese", etc.)
+  "tags": [string] (relevant category tags like "music", "food", "business", "sports", "art", "nightlife", "workshop", "anime", "cosplay", etc.)
 }}
 """
 

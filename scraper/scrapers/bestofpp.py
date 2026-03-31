@@ -1,6 +1,6 @@
 """
 Best of Phnom Penh (bestofpp.com) scraper — server-rendered calendar.
-Covers all event types, so we keyword-filter before sending to Gemini.
+Scrapes all event types from the calendar page.
 Uses requests + BeautifulSoup.
 """
 
@@ -9,7 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import BaseScraper, RawPost
-from config import BESTOFPP_KEYWORDS
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +27,8 @@ class BestOfPPScraper(BaseScraper):
 
         try:
             page_posts = self._scrape_page(url)
-            # Filter for anime/Japanese content before AI extraction
-            filtered = [p for p in page_posts if self._matches_keywords(p.text)]
-            posts.extend(filtered)
-            logger.info(
-                f"BestOfPP: scraped {len(page_posts)} items, "
-                f"{len(filtered)} matched anime/Japanese keywords"
-            )
+            posts.extend(page_posts)
+            logger.info(f"BestOfPP: scraped {len(page_posts)} items")
         except requests.RequestException as e:
             logger.warning(f"BestOfPP: failed to fetch {url} — {e}")
         except Exception as e:
@@ -94,8 +88,3 @@ class BestOfPPScraper(BaseScraper):
                 logger.debug(f"BestOfPP: failed to parse event — {e}")
 
         return posts
-
-    def _matches_keywords(self, text: str) -> bool:
-        """Check if text contains any anime/Japanese-related keywords."""
-        text_lower = text.lower()
-        return any(kw in text_lower for kw in BESTOFPP_KEYWORDS)
